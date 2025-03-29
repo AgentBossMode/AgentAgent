@@ -5,6 +5,23 @@ import logging
 import json
 from urllib.parse import urljoin
 
+info_dict= {
+    "langchain" : {
+        "url": "https://python.langchain.com/",
+        "target_file": "visited_urls_langchain.json",
+        "blacklisted_prefix_dict": ["https://python.langchain.com/v0.1", "https://python.langchain.com/v0.2", "https://python.langchain.com/api_reference"]
+    },
+    "langgraph": {
+        "url": "https://langchain-ai.github.io/langgraph/",
+        "target_file": "visited_urls_langgraph.json",
+        "blacklisted_prefix_dict": ["https://langchain-ai.github.io/langgraph/langgraphjs"]
+    },
+    "langsmith": {
+        "url": "https://docs.smith.langchain.com/",
+        "target_file": "visited_urls_langsmith.json",
+        "blacklisted_prefix_dict": ["https://docs.smith.langchain.com/reference/"]
+    }
+}
 
 # Set up the logger
 logging.basicConfig(
@@ -46,12 +63,15 @@ async def scrape_links(url, baseurl, visited):
                         if start in visited:
                             continue
                         else:
-                            link = start                  
-                            
-                    if link.__contains__("/v0.1") or link.__contains__("/v0.2") or link.startswith("https://python.langchain.com/api_reference"):
-                        continue
-
-                    if link.startswith(baseurl) and link not in visited:
+                            link = start
+                    
+                    is_link_usable = True
+                    for blacklisted_link in info_dict[key]["blacklisted_prefix_dict"]:
+                        if link.startswith(blacklisted_link):
+                            is_link_usable = False
+                            break
+        
+                    if is_link_usable and link.startswith(baseurl) and link not in visited:
                         links.add(link)
                         
         tasks = [scrape_links(link, baseurl, visited) for link in links]
@@ -65,17 +85,20 @@ async def scrape_links(url, baseurl, visited):
     
     
     return links
+    
+key = "langgraph"
 
 async def main_task():
-    start_url = "https://python.langchain.com/"
-    base_url = "https://python.langchain.com/"
+    base_url = info_dict[key]["url"]
+    start_url = base_url
+    
     visited_urls = set()
 
     logger.info("Starting the web scraping process...")
     await scrape_links(start_url, base_url, visited_urls)
     
     logger.info("Collected Links:")
-    with open("visited_urls_langchain.json", "w") as f:
+    with open(info_dict[key]["target_file"], "w") as f:
         visited_list = list(visited_urls)
         visited_list.sort()
         json.dump(visited_list, f)
