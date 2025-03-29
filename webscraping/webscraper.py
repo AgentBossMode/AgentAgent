@@ -26,7 +26,7 @@ async def scrape_links(url, baseurl, visited):
     links = set()
 
     try:
-        logger.info(f"Fetching URL: {url}")
+        logger.debug(f"Fetching URL: {url}")
         timeout = aiohttp.ClientTimeout(total=10)  # Set timeout to 3 seconds
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout= timeout) as response:
@@ -42,11 +42,14 @@ async def scrape_links(url, baseurl, visited):
                     link = urljoin(url, link)
                     if link.__contains__('#'):
                         [start, end] = link.split('#')
-                        logger.info(f"start is {start} and end is {end}")
+                        logger.debug(f"start is {start} and end is {end}")
                         if start in visited:
                             continue
                         else:
                             link = start                  
+                            
+                    if link.__contains__("/v0.1") or link.__contains__("/v0.2") or link.startswith("https://python.langchain.com/api_reference"):
+                        continue
 
                     if link.startswith(baseurl) and link not in visited:
                         links.add(link)
@@ -55,7 +58,7 @@ async def scrape_links(url, baseurl, visited):
         results = await asyncio.gather(*tasks)
         for result in results:
             links.update(result)
-        logger.info(f'Links found for {url}: {links}')
+        logger.debug(f'Links found for {url}: {links}')
         return links
     except Exception as e:
         logger.error(f"An error occurred while processing {url}: {e}")
@@ -64,16 +67,18 @@ async def scrape_links(url, baseurl, visited):
     return links
 
 async def main_task():
-    start_url = "https://langchain-ai.github.io/langgraph/"
-    base_url = "https://langchain-ai.github.io/langgraph/"
+    start_url = "https://python.langchain.com/"
+    base_url = "https://python.langchain.com/"
     visited_urls = set()
 
     logger.info("Starting the web scraping process...")
     await scrape_links(start_url, base_url, visited_urls)
     
     logger.info("Collected Links:")
-    with open("visited_urls_langgraph.json", "w") as f:
-        json.dump(list(visited_urls), f)
+    with open("visited_urls_langchain.json", "w") as f:
+        visited_list = list(visited_urls)
+        visited_list.sort()
+        json.dump(visited_list, f)
 
 if __name__ == "__main__":
     try:
