@@ -20,6 +20,16 @@ info_dict= {
         "url": "https://docs.smith.langchain.com/",
         "target_file": "visited_urls_langsmith.json",
         "blacklisted_prefix_dict": ["https://docs.smith.langchain.com/reference/"]
+    },
+    "promptingguide": {
+        "url": "https://www.promptingguide.ai/",
+        "target_file": "visited_urls_promptguide.json",
+        "blacklisted_prefix_dict": ["https://www.promptingguide.ai/models"]
+    },
+    "mcp": {
+        "url": "https://modelcontextprotocol.io/",
+        "target_file": "visited_urls_mcp.json",
+        "blacklisted_prefix_dict": []
     }
 }
 
@@ -86,7 +96,7 @@ async def scrape_links(url, baseurl, visited):
     
     return links
     
-key = "langgraph"
+key = "mcp"
 
 async def main_task():
     base_url = info_dict[key]["url"]
