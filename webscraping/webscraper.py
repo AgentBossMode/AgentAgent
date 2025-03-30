@@ -9,12 +9,16 @@ info_dict= {
     "langchain" : {
         "url": "https://python.langchain.com/",
         "target_file": "visited_urls_langchain.json",
-        "blacklisted_prefix_dict": ["https://python.langchain.com/v0.1", "https://python.langchain.com/v0.2", "https://python.langchain.com/api_reference"]
+        "blacklisted_prefix_dict": ["https://python.langchain.com/v0.1",
+                                    "https://python.langchain.com/v0.2",
+                                    "https://python.langchain.com/api_reference",
+                                    "https://python.langchain.com/docs/contributing",
+                                    "https://python.langchain.com/docs/versions/migrating_chains"]
     },
     "langgraph": {
         "url": "https://langchain-ai.github.io/langgraph/",
         "target_file": "visited_urls_langgraph.json",
-        "blacklisted_prefix_dict": ["https://langchain-ai.github.io/langgraph/langgraphjs"]
+        "blacklisted_prefix_dict": ["https://langchain-ai.github.io/langgraph/langgraphjs", "https://langchain-ai.github.io/langgraph/cloud"]
     },
     "langsmith": {
         "url": "https://docs.smith.langchain.com/",
@@ -96,7 +100,7 @@ async def scrape_links(url, baseurl, visited):
     
     return links
     
-key = "mcp"
+key = "langgraph"
 
 async def main_task():
     base_url = info_dict[key]["url"]
@@ -110,8 +114,9 @@ async def main_task():
     logger.info("Collected Links:")
     with open(info_dict[key]["target_file"], "w") as f:
         visited_list = list(visited_urls)
-        visited_list.sort()
-        json.dump(visited_list, f)
+        unique_urls = list(set(x.rstrip('/') for x in visited_list))
+        unique_urls.sort()
+        json.dump(unique_urls, f)
 
 if __name__ == "__main__":
     try:
