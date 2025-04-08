@@ -12,13 +12,10 @@ class AgentRelation(BaseModel):
     """Represents a relation between agent components."""
     source: str = Field(description="Source component name")
     target: str = Field(description="Target component name")
-    relation_type: str = Field(description="Type of relation")
+    typeOfRelation: Literal["conditional", "fixed"] = Field(description="Type of relation between components")
 
 
 class AgentArchitecture(BaseModel):
-    architectureName: str = Field(description="Choice of architecture type")
-    justification: str = Field(description="Justification for choosing this architecture")
-    tailored_code: str = Field(description="Code tailored to the architecture")
     agentComponents: List[AgentComponent] = Field(description="List of agent components")
     agentRelations: List[AgentRelation] = Field(description="List of agent relations")
 
