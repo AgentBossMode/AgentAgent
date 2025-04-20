@@ -72,7 +72,6 @@ def fetch_documents(url: str) -> str:
     
 agent_architecture_urls = ["https://langchain-ai.github.io/langgraph/tutorials/multi_agent/multi-agent-collaboration",
  "https://langchain-ai.github.io/langgraph/tutorials/multi_agent/agent_supervisor",
- "https://langchain-ai.github.io/langgraph/tutorials/multi_agent/hierarchical_agent_teams",
  "https://langchain-ai.github.io/langgraph/tutorials/plan-and-execute/plan-and-execute",
  "https://langchain-ai.github.io/langgraph/tutorials/self-discover/self-discover",
  "https://langchain-ai.github.io/langgraph/tutorials/multi_agent/hierarchical_agent_teams"
@@ -166,7 +165,7 @@ Provide your evaluation in the following structured format:
 
 5. Relevance Score (1-10) : Provide a numerical score (1 being not relevant, 10 being highly relevant) based on the alignment between the architecture and the user requirements.
 
-6. Justification for the Score: A brief rationale (5-10 lines) explaining why you gave this score, citing specific features or misalignments with the user requirements.
+6. Justification for the Score: A brief rationale (5-10 lines) explaining why you gave this score, citing specific advantages or misalignments with the user requirements.
 
 7. Tailored Design Using the Architecture for the User Requirements: Propose an implementation of the architecture that aligns with the user’s objectives and responsibilities. Be precise and action-focused in detailing how it can meet their needs.
 """
@@ -264,12 +263,12 @@ def agent_kernel_builder(state: AgentBuilderState):
     
 
 CODE_TO_YAML_PROMPT = PromptTemplate.from_template("""
-You are tasked with converting the following stategraph comPilation code into a YAML. 
+You are tasked with converting the following stategraph compilation code into a YAML. 
+
+NOTE: the YAML should always contain START and END nodes.
 
 The code is as follows:
 {code_snippet}
-
-Here is how the YAML schema looks like:
 
 OUTPUT: YAML. Do not include any other text or explanation. dO not include any code blocks. DONT ADD ```YAML Do not include any comments. Do not include any other text or explanation. Just the YAML.
 
@@ -300,15 +299,16 @@ stategraph:
       fields:
         llm: str
   nodes:
+    - name: START
+        function: null
+    - name: END
+        function: null
     - name: node_1
       function: node_1_function
-      reducer: default
     - name: node_2
       function: node_2_function
-      reducer: add
     - name: node_3
       function: node_3_function
-      reducer: default
   edges:
     - from: START
       to: node_1
@@ -356,12 +356,11 @@ def code_to_yaml_node(state: AgentBuilderState):
         "yaml_code": yaml_code_ouptut.content,
     }
 
-
-
 def yaml_to_tree_positions(yaml_data):
     reactflow = {"nodes": [], "edges": []}
     nodes = yaml_data.get("nodes", [])
     edges = yaml_data.get("edges", [])
+    conditional_edges = yaml_data.get("conditional_edges", [])
 
     # Create a mapping of edges to track parent-child relationships
     children_map = {}
@@ -372,11 +371,25 @@ def yaml_to_tree_positions(yaml_data):
             children_map[parent] = []
         children_map[parent].append(child)
 
+    # Include conditional edges in the children map
+    for cond_edge in conditional_edges:
+        parent = cond_edge["from"]
+        mapping = cond_edge["mapping"]
+
+        for condition, child in mapping.items():
+            if parent not in children_map:
+                children_map[parent] = []
+            children_map[parent].append(child)
+
     # Helper function to assign positions recursively
-    def assign_positions(node_id, depth, x_offset, x_step):
+    def assign_positions(node_id, depth, x_offset, x_step, visited):
+        # Prevent infinite recursion by checking if the node is already visited
+        if node_id in visited:
+            return
+        visited.add(node_id)
+
         if node_id not in node_positions:
             node_positions[node_id] = {"x": x_offset, "y": depth * y_spacing}
-
             # Add node to ReactFlow nodes
             node = next((n for n in nodes if n["name"] == node_id), None)
             if node:
@@ -390,17 +403,14 @@ def yaml_to_tree_positions(yaml_data):
                     "position": {"x": x_offset, "y": depth * y_spacing}
                 })
 
-            # Recurse to children
-            if node_id in children_map:
-                num_children = len(children_map[node_id])
-                child_x_offset = x_offset - (x_step * (num_children - 1)) / 2
-                for index, child_id in enumerate(children_map[node_id]):
-                    assign_positions(
-                        child_id,
-                        depth + 1,
-                        child_x_offset + (index * x_step),
-                        x_step // 2
-                    )
+        # Recurse to children
+        if node_id in children_map:
+            num_children = len(children_map[node_id])
+            child_x_offset = x_offset - (x_step * (num_children - 1)) / 2
+            for index, child_id in enumerate(children_map[node_id]):
+                assign_positions(
+                    child_id, depth + 1, child_x_offset + (index * x_step), x_step // 2, visited
+                )
 
     # Root node position configuration
     y_spacing = 150  # Vertical distance between levels
@@ -408,15 +418,31 @@ def yaml_to_tree_positions(yaml_data):
     node_positions = {}
 
     # Assume START is the root node
-    assign_positions("START", 0, 0, x_step)
+    visited_nodes = set()  # Track visited nodes to avoid infinite loops
+    assign_positions("START", 0, 0, x_step, visited_nodes)
 
-    # Add edges to ReactFlow
+    # Add regular edges to ReactFlow
     for edge in edges:
         reactflow["edges"].append({
             "id": f'{edge["from"]}_to_{edge["to"]}',
             "source": edge["from"],
             "target": edge["to"]
         })
+
+    # Add conditional edges to ReactFlow
+    for cond_edge in conditional_edges:
+        parent = cond_edge["from"]
+        routing_function = cond_edge["routing_function"]
+        mapping = cond_edge["mapping"]
+
+        for condition, target in mapping.items():
+            reactflow["edges"].append({
+                "id": f'{parent}_to_{target}_condition_{condition}',
+                "source": parent,
+                "target": target,
+                "animated": True,  # Make edge animated
+                "label": f'{routing_function} [{condition}]'
+            })
 
     return reactflow
 
