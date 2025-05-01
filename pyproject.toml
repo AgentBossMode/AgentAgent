@@ -1,0 +1,22 @@
+[project]
+name = "agentagent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bs4>=0.0.2",
+    "dotenv>=0.9.9",
+    "e2b-code-interpreter>=1.2.1",
+    "html2text>=2025.4.15",
+    "httpx>=0.28.1",
+    "import-ipynb>=0.2",
+    "ipykernel>=6.29.5",
+    "langchain>=0.3.24",
+    "langchain-community>=0.3.23",
+    "langchain-openai>=0.3.14",
+    "langchain-pinecone>=0.2.5",
+    "langgraph>=0.3.34",
+    "openevals>=0.0.19",
+    "pydantic>=2.11.3",
+]
