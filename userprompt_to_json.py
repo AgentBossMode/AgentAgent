@@ -19,7 +19,8 @@ from typing import Annotated
 from typing import NamedTuple
 from experiments.visualization.dict_to_reactflow import dict_to_tree_positions
 from experiments.utils.fetch_docs import fetch_documents
-
+from experiments.phase1_json_dfs import compiler_graph
+# from experiments.code_reflection_agent import final_agent
 
 
 # Set up the logger
@@ -417,7 +418,7 @@ def json_better_node(state: AgentBuilderState):
     # Return the JSON code as the output
     return {
         "messages": [AIMessage(content="Generated updated JSON code!")],
-        "json_code": json_code_ouptut.content,
+        "json_code": formatted_json.content,
         "reactflow_json" : reactflowjson
 
     }
@@ -429,7 +430,8 @@ workflow.add_node("best_architecture", best_architecture)
 workflow.add_node("agent_kernel_builder", agent_kernel_builder)
 workflow.add_node("code_to_json", code_to_json_node)
 workflow.add_node("json_update", json_better_node)
-
+workflow.add_node("json_to_code", compiler_graph)
+# workflow.add_node("reflection", final_agent)
 @workflow.add_node
 def add_tool_message(state: AgentBuilderState):
     
@@ -443,7 +445,9 @@ def add_tool_message(state: AgentBuilderState):
         ]
     }
 
-workflow.add_edge("json_update", END)
+# workflow.add_edge("reflection", END)
+workflow.add_edge("json_to_code", END)
+workflow.add_edge("json_update", "json_to_code")
 workflow.add_edge("code_to_json", "json_update")
 workflow.add_edge("agent_kernel_builder", "code_to_json")
 workflow.add_edge("best_architecture", "agent_kernel_builder")
