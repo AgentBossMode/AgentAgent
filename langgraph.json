@@ -1,0 +1,10 @@
+{
+    "graphs": {
+      "graph_graph" : "./userprompt_to_json.py:infograph"
+    },
+    "python_version": "3.13",
+    "dependencies": [
+      "./"
+    ],
+    "env": ".env"
+  }
