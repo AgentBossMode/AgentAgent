@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# langgraph server files
+*.pckl
+
 # Distribution / packaging
 .Python
 build/

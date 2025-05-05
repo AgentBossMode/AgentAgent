@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "boto3>=1.38.8",
     "bs4>=0.0.2",
     "dotenv>=0.9.9",
     "e2b-code-interpreter>=1.2.1",
@@ -13,10 +14,20 @@ dependencies = [
     "import-ipynb>=0.2",
     "ipykernel>=6.29.5",
     "langchain>=0.3.24",
+    "langchain-anthropic>=0.3.12",
     "langchain-community>=0.3.23",
     "langchain-openai>=0.3.14",
     "langchain-pinecone>=0.2.5",
     "langgraph>=0.3.34",
+    "langgraph-reflection>=0.0.1",
     "openevals>=0.0.19",
     "pydantic>=2.11.3",
+    "pytest>=8.3.5",
+    "requests>=2.32.3",
+]
+
+
+[dependency-groups]
+dev = [
+    "langgraph-cli[inmem]>=0.1.81",
 ]
