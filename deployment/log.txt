@@ -1,0 +1,62 @@
+python agent_deployment.py
+----------------------------------------------------------------------------------------
+Welcome to the AWS Lambda getting started with functions demo.
+----------------------------------------------------------------------------------------
+Checking for IAM role for Lambda...
+INFO: IAM role doc_example_lambda_calculator does not exist.
+INFO: Created role doc_example_lambda_calculator.
+INFO: Attached basic execution policy to role doc_example_lambda_calculator.
+INFO: Giving AWS time to create resources...
+Looking for function doc_example_lambda_calculator...
+INFO: Function doc_example_lambda_calculator does not exist.
+Zipping the Python script into a deployment package...
+...and creating the doc_example_lambda_calculator Lambda function.
+INFO: Created function 'doc_example_lambda_calculator' with ARN: 'arn:aws:lambda:us-east-1:245824310656:function:doc_example_lambda_calculator'.
+----------------------------------------------------------------------------------------
+Let's invoke doc_example_lambda_calculator. This function increments a number.
+Give me a number to increment: 1
+Invoking doc_example_lambda_calculator...
+INFO: Invoked function doc_example_lambda_calculator.
+Incrementing 1 resulted in {'result': 2}
+----------------------------------------------------------------------------------------
+Let's update the function to an arithmetic calculator.
+Press Enter when you're ready.
+Creating a new deployment package...
+...and updating the doc_example_lambda_calculator Lambda function.
+INFO: Waiter UpdateSuccess called GetFunction, got InProgress.
+INFO: Waiter UpdateSuccess called GetFunction, got Successful.
+This function uses an environment variable to control logging level.
+Let's set it to DEBUG to get the most logging.
+Let's invoke doc_example_lambda_calculator. You can invoke these actions:
+1: plus
+2: minus
+3: times
+4: divided-by
+Enter the number of the action you want to take: 2
+You've chosen to invoke 'x minus y'.
+Enter a value for x: 3
+Enter a value for y: 1
+Invoking doc_example_lambda_calculator...
+INFO: Invoked function doc_example_lambda_calculator.
+Calculating 3 minus 1 resulted in {'result': 2}
+Press Enter to see the logs from the call.
+START RequestId: 6bf5fdb2-c1f0-4743-abbd-d2faab22142d Version: $LATEST
+[DEBUG] 2025-05-05T13:16:06.610Z        6bf5fdb2-c1f0-4743-abbd-d2faab22142d    Event: {'action': 'minus', 'x': 3, 'y': 1}
+[INFO]  2025-05-05T13:16:06.610Z        6bf5fdb2-c1f0-4743-abbd-d2faab22142d    3 minus 1 is 2
+END RequestId: 6bf5fdb2-c1f0-4743-abbd-d2faab22142d
+REPORT RequestId: 6bf5fdb2-c1f0-4743-abbd-d2faab22142d  Duration: 17.33 ms      Billed Duration: 18 ms  Memory Size: 128 MB     Max Memory Used: 31 MB  Init Duration: 73.98 ms
+
+That was fun. Shall we do it again? (y/n) n
+----------------------------------------------------------------------------------------
+Do you want to list all of the functions in your account? (y/n) y
+doc_example_lambda_calculator
+        AWS Lambda doc example
+        python3.9: doc_example_lambda_calculator.lambda_handler
+----------------------------------------------------------------------------------------
+Ready to delete the function and role? (y/n) y
+Deleted role doc_example_lambda_calculator.
+Deleted function doc_example_lambda_calculator.
+
+Thanks for watching!
+----------------------------------------------------------------------------------------
+(agentagent) kanishkgupta@Kanishks-MacBook-Air deployment % 

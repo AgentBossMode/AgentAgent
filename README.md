@@ -10,3 +10,9 @@ Or, if you prefer not to use uv:
 ```
 pip install
 ```
+
+2. To run langgraph server, go to root folder and run the following
+
+```
+uv run langgraph dev
+```
