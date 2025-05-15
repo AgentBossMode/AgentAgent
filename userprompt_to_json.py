@@ -342,6 +342,8 @@ Rules for Validation and Update:
 - Start and End Nodes:- The JSON must begin with the __START__ node and conclude with the __END__ node, with correct edges to and from them. Edges into the END node can also be conditional if they meet the above mentioned conditions      
 
 - Node Structure:- Each node entry in the nodes section of the JSON must include the following non-empty fields:- schema_info
+- id
+- schema_info
 - input_schema
 - output_schema
 - description
@@ -361,12 +363,13 @@ Rules for Validation and Update:
 - Schema Requirements:- The final JSON must conform to the schema provided below:
 
 
-Schema for JSON:
+Schema for JSON. Ensure the following schema is followed. No field should be missing for any node or edge:
 - Node Example:
 
 {{
   "code_node": {{
-    "schema_info": "Type: <overall type>",
+    "id" : "<id of the node, similar to name>"
+    "schema_info": "<define the class structure of the state of a node>",
     "input_schema": "<input state object>",
     "output_schema": "<output state object>",
     "description": "<description>",
