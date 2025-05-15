@@ -135,6 +135,42 @@ def code_compiler(state: NodeBuilderState):
     response = llm.invoke([SystemMessage(content=code_compiler_prompt)]  + state["messages"])
     return {"final_code": response.content}
 
+tool_indetification_prompt = """
+Analyze the given Python script and extract insights for all functions decorated with @tool. For each function, determine the following:
+- Detailed Objective: Explain in 1-5 lines what the function is likely designed to do based on the function name and docstring. If the implementation is missing, infer its intended behavior.
+- Function Name: Extract the name of the function.
+- Inputs & Argument Types: Identify any required input arguments along with their expected data types. If the function does not have explicit inputs, infer possible arguments that might be required for full functionality.
+- Output & Type: Describe the expected output of the function and specify its data type. If the return statement is missing, infer the possible output type.
+Example Input:
+@tool
+def get_coolest_cities():
+# Get a list of coolest cities
+    return "nyc, sf"
+
+@tool
+def find_best_food_spots(location):
+# Find top-rated food spots in a given location
+    pass  # Implementation missing
+
+
+Example Output:
+- Function Name: get_coolest_cities
+- Detailed Objective: Returns a predefined list of cities that are considered "cool," such as New York City (NYC) and San Francisco (SF).
+- Inputs & Argument Types: None explicitly defined.
+- Output & Type: Returns a str: "nyc, sf".
+- Function Name: find_best_food_spots
+- Detailed Objective: Likely intended to find top-rated food spots based on a given location. Without an implementation, the exact logic is unclear, but it may use APIs or predefined datasets to fetch recommendations.
+- Inputs & Argument Types: location (str) 
+– likely required to determine where to search for food spots.
+- Output & Type: Possibly a list of recommended places (list[str] or dict with additional details).
+
+"""
+
+def identify_tools(state: NodeBuilderState):
+    """identify the tools to be created"""
+    response = llm.invoke([SystemMessage(content=code_compiler_prompt)]  + state["messages"])
+    return {"final_code": response.content}
+
 ai_node_gen_supervisor = make_supervisor_node(llm, ["prompt_generation", "toolset_generation", "structured_output_generation", "interrupt_generation"])
 
 from langgraph.graph.state import CompiledStateGraph
