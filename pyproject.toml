@@ -18,6 +18,7 @@ dependencies = [
     "langchain>=0.3.24",
     "langchain-anthropic>=0.3.12",
     "langchain-community>=0.3.23",
+    "langchain-google-genai>=2.1.4",
     "langchain-openai>=0.3.14",
     "langchain-pinecone>=0.2.5",
     "langgraph>=0.3.34",
