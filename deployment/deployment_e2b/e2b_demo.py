@@ -1,4 +1,4 @@
-from e2b_code_interpreter import Sandbox
+from e2b_code_interpreter import Sandbox, AsyncCommandHandle, AsyncSandbox
 import requests
 import time
 import os
@@ -37,17 +37,32 @@ sample_langgraph_json="""
 
 async def main():
     # add two files to the sandbox, first is langgraph.json and second is langgraph_demo.py
-    sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]}, timeout=60)
-    sandbox.commands.run("pip install langgraph-cli[inmem] langgraph langchain")
-    sandbox.files.write("/home/user/app.py", sample_langgraph_code)
-    sandbox.files.write("/home/user/langgraph.json", sample_langgraph_json)
-    # Start a simple HTTP server inside the sandbox.
-    process = sandbox.commands.run("langgraph dev", cwd="/home/user", background=True, on_stdout=lambda data: print(data), on_stderr=lambda data: print(data))
+    start_time = time.time()
+    sandbox = await AsyncSandbox.create(template='agrlcfpcd4qxe7ly7xro',timeout=60)
+    await sandbox.files.write("/home/user/app.py", sample_langgraph_code)
+    end_time = time.time()
+    print(f"Time taken to initialize sandbox and write files: {end_time - start_time:.2f} seconds")
+    
+    start_time = time.time()
+    process = await sandbox.commands.run("langgraph dev", cwd="/home/user", background=True, on_stdout=lambda data: print(data), on_stderr=lambda data: print(data))
     host = sandbox.get_host(2024)
     url = f"https://{host}"
-    print('Server started at:', url)
+    end_time = time.time()
+    print(f'Server started at: {url} (took {end_time - start_time:.2f} seconds)')
 
-    time.sleep(10)
+    start_time = time.time()
+    while time.time() - start_time < 30:
+        try:
+            response = requests.get(url + "/docs")
+            if response.status_code == 200:
+                data = response.text
+                print(f"Response from server inside sandbox (took {time.time() - start_time:.2f} seconds):", data)
+                break
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(1.5)
+
+    
     client = get_client(url=url)
     assistant_id = "app"
 
@@ -61,13 +76,10 @@ async def main():
         stream_mode="updates"
     ):
         print(chunk.data)
-    # Fetch data from the server inside the sandbox.
-    response = requests.get(url+ "/docs")
-    data = response.text
-    print("Response from server inside sandbox:", data)
+
 
     # Kill the server process inside the sandbox.
-    process.kill()
+    await process.kill()
 
 if __name__ == "__main__":
     asyncio.run(main())
