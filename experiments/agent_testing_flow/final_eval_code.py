@@ -1,0 +1,138 @@
+# generate use cases
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage, HumanMessage
+from model_factory import get_model, ModelName
+from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.prebuilt import create_react_agent
+from samples import json_dict, code
+from pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
+from pydantic import BaseModel
+import os
+from e2b_code_interpreter import Sandbox
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class CodeEvalState(MessagesState):
+    original_code: str
+    json_dict: str
+    use_cases: str
+    mocked_code: str
+    pytest_code: str
+    packages: list[str]
+    pytest_out: str
+
+
+def use_case_generator(state: CodeEvalState):
+    SYS_PROMPT= ChatPromptTemplate.from_template("""
+You are given the json of a workflow graph below.
+{json_dict}
+You are supposed to write use cases for the graph.
+You will also do dry run of the graph with the use cases.
+The use cases should be in the format of a list of dictionaries.
+Each dictionary should have the following
+keys:
+- name: The name of the use case
+- description: The description of the use case
+- dry_run: The dry run of the use case
+""")
+    llm = get_model()
+    use_cases = llm.invoke([SystemMessage(content=SYS_PROMPT.format(json_dict=state["json_dict"]))])
+    return {"use_cases": use_cases.content}
+
+
+
+def mock_code_generator(state: CodeEvalState):
+    TOOL_MOCK_PROMPT = """
+    You are given a code, look for any methods with 'tool' decorator and modify them to have mock implementation.
+
+    Return the modified code in the same format as the input code.
+    """
+    llm = get_model()
+    mocked_code = llm.invoke([SystemMessage(content=TOOL_MOCK_PROMPT), HumanMessage(content=state["original_code"])])
+    return {"mocked_code": mocked_code.content}
+
+
+
+def test_writer(state: CodeEvalState):
+    TEST_WRITER_PROMPT = """
+    You are given langgraph code below:
+    <CODE>
+    {code}
+</CODE>
+You are given the use cases for a workflow graph along with dry runs.
+<USE_CASES>
+{use_cases}
+</USE_CASES>
+                                                   
+You are supposed to write test cases for the graph in the <CODE> section, use the <USE_CASES> for generating test case inputs.
+                                              
+The tests should cover the following:
+1. Final response: use 'write_final_response_pytest_code' tool. the input should be what the user asked and the output would be something that an assistant would respond in a natural language.
+2. Trajectory: use the 'write_trajectory_pytest_code' tool.
+
+Both final response and trajectory type tests take a list of inputs and expected outputs.
+
+Output guidelines:
+- DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE CODE
+- The given <CODE> should be present at the top of the final output
+- This needs to well formatted compilable python code.
+- The output should be properly indented and formatted
+- Donot use markdown code blocks in the output
+"""
+    app = create_react_agent(
+    model= get_model(ModelName.GEMINI25FLASH),
+    tools=[write_final_response_pytest_code, write_trajectory_pytest_code],
+    name="pytest_writer")
+
+    final_response = app.invoke(
+        {"messages": [HumanMessage(content=TEST_WRITER_PROMPT.format(code=state["mocked_code"], use_cases=state["use_cases"]))]})
+    return {"pytest_code": final_response["messages"][-1].content}
+
+def package_finder(state: CodeEvalState):
+    class Packages(BaseModel):
+        packages: list[str]
+
+    llm =  get_model().with_structured_output(Packages)
+
+    SYS_PROMPT = """
+    You are provided a python code, find all the packages that are installed in the code.
+    """
+    packages: Packages = llm.invoke([SYS_PROMPT, HumanMessage(content=state["mocked_code"])])
+    return {"packages": packages.packages}
+
+
+def pytest_runner(state: CodeEvalState):
+    pytest_out = []
+    sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]})
+    sandbox.commands.run("pip install langchain langchain-core langgraph-supervisor langchain-openai langgraph langsmith pytest typing-extensions")
+    sandbox.files.write("/home/user/test_code_to_run.py", state["pytest_code"])
+    try:
+        commandResult = sandbox.commands.run("pytest -vv /home/user/test_code_to_run.py", background=False, 
+                                                     on_stderr=lambda x: print(x),
+                                                     on_stdout=lambda x: pytest_out.append(x))
+    except Exception as e:
+        print(e)
+
+    return {"pytest_out": "\n".join(pytest_out)}
+
+
+workflow = StateGraph(CodeEvalState)
+workflow.add_node("use_case_generator", use_case_generator)
+workflow.add_node("mock_code_generator", mock_code_generator)
+workflow.add_node("test_writer", test_writer)
+workflow.add_node("package_finder", package_finder)
+workflow.add_node("pytest_runner", pytest_runner)
+
+workflow.add_edge(START, "use_case_generator")
+workflow.add_edge("use_case_generator", "mock_code_generator")
+workflow.add_edge("mock_code_generator", "test_writer")
+workflow.add_edge("test_writer", "package_finder")
+workflow.add_edge("package_finder", "pytest_runner")
+workflow.add_edge("pytest_runner", END)
+
+app = workflow.compile()
+
+if __name__ == "__main__":
+    for output in app.stream({"original_code": code, "json_dict": json_dict}, stream_mode="updates"):
+        print(output)
