@@ -38,9 +38,10 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
             # called by our question answering ReACT agent. These tool calls can be found
             # when the ToolsNode (named "tools") is invoked by looking at the AIMessage.tool_calls
             # of the latest input message.
-            if chunk['payload']['name'] == 'tools' and chunk['type'] == 'task':
-                for tc in chunk['payload']['input']['messages'][-1].tool_calls:
-                    trajectory.append(tc['name'])
+            # if chunk['payload']['name'] == 'tools' and chunk['type'] == 'task':
+            #    print(chunk['payload']['input']['messages'][-1])
+            #    for tc in chunk['payload']['input']['messages'][-1].tool_calls:
+            #        trajectory.append(tc['name'])
 
     assert trajectory == expected_tool_call_names
 """
