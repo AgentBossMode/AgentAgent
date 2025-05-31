@@ -8,6 +8,8 @@ from samples import json_dict, code
 from pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
 from pydantic import BaseModel
 import os
+import tempfile
+import subprocess
 from e2b_code_interpreter import Sandbox
 from dotenv import load_dotenv
 
@@ -79,6 +81,7 @@ Output guidelines:
 - This needs to well formatted compilable python code.
 - The output should be properly indented and formatted
 - Donot use markdown code blocks in the output
+- DONOT use ```python nor ``` in the output for markdown, I am requesting you.
 """
     app = create_react_agent(
     model= get_model(ModelName.GEMINI25FLASH),
@@ -89,23 +92,27 @@ Output guidelines:
         {"messages": [HumanMessage(content=TEST_WRITER_PROMPT.format(code=state["mocked_code"], use_cases=state["use_cases"]))]})
     return {"pytest_code": final_response["messages"][-1].content}
 
-def package_finder(state: CodeEvalState):
-    class Packages(BaseModel):
-        packages: list[str]
-
-    llm =  get_model().with_structured_output(Packages)
-
-    SYS_PROMPT = """
-    You are provided a python code, find all the packages that are installed in the code.
-    """
-    packages: Packages = llm.invoke([SYS_PROMPT, HumanMessage(content=state["mocked_code"])])
-    return {"packages": packages.packages}
-
-
 def pytest_runner(state: CodeEvalState):
     pytest_out = []
     sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]})
-    sandbox.commands.run("pip install langchain langchain-core langgraph-supervisor langchain-openai langgraph langsmith pytest typing-extensions")
+    # sandbox.commands.run("pip install langchain langchain-core langgraph-supervisor langchain-openai langgraph langsmith pytest typing-extensions")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        code_path = os.path.join(tmpdir, "main.py")
+        with open(code_path, "w") as f:
+            f.write(state["pytest_code"])
+
+    # Step 2: Run pipreqs to generate requirements.txt
+        subprocess.run(["pipreqs", tmpdir, "--force", "--encoding=utf-8"], check=True)
+
+    # Step 3: Read requirements from the generated requirements.txt
+        req_path = os.path.join(tmpdir, "requirements.txt")
+        with open(req_path, "r") as f:
+            requirements = [line.strip() for line in f if line.strip()]
+
+        if requirements:
+            joined_packages = " ".join(req.split("==")[0] for req in requirements)
+            print(f"Installing: {joined_packages}")
+            sandbox.commands.run(f"pip install {joined_packages}")
     sandbox.files.write("/home/user/test_code_to_run.py", state["pytest_code"])
     try:
         commandResult = sandbox.commands.run("pytest -vv /home/user/test_code_to_run.py", background=False, 
@@ -121,14 +128,12 @@ workflow = StateGraph(CodeEvalState)
 workflow.add_node("use_case_generator", use_case_generator)
 workflow.add_node("mock_code_generator", mock_code_generator)
 workflow.add_node("test_writer", test_writer)
-workflow.add_node("package_finder", package_finder)
 workflow.add_node("pytest_runner", pytest_runner)
 
 workflow.add_edge(START, "use_case_generator")
 workflow.add_edge("use_case_generator", "mock_code_generator")
 workflow.add_edge("mock_code_generator", "test_writer")
-workflow.add_edge("test_writer", "package_finder")
-workflow.add_edge("package_finder", "pytest_runner")
+workflow.add_edge("test_writer", "pytest_runner")
 workflow.add_edge("pytest_runner", END)
 
 app = workflow.compile()
@@ -136,3 +141,21 @@ app = workflow.compile()
 if __name__ == "__main__":
     for output in app.stream({"original_code": code, "json_dict": json_dict}, stream_mode="updates"):
         print(output)
+
+    # trajectory = []
+    # for namespace, chunk in app.stream({"original_code": code, "json_dict": json_dict}, subgraphs=True, stream_mode="debug"):
+    #     # Event type for entering a node
+    #     if chunk['type'] == 'task':
+    #         # Record the node name
+    #         trajectory.append(chunk['payload']['name'])
+    #         print(f"Node: {chunk['payload']['name']}")
+    #         # Given how we defined our dataset, we also need to track when specific tools are
+    #         # called by our question answering ReACT agent. These tool calls can be found
+    #         # when the ToolsNode (named "tools") is invoked by looking at the AIMessage.tool_calls
+    #         # of the latest input message.
+    #         if chunk['payload']['name'] == 'tools' and chunk['type'] == 'task':
+    #             for tc in chunk['payload']['input']['messages'][-1].tool_calls:
+    #                 trajectory.append(tc['name'])
+    #                 print(f"Tool call: {tc['name']}")
+
+    # print("Trajectory:", trajectory)
