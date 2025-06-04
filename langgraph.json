@@ -1,6 +1,6 @@
 {
     "graphs": {
-      "graph_graph" : "./userprompt_to_json.py:infograph"
+      "graph_graph" : "./gemini_phase1.py:agent_generator_graph"
     },
     "python_version": "3.13",
     "dependencies": [
