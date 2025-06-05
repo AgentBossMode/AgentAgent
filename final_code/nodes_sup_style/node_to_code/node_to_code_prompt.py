@@ -2,11 +2,12 @@ from langchain.tools.retriever import create_retriever_tool
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
 from langchain_core.prompts import ChatPromptTemplate
-from .node_to_code_base import NodeBuilderState
 from langgraph.types import Command
 from typing import Literal
-from experiments.model_factory import get_model
-from experiments.utils.dependency_setup import get_embeddings, get_vector_store
+from final_code.llms.model_factory import get_model
+from final_code.utils.dependency_setup import get_embeddings, get_vector_store
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+
 embeddings = get_embeddings()
 vector_store = get_vector_store(embeddings, "langstuffindex")
 llm = get_model()
