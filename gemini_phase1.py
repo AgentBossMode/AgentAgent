@@ -13,6 +13,16 @@ from langgraph.types import Command, interrupt # For controlling graph flow, e.g
 from langchain_core.prompts import PromptTemplate # For creating flexible prompts for LLMs
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage # For structuring messages in conversations
 from langchain_google_genai import ChatGoogleGenerativeAI # Google Generative AI model wrapper
+from langgraph.prebuilt import create_react_agent
+from e2b_code_interpreter import Sandbox
+from openevals.code.e2b.pyright import create_e2b_pyright_evaluator
+from langchain_core.runnables import RunnableConfig
+from langgraph_reflection import create_reflection_graph
+from langchain.chat_models import init_chat_model
+import requests
+from bs4 import BeautifulSoup
+
+from langchain_core.tools import tool
 
 from experiments.gemini_phase1_toolgen import tool_compile_graph
 
@@ -247,6 +257,183 @@ def code_node(state: AgentBuilderState):
     }
 
 
+
+
+analysis_compile_prompt = """
+You are an expert LangGraph code refactoring AI. Your task is to analyze the provided Python code for a LangGraph implementation and automatically correct it to ensure adherence to best practices, specifically concerning tool definition within nodes and the consistency of state objects.
+
+Please perform the following analysis and apply corrections directly to the code:
+
+Tool Definition and Usage in Nodes:
+
+Correct Invocation: Identify and fix any instances where tools called within graph nodes are not defined or invoked correctly according to LangGraph's protocols.
+Schema Adherence: Ensure that the inputs provided to tools and the outputs received from them strictly adhere to their defined schemas. Modify the code to align with these schemas if discrepancies are found.
+Tool Registration (if applicable): If tools are not correctly registered or made available to the nodes that intend to use them, update the code to ensure proper registration.
+Error Handling: Implement or improve error handling for tool execution failures within the nodes, making the graph more robust.
+State Object Management and Consistency:
+
+State Definition Review (and potential refinement): While the primary goal is to ensure consistency with the existing definition, if the state definition itself is unclear or problematic for achieving consistency, you may suggest minor refactorings to the state definition (clearly noting these changes).
+Node-State Interaction: For each node:
+Input State: Correct any instances where the node incorrectly accesses or misinterprets information from the input state.
+Output State: Rectify how the node updates the state object to ensure it's consistent with its defined purpose, the overall graph flow, and the state definition. Ensure all modifications are explicit and correct.
+Type Consistency: Enforce that the data types of values being read from and written to the state are consistent across different nodes and with the state definition. Apply necessary type conversions or corrections.
+Immutability (where applicable): If parts of the state are intended to be immutable but are modified, adjust the node logic to respect this or ensure modifications are handled through proper state update mechanisms.
+State Transitions: Refine the logic of state changes between nodes if it leads to inconsistencies or deviates from the intended graph objective.
+Overall Code Health (related to tools and state):
+
+Clarity and Readability: Refactor code related to tool usage and state manipulation to improve its clarity and readability, potentially by adding comments or restructuring logic.
+Modularity: If tool definitions or state interactions can be better encapsulated within their respective nodes for improved modularity, make these changes.
+Input:
+You will be provided with the Python code for the LangGraph implementation.
+
+Output:
+Provide the updated and corrected LangGraph Python code.
+input code:
+<input_code>
+{compiled_code}
+</input_code>
+"""
+def dfs_analysis_node(state: AgentBuilderState): # Renamed for clarity
+    """
+    LangGraph node to analyse the code
+    """
+    main_agent_code = state['python_code']
+    
+    # Use LLM to merge the main agent code with the generated tool definitions
+    response = llm.invoke([HumanMessage(content=analysis_compile_prompt.format(
+        compiled_code=main_agent_code,
+    ))])
+    
+    logger.info("Main agent code updated with fixes.")
+    # The response from this LLM call is expected to be the final, complete Python code
+    return {
+        "messages": [AIMessage(content=response.content)], # Storing the LLM's final code as a message for now
+        "python_code": response.content # Update compiled_code with the final merged code
+    }
+
+
+
+REFLECTION_SYSTEM_PROMPT = """
+You are an expert software engineer.
+
+You will be given a langgraph code. You need to fix it and make it runnable.
+If you are not aware about some piece of code or a prebuilt function,use the get_langgraph_docs_index tool to get an index of the LangGraph docs first,
+then follow up with the get_request tool. Be persistent - if your first page does
+not result in confident information, keep digging!
+
+Make sure it is correct, complete, and executable without modification.
+Make sure that any generated code is contained in a properly formatted markdown code block.
+
+You can use the following URLs with your "get_langgraph_docs_content" tool to help answer questions:
+
+{langgraph_llms_txt}
+"""
+
+@tool
+def get_langgraph_docs_content(url: str) -> str:
+    """Sends a get request to a webpage and returns plain text
+    extracted via BeautifulSoup."""
+    res = requests.get(url).text
+    soup = BeautifulSoup(res, features="html.parser")
+    return soup.get_text()
+
+def create_base_agent(model):
+    langgraph_llms_txt = requests.get(
+        "https://langchain-ai.github.io/langgraph/llms.txt"
+    ).text
+    return create_react_agent(
+        model=model,
+        tools=[get_langgraph_docs_content],
+        prompt=REFLECTION_SYSTEM_PROMPT.format(langgraph_llms_txt=langgraph_llms_txt),
+    ).with_config(run_name="Base Agent")
+
+def create_judge_graph(sandbox: Sandbox):
+    def run_reflection(state: dict) -> dict | None:
+        evaluator = create_e2b_pyright_evaluator(
+            sandbox=sandbox,
+            code_extraction_strategy="markdown_code_blocks",
+        )
+
+        result = evaluator(outputs=state)
+
+        code_extraction_failed = result["metadata"] and result["metadata"].get(
+            "code_extraction_failed"
+        )
+
+        if not result["score"] and not code_extraction_failed:
+            return {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": f"I ran pyright and found some problems with the code you generated: {result['comment']}\n\n"
+                        "Try to fix it. Make sure to regenerate the entire code snippet. "
+                        "If you are not sure what is wrong, search for more information by pulling more information "
+                        "from the LangGraph docs.",
+                    }
+                ]
+            }
+
+    return (
+        StateGraph(MessagesState)
+        .add_node("run_reflection", run_reflection)
+        .add_edge("__start__", "run_reflection")
+        .compile()
+    ).with_config(run_name="Judge Agent")
+
+_GLOBAL_SANDBOX = None
+
+def get_or_create_sandbox():
+    global _GLOBAL_SANDBOX
+    if _GLOBAL_SANDBOX is None:
+        _GLOBAL_SANDBOX = Sandbox("OpenEvalsPython")
+    return _GLOBAL_SANDBOX
+
+def create_reflection_agent(config: RunnableConfig = None):
+    if config is None:
+        config = {}
+    configurable = config.get("configurable", {})
+    sandbox = configurable.get("sandbox", None)
+    model = configurable.get("model", None)
+    if sandbox is None:
+        sandbox = get_or_create_sandbox()
+    if model is None:
+        model = init_chat_model(
+            model="gpt-4o-mini",
+            max_tokens=4096,
+        )
+    judge = create_judge_graph(sandbox)
+    return (
+        create_reflection_graph(create_base_agent(model), judge, MessagesState)
+        .compile()
+        .with_config(run_name="Mini Chat LangChain")
+    )
+
+def code_reflection_node_updated(state: AgentBuilderState):
+    """
+    LangGraph node to run code reflection and fixing using E2B sandbox - updated for AgentBuilderState
+    """
+    logger.info("Executing code_reflection_node to test and fix code in E2B sandbox.")
+    python_code = state['python_code']
+    
+    # Create reflection agent
+    reflection_agent = create_reflection_agent({})
+    
+    # Run the reflection agent with the generated code
+    result = reflection_agent.invoke({
+        "messages": [HumanMessage(content=f"Please review and fix this LangGraph code to make it compilable and runnable:\n\n```python\n{python_code}\n```")]
+    })
+    
+    # Extract the final message content as the fixed code
+    final_message = result["messages"][-1]
+    fixed_code = final_message.content if hasattr(final_message, 'content') else str(final_message)
+    
+    logger.info("Code reflection and fixing completed.")
+    return {
+        "messages": [AIMessage(content="Code has been tested and fixed using E2B sandbox reflection.")],
+        "python_code": fixed_code
+    }
+
+
 # --- Main Agent Generation Graph ---
 # This is the primary graph that orchestrates the entire agent building process.
 
@@ -257,17 +444,20 @@ main_workflow = StateGraph(AgentBuilderState) # Define state type
 main_workflow.add_node("requirement_analysis_node", requirement_analysis_node)
 main_workflow.add_node("code_node", code_node)
 main_workflow.add_node("tool_subgraph_processing", tool_compile_graph) # Renamed node
+main_workflow.add_node("dfs_analysis_node", dfs_analysis_node)
+main_workflow.add_node("code_reflection_node", code_reflection_node_updated)
 
 # Define edges for the main workflow
 main_workflow.add_edge(START, "requirement_analysis_node")             # Start with requirement analysis
 main_workflow.add_edge("requirement_analysis_node", "code_node")        # Then generate initial code
 main_workflow.add_edge("code_node", "tool_subgraph_processing")    # Then process/implement tools via sub-graph
-main_workflow.add_edge("tool_subgraph_processing", END)            # End after tool processing
+main_workflow.add_edge("tool_subgraph_processing", "dfs_analysis_node")
+main_workflow.add_edge("dfs_analysis_node", "code_reflection_node")
+main_workflow.add_edge("code_reflection_node", END)         # End after tool processing
 
 # Compile the main agent generation graph
 agent_generator_graph = main_workflow.compile()
 logger.info("Main agent generator graph compiled.")
-
 
 # --- Example Invocation (Optional) ---
 # This section can be used to demonstrate how to run the main graph.
