@@ -539,6 +539,21 @@ main_workflow.add_edge("eval_pipeline", END)                          # Finally,
 agent_generator_graph = main_workflow.compile()
 logger.info("Main agent generator graph compiled.")
 
+# Old pipeline:
+# main_workflow.add_node("requirement_analysis_node", requirement_analysis_node)
+# main_workflow.add_node("json_node", json_node)
+# main_workflow.add_node("code_node", code_node)
+# main_workflow.add_node("tool_subgraph_processing", tool_compile_graph) 
+# main_workflow.add_node("eval_pipeline", eval_pipeline_graph)
+
+# main_workflow.add_edge(START, "requirement_analysis_node")            
+# main_workflow.add_edge("json_node", "code_node")
+# main_workflow.add_edge("code_node", "tool_subgraph_processing")    
+# main_workflow.add_edge("tool_subgraph_processing", "eval_pipeline")      
+# main_workflow.add_edge("eval_pipeline", END)                        
+
+# agent_generator_graph = main_workflow.compile()
+# logger.info("Main agent generator graph compiled.")
 
 # --- Example Invocation (Optional) ---
 # This section can be used to demonstrate how to run the main graph.
