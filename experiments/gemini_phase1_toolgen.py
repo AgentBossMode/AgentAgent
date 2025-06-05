@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__) # Get a logger instance for the current mod
 
 # --- LLM Initialization ---
 # Initialize the Language Model (LLM) to be used throughout the application
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-05-20", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17", temperature=0)
 
 
 # --- Tool/Function Definition Sub-Graph Components ---
@@ -297,13 +297,14 @@ class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for conv
     python_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
     total_code: List[str] = Field(default_factory=list, description="List of generated Python code snippets for tools.")
     compiled_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
+    json_dict: str = Field(description="The JSON representation of the graph")
 
 # Prompt to compile main code with generated tool function definitions
 tool_compile_prompt = """
 You are python code writing expert. You are given 2 snippets of code, your job is to combine them. 
 The first snippet of code contains a compilable code with some functions compilable but empty. 
 The second snippet of code contains the defination of those functions. 
-Please fo through the second snippet of code, match the function in the first snippet and replace the functional definition written in the first snippet with one found in second snippet
+Please go through the second snippet of code, match the function in the first snippet and replace the functional definition written in the first snippet with one found in second snippet
 
 Please only return compilable python code
 Here are the code snippets:
@@ -430,8 +431,8 @@ def compile_tool_code_node(state: ToolCollectorState): # Renamed for clarity
     logger.info("Main agent code compiled with tool function definitions.")
     # The response from this LLM call is expected to be the final, complete Python code
     return {
-        "messages": [AIMessage(content=response.content)], # Storing the LLM's final code as a message for now
-        "python_code": response.content # Update compiled_code with the final merged code
+        "messages": [AIMessage(content="code generated!")], # Storing the LLM's final code as a message for now
+        "python_code": response.content, # Update compiled_code with the final merged code
     }
 
 # --- Tool Compilation Graph Definition (`tool_compile_graph`) ---

@@ -1,11 +1,10 @@
 # generate use cases
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
-from model_factory import get_model, ModelName
+from experiments.agent_testing_flow.model_factory import get_model, ModelName
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import create_react_agent
-from samples import json_dict, code
-from pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
+from experiments.agent_testing_flow.pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
 from pydantic import BaseModel
 import os
 import tempfile
@@ -16,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class CodeEvalState(MessagesState):
-    original_code: str
+    python_code: str
     json_dict: str
     use_cases: str
     mocked_code: str
@@ -38,8 +37,8 @@ keys:
 - description: The description of the use case
 - dry_run: The dry run of the use case
 """)
-    llm = get_model()
-    use_cases = llm.invoke([SystemMessage(content=SYS_PROMPT.format(json_dict=state["json_dict"]))])
+    llm = get_model(ModelName.GEMINI25FLASH)
+    use_cases = llm.invoke([HumanMessage(content=SYS_PROMPT.format(json_dict=state["json_dict"]))])
     return {"use_cases": use_cases.content}
 
 
@@ -49,9 +48,11 @@ def mock_code_generator(state: CodeEvalState):
     You are given a code, look for any methods with 'tool' decorator and modify them to have mock implementation.
 
     Return the modified code in the same format as the input code.
+
+- DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
     """
-    llm = get_model()
-    mocked_code = llm.invoke([SystemMessage(content=TOOL_MOCK_PROMPT), HumanMessage(content=state["original_code"])])
+    llm = get_model(ModelName.GEMINI25FLASH)
+    mocked_code = llm.invoke([HumanMessage(content=TOOL_MOCK_PROMPT), HumanMessage(content=state["python_code"])])
     return {"mocked_code": mocked_code.content}
 
 
@@ -76,12 +77,8 @@ The tests should cover the following:
 Both final response and trajectory type tests take a list of inputs and expected outputs.
 
 Output guidelines:
-- DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE CODE
 - The given <CODE> should be present at the top of the final output
-- This needs to well formatted compilable python code.
-- The output should be properly indented and formatted
-- Donot use markdown code blocks in the output
-- DONOT use ```python nor ``` in the output for markdown, I am requesting you.
+- DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
 """
     app = create_react_agent(
     model= get_model(ModelName.GEMINI25FLASH),
@@ -136,26 +133,4 @@ workflow.add_edge("mock_code_generator", "test_writer")
 workflow.add_edge("test_writer", "pytest_runner")
 workflow.add_edge("pytest_runner", END)
 
-app = workflow.compile()
-
-if __name__ == "__main__":
-    for output in app.stream({"original_code": code, "json_dict": json_dict}, stream_mode="updates"):
-        print(output)
-
-    # trajectory = []
-    # for namespace, chunk in app.stream({"original_code": code, "json_dict": json_dict}, subgraphs=True, stream_mode="debug"):
-    #     # Event type for entering a node
-    #     if chunk['type'] == 'task':
-    #         # Record the node name
-    #         trajectory.append(chunk['payload']['name'])
-    #         print(f"Node: {chunk['payload']['name']}")
-    #         # Given how we defined our dataset, we also need to track when specific tools are
-    #         # called by our question answering ReACT agent. These tool calls can be found
-    #         # when the ToolsNode (named "tools") is invoked by looking at the AIMessage.tool_calls
-    #         # of the latest input message.
-    #         if chunk['payload']['name'] == 'tools' and chunk['type'] == 'task':
-    #             for tc in chunk['payload']['input']['messages'][-1].tool_calls:
-    #                 trajectory.append(tc['name'])
-    #                 print(f"Tool call: {tc['name']}")
-
-    # print("Trajectory:", trajectory)
+eval_pipeline_graph = workflow.compile()
