@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from langgraph.graph import MessagesState,StateGraph, START, END
 from final_code.utils.fetch_docs import fetch_documents
 from final_code.llms.model_factory import get_model
+from langgraph.types import interrupt
 
 
 # --- LLM Initialization ---
@@ -17,14 +18,14 @@ llm = get_model()
 
 # Load tool/SDK information from JSON files.
 # Note: Hardcoded paths might need adjustment depending on the deployment environment.
-try:
-    with open("../experiments/tool_creation/tools_link_json.json") as f:
-        dict_tool_link = json.load(f)
-    with open("../experiments/tool_creation/tools_doc_json.json") as f:
-        dict_tool_doc = json.load(f)
-except FileNotFoundError:
-    dict_tool_link = {} # Default to empty dict if file not found
-    dict_tool_doc = {}  # Default to empty dict if file not found
+#try:
+with open("./files/tools_link_json.json") as f:
+    dict_tool_link = json.load(f)
+with open("./files/tools_doc_json.json") as f:
+    dict_tool_doc = json.load(f)
+# except FileNotFoundError:
+#     dict_tool_link = {} # Default to empty dict if file not found
+#     dict_tool_doc = {}  # Default to empty dict if file not found
 
 
 def lowercase_keys(input_dict: dict) -> dict:
@@ -65,6 +66,7 @@ class FunctionInstructions(BaseModel):
     output: List[str] = Field(description="what would be the output/return attributes for the function along with the types")
     name_toolkit: str = Field(description="what would be the toolkit/ code SDK that will be used") # Name of the SDK
     code: str = Field(description="the final python code for the function")
+    user_comment: str = Field(description="User tells more about the tool/sdk/service they want to use to implement this tool.")
 
 def functional_analysis_node(state: FunctionInstructions):
     """
@@ -92,8 +94,10 @@ IDENTIFY_BEST_SDK_PROMPT = """
 You are a highly specialized language model designed to assist in selecting the most suitable SDK for a given use case. You are provided with the following:
 - A dictionary containing pairs of SDK names and their respective descriptions.
 - Requirements for a piece of code, including the objective, input, and output.
+- You may also be provided with a user comment, directing what tool to use.
 
 Your task is to:
+- First check if the <USERCOMMENT> section is not empty, in that case prioritize whatever tool they mention, search in the <dictionary>, if not found then provide the next best sdk.
 - Identify the SDK from the provided dictionary whose description best matches the given use case described in the code requirements.
 - Also give preferences to SDKs that are generally more well known or are used more frequently in the industry (Use google tools for anything search related)
 - Return only the name of the matching SDK without any additional text or formatting.
@@ -116,6 +120,11 @@ SDK_A
 
 
 Input :
+
+<USERCOMMENT>
+{user_comment}
+</USERCOMMENT>
+
 <dictionary>
 {dictionary}
 </dictionary>
@@ -148,6 +157,7 @@ def sdk_production_node(state: FunctionInstructions):
     output_args: List[str] = state.output
     
     response = llm.invoke([HumanMessage(content=IDENTIFY_BEST_SDK_PROMPT.format(
+        user_comment=state.user_comment,
         objective=objective_agent,
         inputs=input_args,
         output=output_args,
@@ -340,7 +350,10 @@ def graph_map_step(state: ToolCollectorState):
     
     llm_with_struct_output  = llm.with_structured_output(ToolDescriptionList)
     list_of_tools: ToolDescriptionList = llm_with_struct_output.invoke([HumanMessage(content=GET_TOOL_DESCRIPTION_PROMPT.format(code=current_code))])
-  
+    tool_names_and_descriptions = "\n".join([f"tool_name: {tool.tool_name}, tool_description: {tool.description}" for tool in list_of_tools.tools])
+    message_to_human = tool_names_and_descriptions + "\n\nWould you like to provide us more information if you have a prefered services/sdk to implement the above tools?"
+
+    human_input = interrupt(message_to_human)
     generated_tool_codes = []
     initial_tool_states = []
     for tool in list_of_tools.tools:        
@@ -348,6 +361,7 @@ def graph_map_step(state: ToolCollectorState):
         initial_tool_state = {
             "objective": tool.description, # The description from tool_desc_prompt becomes the objective
             "name": tool.tool_name,
+            "user_comment": human_input,
             "input": [], # Inputs/outputs could be further refined or extracted by tool_desc_prompt
             "output": [],
             "name_toolkit": "", # To be determined by sdk_production_node in tool_infograph
