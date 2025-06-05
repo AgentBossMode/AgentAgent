@@ -1,14 +1,13 @@
-import import_ipynb
-from experiments.edge_to_code.edge_to_code import edge_builder_agent
-from experiments.node_to_code.node_to_code import node_to_code_app
 import operator
 from typing import Annotated, List
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.types import Send
 from pydantic import BaseModel
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from experiments.model_factory import get_model, ModelName
+from final_code.llms.model_factory import get_model
+from final_code.nodes_sup_style.edge_to_code.edge_to_code import edge_builder_agent
+from final_code.nodes_sup_style.node_to_code.node_to_code import node_to_code_app
 import uuid
 import json
 
@@ -23,6 +22,7 @@ class GraphCompilerState(MessagesState):
     json_code: str
     node_reports: Annotated[List[NodeEvaluationReport], operator.add]
 
+llm = get_model()
 
 class NodeProcessState():
     node_name: str
@@ -80,13 +80,11 @@ code_compiler_prompt = ChatPromptTemplate.from_template("""
 
 def graph_compile(state: GraphCompilerState):
     node_evals : List[NodeEvaluationReport]= state["node_reports"]
-
     code_stubs = [node_eval.node_code_stub for node_eval in node_evals]
     edge_stubs = [node_eval.edge_code for node_eval in node_evals]
     json_objects = json.loads(state["json_code"])
     edges = json_objects["edges"]
-    llm = get_model()
-    response = llm.invoke([SystemMessage(content=
+    response = llm.invoke([HumanMessage(content=
 """You are a langgraph coding expert, you are given a workflow with edges as well as code implementation of each node.
 You are supposed to merge the code, make sure there is no simulation of llm operations, use langchain for llm invocations
 Make sure that the graph is compiled with an InMemoryCheckpointer and finally assign to a variable called final_app""")]

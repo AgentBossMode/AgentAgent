@@ -1,13 +1,9 @@
-import operator
-from typing import Annotated, List, Tuple
-from typing_extensions import TypedDict
+from typing import List
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
-from langchain import hub
-from typing import Union
-from langgraph.prebuilt import create_react_agent
-from .node_to_code_base import NodeBuilderState
-from experiments.model_factory import get_model
+
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+from final_code.llms.model_factory import get_model
 
 llm = get_model()
 
@@ -109,6 +105,4 @@ Check each step of the plan, and filter them to give final plan
 
 def plan_step(state: NodeBuilderState):
     plan: Plan = planner.invoke({"messages": state["messages"], "node_building_strategies": node_building_strategies})
-    llm_plan = llm.with_structured_output(Plan)
-    filtered_plan = llm_plan.invoke(plan_filter_prompt.format(original_plan="\n".join(plan_step for plan_step in plan.steps)))
     return {"plan": plan.steps}

@@ -1,7 +1,7 @@
-from experiments.utils.dependency_setup import get_vector_store, get_embeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.tools.retriever import create_retriever_tool
-from experiments.model_factory import get_model
+from final_code.llms.model_factory import get_model
+from final_code.utils.dependency_setup import get_embeddings, get_vector_store
 
 embeddings = get_embeddings()
 vector_store = get_vector_store(embeddings, "langstuffindex")

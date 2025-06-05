@@ -1,10 +1,11 @@
 {
     "graphs": {
-      "graph_graph" : "./gemini_phase1.py:agent_generator_graph"
+      "graph1" : "./app_one_prompt.py:app",
+      "graph2" : "./app_sup_style.py:app"
     },
     "python_version": "3.13",
     "dependencies": [
       "./"
     ],
-    "env": ".env"
+    "env": "./env"
   }

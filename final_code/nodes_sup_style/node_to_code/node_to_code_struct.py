@@ -1,8 +1,9 @@
 from langgraph.types import Command
-from .node_to_code_base import NodeBuilderState
 from langchain_core.messages import SystemMessage, HumanMessage
-from experiments.model_factory import get_model
+from final_code.llms.model_factory import get_model
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
 from typing import Literal
+
 llm = get_model()
 
 struc_output_prompt = """
