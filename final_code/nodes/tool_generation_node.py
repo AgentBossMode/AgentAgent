@@ -38,7 +38,6 @@ def lowercase_keys(input_dict: dict) -> dict:
 dict_tool_link = lowercase_keys(dict_tool_link)
 dict_tool_doc = lowercase_keys(dict_tool_doc)
 
-
 # Prompt for initial analysis of a function's description
 GET_FUNCTION_INFO_PROMPT = """You are an expert python developer. You will be given a description of a python function. 
 
@@ -353,7 +352,9 @@ def graph_map_step(state: ToolCollectorState):
     tool_names_and_descriptions = "\n".join([f"tool_name: {tool.tool_name}, tool_description: {tool.description}" for tool in list_of_tools.tools])
     message_to_human = tool_names_and_descriptions + "\n\nWould you like to provide us more information if you have a prefered services/sdk to implement the above tools?"
 
-    human_input = interrupt(message_to_human)
+    human_input = interrupt({
+        "type": "get_tool_suggestion",
+        "question": message_to_human})
     generated_tool_codes = []
     initial_tool_states = []
     for tool in list_of_tools.tools:        
@@ -361,7 +362,7 @@ def graph_map_step(state: ToolCollectorState):
         initial_tool_state = {
             "objective": tool.description, # The description from tool_desc_prompt becomes the objective
             "name": tool.tool_name,
-            "user_comment": human_input,
+            "user_comment": human_input["context"],
             "input": [], # Inputs/outputs could be further refined or extracted by tool_desc_prompt
             "output": [],
             "name_toolkit": "", # To be determined by sdk_production_node in tool_infograph
