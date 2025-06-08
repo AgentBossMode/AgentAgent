@@ -1,11 +1,9 @@
-from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command
-from typing import  Literal, TypedDict
-from .node_to_code_base import NodeBuilderState
+from typing import  Literal
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
 from pydantic import Field, BaseModel
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 
 def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
@@ -21,6 +19,10 @@ def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
     def supervisor_node(state: NodeBuilderState) -> Command[Literal[*members, "__end__"]]:
         """An LLM-based router."""
         plan = state["plan"]
+
+        if plan.__len__() == 0:
+            return Command(goto="code_compiler")
+
         plan_str = "\n".join(f"{i+1}. {step}" for i, step in enumerate(plan))
         task = plan[0]
         task_formatted = f"""For the following plan:

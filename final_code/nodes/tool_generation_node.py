@@ -1,30 +1,16 @@
-import json # Used for loading tool configurations
-import logging
-from typing import List # Used for logging errors and information
+import json 
+from typing import List 
 from langchain_core.messages import HumanMessage, AIMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
-from pydantic import BaseModel, Field # For message handling in LangGraph
-from langgraph.checkpoint.memory import InMemorySaver # For saving and resuming graph state
-from langgraph.graph import MessagesState,StateGraph, START, END # For defining the state graph structure
-from experiments.utils.fetch_docs import fetch_documents # Utility function to fetch documentation (presumably for SDKs)
-import uuid # Used for generating unique thread IDs for graph execution
+from pydantic import BaseModel, Field 
+from langgraph.graph import MessagesState,StateGraph, START, END
+from final_code.utils.fetch_docs import fetch_documents
+from final_code.llms.model_factory import get_model
+from langgraph.types import interrupt
 
-
-# --- Logging Configuration ---
-# Set up the logger for application-wide logging
-logging.basicConfig(
-    level=logging.INFO,  # Set to DEBUG for detailed logs, INFO for general information
-    format="%(asctime)s - %(levelname)s - %(message)s", # Log message format
-    handlers=[
-        # logging.FileHandler("scraper.log"),  # Option to log to a file (currently commented out)
-        logging.StreamHandler()  # Log to console
-    ]
-)
-logger = logging.getLogger(__name__) # Get a logger instance for the current module
 
 # --- LLM Initialization ---
 # Initialize the Language Model (LLM) to be used throughout the application
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17", temperature=0)
+llm = get_model()
 
 
 # --- Tool/Function Definition Sub-Graph Components ---
@@ -32,15 +18,14 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17", temperature
 
 # Load tool/SDK information from JSON files.
 # Note: Hardcoded paths might need adjustment depending on the deployment environment.
-try:
-    with open("./experiments/tool_creation/tools_link_json.json") as f:
-        dict_tool_link = json.load(f)
-    with open("./experiments/tool_creation/tools_doc_json.json") as f:
-        dict_tool_doc = json.load(f)
-except FileNotFoundError:
-    logger.error("Tool link/doc JSON files not found. Please check the paths.")
-    dict_tool_link = {} # Default to empty dict if file not found
-    dict_tool_doc = {}  # Default to empty dict if file not found
+#try:
+with open("./files/tools_link_json.json") as f:
+    dict_tool_link = json.load(f)
+with open("./files/tools_doc_json.json") as f:
+    dict_tool_doc = json.load(f)
+# except FileNotFoundError:
+#     dict_tool_link = {} # Default to empty dict if file not found
+#     dict_tool_doc = {}  # Default to empty dict if file not found
 
 
 def lowercase_keys(input_dict: dict) -> dict:
@@ -81,20 +66,19 @@ class FunctionInstructions(BaseModel):
     output: List[str] = Field(description="what would be the output/return attributes for the function along with the types")
     name_toolkit: str = Field(description="what would be the toolkit/ code SDK that will be used") # Name of the SDK
     code: str = Field(description="the final python code for the function")
+    user_comment: str = Field(description="User tells more about the tool/sdk/service they want to use to implement this tool.")
 
 def functional_analysis_node(state: FunctionInstructions):
     """
     LangGraph node for analyzing a function description.
     It uses the LLM with structured output (FunctionInstructions) to parse the description.
     """
-    logger.info(f"Executing functional_analysis_node for: {state.objective[:50]}...") # Log snippet of objective
     llm_with_structured_output = llm.with_structured_output(FunctionInstructions)
     
     # Invoke LLM to get structured information about the function
     functionalReport: FunctionInstructions = llm_with_structured_output.invoke(
         [HumanMessage(content=GET_FUNCTION_INFO_PROMPT.format(desc=state.objective))]
     )
-    logger.info(f"Functional analysis complete for {functionalReport.name}.")
     return {
         "messages": [AIMessage(content="Generated JSON code for function analysis!")], # Consider a more descriptive message
         "objective": functionalReport.objective,
@@ -110,8 +94,10 @@ IDENTIFY_BEST_SDK_PROMPT = """
 You are a highly specialized language model designed to assist in selecting the most suitable SDK for a given use case. You are provided with the following:
 - A dictionary containing pairs of SDK names and their respective descriptions.
 - Requirements for a piece of code, including the objective, input, and output.
+- You may also be provided with a user comment, directing what tool to use.
 
 Your task is to:
+- First check if the <USERCOMMENT> section is not empty, in that case prioritize whatever tool they mention, search in the <dictionary>, if not found then provide the next best sdk.
 - Identify the SDK from the provided dictionary whose description best matches the given use case described in the code requirements.
 - Also give preferences to SDKs that are generally more well known or are used more frequently in the industry (Use google tools for anything search related)
 - Return only the name of the matching SDK without any additional text or formatting.
@@ -134,6 +120,11 @@ SDK_A
 
 
 Input :
+
+<USERCOMMENT>
+{user_comment}
+</USERCOMMENT>
+
 <dictionary>
 {dictionary}
 </dictionary>
@@ -160,13 +151,13 @@ def sdk_production_node(state: FunctionInstructions):
     LangGraph node to identify the most suitable SDK for the function.
     It uses the LLM with the Best_sdk_prompt and the loaded SDK documentation.
     """
-    logger.info(f"Executing sdk_production_node for function: {state.name}")
     objective_agent: str = state.objective
     name: str = state.name
     input_args: List[str] = state.input
     output_args: List[str] = state.output
     
     response = llm.invoke([HumanMessage(content=IDENTIFY_BEST_SDK_PROMPT.format(
+        user_comment=state.user_comment,
         objective=objective_agent,
         inputs=input_args,
         output=output_args,
@@ -175,13 +166,7 @@ def sdk_production_node(state: FunctionInstructions):
     ))])
     
     sdk_name = response.content.lower().strip()
-    logger.info(f"SDK identified: {sdk_name} for function {name}")
-    
-    # Ensure the identified SDK is valid
-    if sdk_name not in dict_tool_doc:
-        logger.warning(f"LLM returned an SDK name ('{sdk_name}') not found in dict_tool_doc. Defaulting or error handling might be needed.")
-        # Potentially raise an error or pick a default if this happens
-    
+ 
     return {
         "messages": [AIMessage(content=f"SDK '{sdk_name}' identified for function {name}.")],
         "name_toolkit": sdk_name
@@ -235,7 +220,6 @@ def code_production_node(state: FunctionInstructions):
     LangGraph node to generate the Python code for the function using the identified SDK.
     It fetches SDK documentation and uses the write_code_prompt.
     """
-    logger.info(f"Executing code_production_node for function: {state.name} using SDK: {state.name_toolkit}")
     objective_agent: str = state.objective
     name: str = state.name
     input_args: List[str] = state.input
@@ -245,9 +229,6 @@ def code_production_node(state: FunctionInstructions):
     docs = ""
     if toolkit in dict_tool_link:
         docs = fetch_documents(dict_tool_link[toolkit]) # Fetch documentation for the chosen SDK
-        logger.info(f"Fetched documentation for SDK: {toolkit}")
-    else:
-        logger.warning(f"No documentation link found for SDK: {toolkit}. Proceeding without SDK-specific docs.")
 
     response = llm.invoke([HumanMessage(content=TOOL_CODE_WRITER_PROMPT.format(
         objective=objective_agent,
@@ -257,7 +238,6 @@ def code_production_node(state: FunctionInstructions):
         docs=docs,
     ))])
     
-    logger.info(f"Code generated for function: {name}")
     return {
         "messages": [AIMessage(content=f"Generated code for tool/function: {name}")],
         "code": response.content
@@ -283,12 +263,7 @@ tool_info_workflow.add_edge("code_write", END)          # End after code writing
 
 # Compile the tool information graph
 tool_infograph = tool_info_workflow.compile()
-logger.info("Tool information graph (tool_infograph) compiled.")
 
-
-# --- Tool Compilation Sub-Graph Components ---
-# This section defines components for a sub-graph that identifies tools in the main agent code,
-# generates their implementations (using tool_infograph), and compiles them back.
 
 class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for convention
     """
@@ -371,21 +346,22 @@ def graph_map_step(state: ToolCollectorState):
     It iterates over functions marked with @tool, invokes `tool_infograph` for each,
     and collects the generated code.
     """
-    logger.info("Executing graph_map_step to identify and generate tool implementations.")
     current_code = state['python_code']
     
     llm_with_struct_output  = llm.with_structured_output(ToolDescriptionList)
     list_of_tools: ToolDescriptionList = llm_with_struct_output.invoke([HumanMessage(content=GET_TOOL_DESCRIPTION_PROMPT.format(code=current_code))])
-  
+    tool_names_and_descriptions = "\n".join([f"tool_name: {tool.tool_name}, tool_description: {tool.description}" for tool in list_of_tools.tools])
+    message_to_human = tool_names_and_descriptions + "\n\nWould you like to provide us more information if you have a prefered services/sdk to implement the above tools?"
+
+    human_input = interrupt(message_to_human)
     generated_tool_codes = []
     initial_tool_states = []
-    for tool in list_of_tools.tools:
-        logger.info(f"Generating implementation for tool: {tool.tool_name} - Description: {tool.description[:50]}...")
-        
+    for tool in list_of_tools.tools:        
         # Initial state for the tool_infograph
         initial_tool_state = {
             "objective": tool.description, # The description from tool_desc_prompt becomes the objective
             "name": tool.tool_name,
+            "user_comment": human_input,
             "input": [], # Inputs/outputs could be further refined or extracted by tool_desc_prompt
             "output": [],
             "name_toolkit": "", # To be determined by sdk_production_node in tool_infograph
@@ -409,12 +385,10 @@ def compile_tool_code_node(state: ToolCollectorState): # Renamed for clarity
     LangGraph node to combine the main agent code with the generated tool function codes.
     Uses an LLM with `tool_compile_prompt` to perform the merge.
     """
-    logger.info("Executing compile_tool_code_node to merge tool codes with main agent code.")
     tool_code_list = state['total_code']
     main_agent_code = state['compiled_code'] # Renamed for clarity
     
     if not tool_code_list:
-        logger.info("No tool codes to compile. Returning original agent code.")
         return {
             "messages": [AIMessage(content="No new tool functions to compile.")],
             "python_code": main_agent_code # Return original if no tools were generated
@@ -428,7 +402,6 @@ def compile_tool_code_node(state: ToolCollectorState): # Renamed for clarity
         functions=full_tool_code
     ))])
     
-    logger.info("Main agent code compiled with tool function definitions.")
     # The response from this LLM call is expected to be the final, complete Python code
     return {
         "messages": [AIMessage(content="code generated!")], # Storing the LLM's final code as a message for now
@@ -453,6 +426,5 @@ tool_compile_workflow.add_edge("compile_tools", END)
 # This graph doesn't seem to require a checkpointer in this setup,
 # but adding one if state needs to be inspected or persisted.
 tool_compile_graph = tool_compile_workflow.compile()
-logger.info("Tool compilation graph (tool_compile_graph) compiled.")
 
 

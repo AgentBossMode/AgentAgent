@@ -1,10 +1,9 @@
-from .node_to_code_base import NodeBuilderState
-from .node_to_code_planner import node_building_strategies
 from pydantic import Field, BaseModel
-from . node_to_code_planner import Plan
-from typing import Union
+from typing import List, Tuple, Union
 from langchain_core.prompts import ChatPromptTemplate
-from experiments.model_factory import get_model
+from final_code.llms.model_factory import get_model
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+from final_code.nodes_sup_style.node_to_code.node_to_code_planner import node_building_strategies, Plan
 
 llm = get_model()
 
@@ -36,14 +35,17 @@ You will be also provided 'PlanStepsExecuted' which shows a list of execution of
 {past_steps}
 </PlanStepsExecuted>
 
-Instructions to follow:
-1. If the 'PlanStepsExecuted' section covers all the steps in the 'OriginalPlan', respond back to the user using Response action.
-2. Your job is only to analyze if all the steps of 'OriginalPlan' has been completed by using past_steps, do not suggest new steps or follow up steps.
-3. Do not generate steps which are out of scope of the original plan.
-4. If there are steps that still need to be taken, respond with 'Plan' action. Only add steps to the plan that still NEED to be done. Do not return previously done steps as part of the plan.
-
-You are not supposed to go beyond the below strategies when evaluating:
+<NODEBUILDINGSTRATEGIES>
 {node_building_strategies}
+</NODEBUILDINGSTRATEGIES>
+
+
+<INSTRUCTIONS>
+1. If the <PlanStepsExecuted> section covers all the steps in the <OriginalPlan>, respond back to the user using 'Response'.
+2. Your job is only to analyze if all the steps of <OriginalPlan> has been completed by using past_steps, do not suggest new steps or follow up steps.
+3. Do not generate steps which are out of scope of the <OriginalPlan>, steps will always be in the scope of <NODEBUILDINGSTRATEGIES>
+4. If there are steps that still need to be taken, respond with 'Plan' action. Only add steps to the plan that still NEED to be done. Do not return previously done steps as part of the plan.
+</INSTRUCTIONS>
 """)
 
 
