@@ -6,7 +6,7 @@ from final_code.llms.model_factory import get_model
 llm = get_model()
 
 CODE_GEN_PROMPT = PromptTemplate.from_template("""
-You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK . Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'INPUT' section below. You must prioritize LLM-based implementations for relevant tasks.
+You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'INPUT' section below. You must prioritize LLM-based implementations for relevant tasks.
 <INPUT>
 <JSON>                                               
 {json_dict}
@@ -79,7 +79,12 @@ Use the INPUT section for reference.
         * Use `graph.add_conditional_edges(source_node_id, routing_function, {{ "target_id_1": "target_id_1", "target_id_2": "target_id_2", ... "__END__": END }})`. The keys in the dictionary are the possible return values from your routing function, and the values are the actual node IDs or `END`.
 
 6.  **Compilation:**
-    * Compile the graph: `final_app = graph.compile()`. The compiled graph must be assigned to a variable named `final_app`.
+    * Compile the graph: `app = graph.compile()`. The compiled graph must be assigned to a variable named `app`.
+    * add the following code just after above step.
+    with open("/home/user/graph.json" , "w" ) as write:
+        json.dump(app.get_graph(xray=True).to_json(), write)
+    * If you write 'main' code, instead of printing, append the logs to /home/user/llm_stream.txt 
+    
 
 </CODE_GENERATION_INSTRUCTIONS>
 
