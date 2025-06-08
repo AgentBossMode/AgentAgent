@@ -78,6 +78,8 @@ c. Final schema would look like:
 }}
                                                
 JSON should conform to section 4c.
+Do not add escape characters unless absolutely necessary, if they are not for new line or tab, always add to backslash
+Do not add words like input's say input\\'s
     """)
 
 class JSONExtraction(BaseModel):

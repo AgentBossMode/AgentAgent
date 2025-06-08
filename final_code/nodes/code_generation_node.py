@@ -6,8 +6,7 @@ from final_code.llms.model_factory import get_model
 llm = get_model()
 
 CODE_GEN_PROMPT = PromptTemplate.from_template("""
-
-You are an expert Python programmer specializing in AI agent development via the LangGraph and LangChain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user INPUT. You must analyze the requirements and choose appropriate implementation patterns.
+You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'INPUT' section below. You must prioritize LLM-based implementations for relevant tasks.
 
 <INPUT>
 <JSON>                                              
@@ -654,7 +653,6 @@ def create_collaborative_graph() -> StateGraph:
     def agent_completion_router(state: GraphState) -> str:
         completed_tasks = state.get("completed_tasks", [])
         required_tasks = state.get("required_tasks", [])
-        
         if set(completed_tasks) >= set(required_tasks):
             return "synthesizer"
         else:
@@ -1220,6 +1218,7 @@ ARCHITECTURE REASONING:
 - Implemented [edge pattern] to handle [business logic/user flow]
 \"\"\"
 ```
+
 
 </CODE_GENERATION_INSTRUCTIONS>
 
