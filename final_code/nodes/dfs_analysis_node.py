@@ -142,14 +142,14 @@ For the overall graph structure, verify and correct:
 **Example Fix:**
 ```python
 # ❌ Incorrect - poorly defined state schema
-class GraphState(BaseModel):
+class GraphState(MessageState):
     data: any  # Vague type definition
 
 # ✅ Correct - well-defined state schema
 from typing import List, Optional
-from pydantic import BaseModel
+rom langgraph.graph import MessagesState
 
-class GraphState(BaseModel):
+class GraphState(MessageState):
     messages: List[dict]
     query: str
     results: Optional[List[dict]] = None
@@ -226,10 +226,10 @@ Provide the corrected Python code with:
 from langchain_core.messages import HumanMessage
 from langgraph import StateGraph
 from langgraph.prebuilt import ToolNode
-from pydantic import BaseModel
+rom langgraph.graph import MessagesState
 from typing import List, Optional
 
-class GraphState(BaseModel):
+class GraphState(MessageState):
     messages: List[dict]
     query: str
     results: Optional[List[dict]] = None
