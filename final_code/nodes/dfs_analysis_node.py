@@ -246,10 +246,10 @@ def research_node(state: GraphState):
         result = model_with_tools.invoke([HumanMessage(content=query)])
         
         # Fixed: Proper state update
-        return {"results": [result.content]}
+        return {{"results": [result.content]}}
     except Exception as e:
         # Fixed: Added error handling
-        return {"results": [], "error": str(e)}
+        return {{"results": [], "error": str(e)}}
 
 # Fixed: Proper condition function
 def should_continue(state: GraphState):
