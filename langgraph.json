@@ -1,7 +1,8 @@
 {
     "graphs": {
       "graph1" : "./app_one_prompt.py:app",
-      "graph2" : "./app_sup_style.py:app"
+      "graph2" : "./app_sup_style.py:app",
+      "tool_agent": "./experiments/composio_testing/testing_composiotoolset.py:app"
     },
     "python_version": "3.13",
     "dependencies": [
