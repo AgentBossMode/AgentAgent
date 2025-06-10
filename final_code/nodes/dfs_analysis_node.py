@@ -250,6 +250,7 @@ def research_node(state: GraphState):
     except Exception as e:
         # Fixed: Added error handling
         return {{"results": [], "error": str(e)}}
+        return {{"results": [], "error": str(e)}}
 
 # Fixed: Proper condition function
 def should_continue(state: GraphState):
