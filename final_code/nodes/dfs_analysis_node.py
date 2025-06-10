@@ -246,11 +246,10 @@ def research_node(state: GraphState):
         result = model_with_tools.invoke([HumanMessage(content=query)])
         
         # Fixed: Proper state update
-        return {{"results": [result.content]}}
+        return {{'results': [result.content]}}
     except Exception as e:
         # Fixed: Added error handling
-        return {{"results": [], "error": str(e)}}
-        return {{"results": [], "error": str(e)}}
+        return {{'results': [], "error": str(e)}}
 
 # Fixed: Proper condition function
 def should_continue(state: GraphState):
@@ -264,10 +263,10 @@ workflow.add_node("research_node", research_node)
 workflow.add_conditional_edges(
     "research_node",
     should_continue,
-    {
+    {{
         "end": END,  # Fixed: Valid termination
         "research_node": "research_node"
-    }
+    }}
 )
 workflow.set_entry_point("research_node")
 graph = workflow.compile()

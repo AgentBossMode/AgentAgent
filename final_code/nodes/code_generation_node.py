@@ -44,15 +44,17 @@ Examine the INPUT comprehensively:
 
 ## 2. Node Design Analysis
 For each conceptual node, determine:
-- **Information Needs**: Does it need real-time/external data? → Consider Tool Calling
+- **Information Needs**: Does it need real-time/external data or if it requires data from web or has something in it's functionality that can be made deterministic through an API call? → Consider Tool Calling
 - **Decision Complexity**: Does it need structured decision making? → Consider Structured Output  
 - **Human Involvement**: Does it need human oversight/input? → Consider Interrupt Mechanisms
 - **Processing Type**: Is it deterministic operations? → Consider Algorithmic Logic
 - **LLM Suitability**: Would an LLM provide better flexibility/intelligence? → Consider LLM-based solutions
+- **Tool calling decision**: No specific external tools are explicitly defined in the JSON, You need to determine if a node will require tool calling and what tools will it require
+- **Human in the loop decision**: No specific requirement of an interupt from human are explicitly defined in the JSON, You need to determine if a node will an interupt in specific scenarios to get more user info before completion.                                        
 
 ## 3. Implementation Pattern Selection
 Choose from available patterns or create hybrid approaches:
-- **LLM + Tools**: External data/actions, API integrations, dynamic information retrieval
+- **LLM + Tools**: If a node requires searching or finding something, external data/actions, API integrations, dynamic information retrieval
 - **LLM + Structured Output**: Classification, routing, extraction, decision-making with defined schemas
 - **LLM Only**: Content generation, summarization, analysis, creative tasks
 - **Algorithmic**: Mathematical operations, data transformations, rule-based logic
@@ -1241,7 +1243,7 @@ After generating the complete Python script, add a section titled:
 
 ## Required Keys and Credentials
 
-List all environment variables, API keys, and external dependencies needed:
+List all environment variables, API keys, and external dependencies needed as comment :
 - Environment variables (e.g., OPENAI_API_KEY, GOOGLE_API_KEY)
 - Tool-specific credentials 
 - External service configurations
@@ -1258,6 +1260,8 @@ If no external keys are needed, state: "No external API keys required for this i
 5. **Innovation Encouraged**: Create novel architectures when existing patterns don't fit. The goal is optimal functionality, not pattern conformance.
 6. **Scalability Consideration**: Design with future evolution in mind, but don't over-engineer for hypothetical requirements.
 7. **User-Centric Design**: Keep the end-user experience and objectives at the center of your architectural decisions.
+8. Do not write the graph creation by progammatically parsing through the JSON in the code when doing "add_nodes" and "add_edges"
+9. Do not simulate "tools" by LLM calls within the nodes if the JSON does not mention any tools but you determine they are required. Instead create code stubs for the tools and add the required tools in specific nodes
 
 ## Architecture Analysis Questions
 Before implementing, ask yourself:
@@ -1269,7 +1273,7 @@ Before implementing, ask yourself:
 
 Remember: **The best architecture is the one that naturally emerges from careful analysis of the specific requirements, not the one that follows the most popular patterns.** Your goal is to create intelligent, functional, and maintainable LangGraph applications that excel at their intended purpose.
 
-Now produce the python code based on the inputs provided
+Please return only complete and compilable langgraph python code
 """)
 
 def code_node(state: AgentBuilderState):
