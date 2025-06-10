@@ -263,6 +263,16 @@ tool_info_workflow.add_edge("code_write", END)          # End after code writing
 # Compile the tool information graph
 tool_infograph = tool_info_workflow.compile()
 
+class ToolDescription(BaseModel):
+    tool_name: str = Field(description="The name of the tool.")
+    description: str = Field(description="A description of what the tool does.")
+
+class ToolDescriptionList(BaseModel):
+    """
+    Pydantic model to structure a list of tool descriptions.
+    Used for structured output from the LLM during tool identification.
+    """
+    tools: List[ToolDescription] = Field(description="List of tool descriptions identified in the code.")
 
 class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for convention
     """
@@ -272,6 +282,7 @@ class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for conv
     total_code: List[str] = Field(default_factory=list, description="List of generated Python code snippets for tools.")
     compiled_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
     json_dict: str = Field(description="The JSON representation of the graph")
+    tool_descriptions_list: ToolDescriptionList = Field(description="List of tool descriptions identified in the code.")
 
 # Prompt to compile main code with generated tool function definitions
 tool_compile_prompt = """
@@ -328,16 +339,14 @@ Python code:
 </code>
 """
 
-class ToolDescription(BaseModel):
-    tool_name: str = Field(description="The name of the tool.")
-    description: str = Field(description="A description of what the tool does.")
 
-class ToolDescriptionList(BaseModel):
-    """
-    Pydantic model to structure a list of tool descriptions.
-    Used for structured output from the LLM during tool identification.
-    """
-    tools: List[ToolDescription] = Field(description="List of tool descriptions identified in the code.")
+def get_tool_description_node(state: ToolCollectorState):
+    current_code = state['python_code']
+    llm_with_struct_output  = llm.with_structured_output(ToolDescriptionList)
+    tool_descriptions_list: ToolDescriptionList = llm_with_struct_output.invoke([HumanMessage(content=GET_TOOL_DESCRIPTION_PROMPT.format(code=current_code))])
+    return {
+        "tool_descriptions_list": tool_descriptions_list
+        }
 
 def graph_map_step(state: ToolCollectorState):
     """
@@ -346,10 +355,8 @@ def graph_map_step(state: ToolCollectorState):
     and collects the generated code.
     """
     current_code = state['python_code']
-    
-    llm_with_struct_output  = llm.with_structured_output(ToolDescriptionList)
-    list_of_tools: ToolDescriptionList = llm_with_struct_output.invoke([HumanMessage(content=GET_TOOL_DESCRIPTION_PROMPT.format(code=current_code))])
-    tool_names_and_descriptions = "\n".join([f"tool_name: {tool.tool_name}, tool_description: {tool.description}" for tool in list_of_tools.tools])
+    tool_descriptions_list: ToolDescriptionList = state['tool_descriptions_list']    
+    tool_names_and_descriptions = "\n".join([f"tool_name: {tool.tool_name}, tool_description: {tool.description}" for tool in tool_descriptions_list.tools])
     message_to_human = tool_names_and_descriptions + "\n\nWould you like to provide us more information if you have a prefered services/sdk to implement the above tools?"
 
     human_input = interrupt({
@@ -357,7 +364,7 @@ def graph_map_step(state: ToolCollectorState):
         "question": message_to_human})
     generated_tool_codes = []
     initial_tool_states = []
-    for tool in list_of_tools.tools:        
+    for tool in tool_descriptions_list.tools:        
         # Initial state for the tool_infograph
         initial_tool_state = {
             "objective": tool.description, # The description from tool_desc_prompt becomes the objective
