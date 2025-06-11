@@ -11,16 +11,17 @@ from langgraph.types import interrupt, Command
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-tool_prompt = """
+TOOL_PROMPT = ChatPromptTemplate.from_template("""
 You are responsible for getting the right tools from Composio given description of the requirements by user.
-
+<COMPOSIO_TOOLSET>
+{app_list}                                               
+</COMPOSIO_TOOLSET>
 Follow the following instructions:
 1. Respond to the user to understand if they already have any apps/tools that they would like to use for the given requirements. 
-2. Get the list of apps present in Composio using 'get_app' tool.
-3. Check which apps are best matching the user requirements based on their descriptions.
-4. For only the apps retrieved in above step, check the list of actions corresponding to the app using 'get_actions_for_given_app' tool. The tool may return with an empty list, it is fine.
-5. check which of the action schema best suits the requirements, donot suggest actions which are remotely connected to the task at hand.
-6. Post initial analysis respond with the following: 
+2. Check which apps in the COMPOSIO_TOOLSET are best matching the user requirements based on their descriptions.
+3. For only the apps retrieved in above step, check the list of actions corresponding to the app using 'get_actions_for_given_app' tool. The tool may return with an empty list, it is fine.
+4. check which of the action schema best suits the requirements, donot suggest actions which are remotely connected to the task at hand.
+5. Post initial analysis respond with the following: 
 
 Corresponding to each input tool description:
 App (there can be multiple entries) - Corresponding to each app, if found provide the exact ActionModel name (donot make human readable), if no actions were found it is okay/
@@ -54,7 +55,8 @@ For both tool_name_1 and tool_name_2, now generate a bunch of questions which wo
 
 
 7. If you get human input, responding to the above, now finally provide the final tools to be used corresponding to each user requirement.
-"""
+""")
+
 
 composio_toolset = ComposioToolSet()
 
@@ -96,7 +98,24 @@ def get_actions_for_given_app(app_name: str):
         action_schemas_list += f"""{action_schema.name} - {action_schema.description}\n\n"""
     return action_schemas_list
 
-tools =  [get_apps, get_actions_for_given_app]
+tools =  [get_actions_for_given_app]
+
+class ComposioFunctionToTool(BaseModel):
+    function_name: str = Field(description="The name of the function for which the tool is being decided")
+    composio_tool_app: str = Field(description="The composio tool app that corresponds to the function.")
+    composio_tool_action: str = Field(description="The composio tool action that corresponds to the function. This cannot be empty")
+
+class NativeFunctionToTool(BaseModel):
+    function_name: str = Field(description="The name of the function for which the tool is being decided")
+    information_provided_by_user: str = Field(description="The description of the function. Any code provided earlier, the description and any human input provided like what app to use etc.")
+
+class FunctionToToolList(BaseModel):
+    """
+    A list of tool descriptions.
+    """
+    composio_tools: List[ComposioFunctionToTool] = Field(description="A list of functions which are going to be served by composio tools")
+    native_tools: List[NativeFunctionToTool] = Field(description="A list of functions which are NOT going to be served by composio tools")
+
 
 class ToolBuilderState(MessagesState):
     """
@@ -104,20 +123,22 @@ class ToolBuilderState(MessagesState):
     """
     is_tool_fetched_via_composio: bool = Field(description="is tool fetched by composio")
     selected_tool_via_composio: str = Field(description="the tool selected via composio")
+    function_to_tool_list: FunctionToToolList = Field(description="A list of tool descriptions that will be used to build the agent.")
+    python_code: str = Field(description="The python code that will be used to build the agent. This is the code that will be used to build the agent.")
 
 
-def agent_node(state: MessagesState):
+def agent_node(state: ToolBuilderState):
     """
     Process messages through the LLM and return the response
     """
     llm_tools = llm.bind_tools(tools)
-    response = llm_tools.invoke([SystemMessage(content=tool_prompt)] + state["messages"])
+    response = llm_tools.invoke([SystemMessage(content=TOOL_PROMPT)] + state["messages"])
     return {"messages": [response]}
 
 class EndOrContinue(BaseModel):
     should_end_conversation : bool = Field(description="true if the AI response does not indicate that it needs any human input.")
 
-def get_human_review(state: MessagesState) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
+def get_human_review(state: ToolBuilderState) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
     llm_with_struct = llm.with_structured_output(EndOrContinue)
     should_continue: EndOrContinue = llm_with_struct.invoke([state["messages"][-1]])
     if should_continue.should_end_conversation:
@@ -125,12 +146,21 @@ def get_human_review(state: MessagesState) -> Command[Literal["composio_tool_fet
     value = interrupt(state["messages"][-1].content)
     return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=value)]} ) 
 
+
 def select_final_tool(state: ToolBuilderState):
-    prompt = "You have a list of Apps-Actions and the user has provided which tool to use. Your job is to just respond the final action."
-    response = llm.invoke([SystemMessage(content=prompt)] + state["messages"])
-    return {"messages": [response], "selected_tool_via_composio": response.content, "is_tool_fetched_via_composio": True}
+    prompt = """
+    Corresponding to a function, you will be given If an app has been identified and are there any actions found corresponding to the app.
+    If corresponding to a function you see that there are no actions found, that means the app is a native , not going to be served by Composio.
+    If there are actions found, that means the app is a composio tool. """
+    python_code = state["python_code"]
+    llm_with_struct = llm.with_structured_output(FunctionToToolList)
+    function_to_tool_list: FunctionToToolList = llm_with_struct.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=python_code)] + state["messages"])
+    return {"function_to_tool_list": function_to_tool_list}
 
 def generate_tool_node(state: ToolBuilderState):
+    function_to_tool_list: FunctionToToolList = state["function_to_tool_list"]
+    final_response = ""
+
     prompt = ChatPromptTemplate.from_template("""
 from composio_langchain import ComposioToolSet, Action
 composio_toolset = ComposioToolSet()
@@ -158,9 +188,14 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge("tools", "agent")
 """)
-    return {"messages": [AIMessage(content=prompt.format(tool_name=state["selected_tool_via_composio"]))]} 
 
-composio_tool_fetch_graph = StateGraph(MessagesState)
+    for tool in function_to_tool_list.composio_tools:
+        name = tool.function_name
+        composio_tool_action = tool.composio_tool_action
+        final_response += prompt.format(tool_name=composio_tool_action)
+    return {"messages": [AIMessage(content=final_response)]} 
+
+composio_tool_fetch_graph = StateGraph(ToolBuilderState)
 composio_tool_fetch_graph.add_node("agent", agent_node)
 composio_tool_fetch_graph.add_node("tools", ToolNode(tools))
 composio_tool_fetch_graph.add_edge(START, "agent")
@@ -168,7 +203,7 @@ composio_tool_fetch_graph.add_conditional_edges("agent", tools_condition)
 composio_tool_fetch_graph.add_edge("tools", "agent")
 composio_tool_fetch_app = composio_tool_fetch_graph.compile()
 
-workflow = StateGraph(MessagesState)
+workflow = StateGraph(ToolBuilderState)
 workflow.add_node("human_review", get_human_review)
 workflow.add_node("composio_tool_fetch", composio_tool_fetch_app)
 workflow.add_node("select_final_tool", select_final_tool)

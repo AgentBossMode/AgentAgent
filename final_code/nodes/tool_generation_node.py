@@ -422,11 +422,13 @@ def compile_tool_code_node(state: ToolCollectorState): # Renamed for clarity
 tool_compile_workflow = StateGraph(ToolCollectorState)
 
 # Add nodes to the tool compilation graph
+tool_compile_workflow.add_node("get_tool_descriptions", get_tool_description_node) # Node to extract tool descriptions
 tool_compile_workflow.add_node("graph_map_step", graph_map_step)
 tool_compile_workflow.add_node("compile_tools", compile_tool_code_node) # Renamed node
 
 # Define edges for the tool compilation graph
-tool_compile_workflow.add_edge(START, "graph_map_step")
+tool_compile_workflow.add_edge(START, "get_tool_descriptions")
+tool_compile_workflow.add_edge("get_tool_descriptions", "graph_map_step")
 tool_compile_workflow.add_edge("graph_map_step", "compile_tools")
 tool_compile_workflow.add_edge("compile_tools", END)
 

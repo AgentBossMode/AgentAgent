@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
 from final_code.utils.dict_to_reactflow import dict_to_tree_positions
 from final_code.llms.model_factory import get_model
-import json
+from final_code.states.NodesAndEdgesSchemas import NodeSchema, EdgeSchema
+from typing import List
 
 llm = get_model()
 
@@ -82,26 +83,27 @@ Do not add escape characters unless absolutely necessary, if they are not for ne
 Do not add words like input's say input\\'s
     """)
 
-class JSONExtraction(BaseModel):
+class JSONSchema(BaseModel):
     justification: str = Field(description="Identified architecture and justification of deciding the architecture")
-    json_output: str = Field(description="JSON representation of the architecture, this should be well formatted.")
+    nodes: List[NodeSchema] = Field(description="List of nodes in the graph, each with its unique identifier and schema information")
+    edges: List[EdgeSchema] = Field(description="List of edges in the graph, each describing a directed connection between nodes")
 
 def json_node(state: AgentBuilderState):
     instructions: AgentInstructions = state["agent_instructions"]
     
     # Invoke LLM to generate code based on the detailed prompt and instructions
 
-    json_extraction_llm = llm.with_structured_output(JSONExtraction)
-    json_extracted_output: JSONExtraction = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
+    json_extraction_llm = llm.with_structured_output(JSONSchema)
+    json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
         objective=instructions.objective,
         usecases=instructions.usecases,
         examples=instructions.examples
     ))])
-    reactflow_json = dict_to_tree_positions(json.loads(json_extracted_output.json_output))
+    reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
     # Return the generated Python code and an AI message
     return {
         "messages": [AIMessage(content="Generated json schema!")],
-        "json_dict": json_extracted_output.json_output,
+        "json_dict": reactflow_json,
         "justification": json_extracted_output.justification,
         "reactflow_json": reactflow_json
     }
