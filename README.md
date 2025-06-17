@@ -1,6 +1,6 @@
 # Promptius AI
 
-Repository of experiments:
+Repository of experimentss:
 
 1. This repo is set up to use uv. Run uv sync to install require deps:
 ```
