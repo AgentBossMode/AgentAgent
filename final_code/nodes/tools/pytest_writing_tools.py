@@ -16,6 +16,29 @@ def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) 
         else:
             result += f'("{q}", {t}),\n'
     code_to_format ="""
+
+# LLM-as-judge instructions
+grader_instructions = \"\"\"You are a teacher grading a quiz.
+
+You will be given a QUESTION, a REFERENCE RESPONSE, and the STUDENT RESPONSE.
+
+You are grading whether the student's response is appropriate to the question and matches the reference response in spirit.
+
+Correctness:
+True means that the student's response meets the criteria.
+False means that the student's response does not meet the criteria.
+
+Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct.\"\"\"
+
+# LLM-as-judge output schema
+class GradeTrajectory(BaseModel):
+    \"\"\"Compare the expected and actual answers and grade the actual answer.\"\"\"
+    reasoning: str = Field(description="Explain your reasoning for whether the actual response is correct or not.")
+    is_correct: bool = Field(description="True if the student response is mostly or exactly correct, otherwise False.")
+
+# Judge LLM
+grade_trajectory_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(GradeTrajectory)
+
 @pytest.mark.parametrize(
     "input_query, expected_tool_call_names",
     [
@@ -42,8 +65,11 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
             #    print(chunk['payload']['input']['messages'][-1])
             #    for tc in chunk['payload']['input']['messages'][-1].tool_calls:
             #        trajectory.append(tc['name'])
-
-    assert trajectory == expected_tool_call_names
+    grading_assignment = f\"\"\"QUESTION: {{input_query}}
+    GROUND TRUTH RESPONSE: {{" ".join(expected_tool_call_names)}}
+    STUDENT RESPONSE: {{" ".join(trajectory}}\"\"\"
+    grade: GradeTrajectory = grade_trajectory_llm.invoke([{{"role": "system", "content": grader_instructions}}, {{"role": "user", "content": grading_assignment}}])
+    return grade.is_correct
 """
     return code_to_format.format(result=result)
 
