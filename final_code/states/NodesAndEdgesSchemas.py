@@ -4,8 +4,8 @@ from typing import List, Optional
 class Tool(BaseModel):
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of the tool's functionality")
-    is_composio_tool: bool = Field(default=False, description="Indicates if the tool is a Composio tool, default is False")
-    composio_action_name: Optional[str] = Field(default=None, description="Name of the Composio action, if applicable")
+    is_composio_tool: bool = Field(default=False, description="Indicates if the tool is present in the composio toolset, default is False")
+    composio_action_name: Optional[str] = Field(default=None, description="Name of the Composio action, if applicable, default is None")
     py_code: Optional[str] = Field(default=None, description="Python code for the tool, if applicable")
 
 class ToolList(BaseModel):

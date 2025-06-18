@@ -4,58 +4,46 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from composio_langchain import ComposioToolSet
 from composio.client.collections import AppModel
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from typing import List, Literal
 from pydantic import Field, BaseModel
 from langgraph.types import interrupt, Command
+from final_code.states.ToolBuilderState import ToolBuilderState
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.pydantic_models.EndOrContinue import EndOrContinue
 
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
 TOOL_PROMPT = ChatPromptTemplate.from_template("""
-You are responsible for getting the right tools from Composio given description of the requirements by user.
-<COMPOSIO_TOOLSET>
+You are responsible for getting the right tools from Composio given different tool_names and tool_descriptions.
 {app_list}                                               
 </COMPOSIO_TOOLSET>
 Follow the following instructions:
-1. Respond to the user to understand if they already have any apps/tools that they would like to use for the given requirements. 
-2. Check which apps in the COMPOSIO_TOOLSET are best matching the user requirements based on their descriptions.
-3. For only the apps retrieved in above step, check the list of actions corresponding to the app using 'get_actions_for_given_app' tool. The tool may return with an empty list, it is fine.
+1. Respond to the user to understand if they already have any Apps that they would like to use for the given tool_names. 
+2. Check which Apps in the COMPOSIO_TOOLSET are best matching the user response.
+3. For only the Apps retrieved in above step, check the list of actions corresponding to the app using 'get_actions_for_given_app' tool. The tool may return with an empty list, it is fine.
 4. check which of the action schema best suits the requirements, donot suggest actions which are remotely connected to the task at hand.
-5. Post initial analysis respond with the following: 
-
+                                               
 Corresponding to each input tool description:
-App (there can be multiple entries) - Corresponding to each app, if found provide the exact ActionModel name (donot make human readable), if no actions were found it is okay/
 
 Example:
 
 Input:
-tool_name_1 and tool_description 1
-tool_name_2 and tool_description 2
+tool_name_1 and tool_description_1
+tool_name_2 and tool_description_2
+tool_name3 and tool_description_3
 
-Output:
+Final Output:
 
-*For tool_name_1, here are the following proposed tools:
+*For tool_name_1, the follow composio Action was identified:
 
-**App1:
-***action1 --> justification why you think that this action will satisfy tool_description1
+**action1 --> justification why you think that this action will satisfy tool_description_1
 
-**App2:
-***action3 --> justification why you think that this action will satisfy tool_description1
+*For tool_name_2, the follow composio Action was identified::
 
-*For tool_name_2, here are the following proposed tools:
+**action2323 --> justification why you think that this action will satisfy tool_description_2
 
-**App5:
-***action12 --> justification why you think that this action will satisfy tool_description2
-
-**App6:
-***action2323 --> justification why you think that this action will satisfy tool_description2
-
-
-For both tool_name_1 and tool_name_2, now generate a bunch of questions which would better help understand which tool might help select between the bunch of actions. Most likely the user already knows what tool he needs to integrate.
-
-
-7. If you get human input, responding to the above, now finally provide the final tools to be used corresponding to each user requirement.
+*For tool_name_3, There is no composio_action found which satisfies the requirements.
 """)
 
 
@@ -102,14 +90,7 @@ def get_actions_for_given_app(app_name: str):
 tools =  [get_actions_for_given_app]
 
 
-class ToolBuilderState(MessagesState):
-    """
-    State for the graph that builds the agent.
-    """
-    json_schema: JSONSchema = Field(description="The JSON schema that will be used to build the agent. This is the schema that will be used to build the agent.")
 
-class EndOrContinue(BaseModel):
-    should_end_conversation : bool = Field(description="true if the AI response does not indicate that it needs any human input.")
 
 def get_human_review(state: ToolBuilderState) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
     llm_with_struct = llm.with_structured_output(EndOrContinue)
@@ -123,7 +104,7 @@ def get_human_review(state: ToolBuilderState) -> Command[Literal["composio_tool_
 def select_final_tool(state: ToolBuilderState):
     json_schema = state["json_schema"]
     llm_with_struct = llm.with_structured_output(JSONSchema)
-    prompt= "User will provide the representation of the JSONSchema object, and also provide a list of functions, along with the commposio action that corresponds to the function. You are to generate a JSONSchema object with the updated information. "
+    prompt= "User will provide the representation of the JSONSchema object, and also provide a list of functions, along with the commposio action that corresponds to the function, in some cases there might not be any composio_action provided. You are to generate a JSONSchema object with the updated information. "
     updated_json_schema: JSONSchema = llm_with_struct.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=json_schema.model_dump_json())] + [state["messages"][-1]])
     return {"json_schema": updated_json_schema}
 
