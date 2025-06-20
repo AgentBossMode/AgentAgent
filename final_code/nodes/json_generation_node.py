@@ -12,7 +12,7 @@ from typing import List
 llm = get_model()
 
 JSON_GEN_PROMPT = PromptTemplate.from_template("""
-You are tasked with generating a JSONSchema object, you've been given the below input:
+You are tasked with generating a JSONSchema object which essentially represents a langgraph workflow, you've been given the below input:
 
 <INPUT>
 <OBJECTIVE>
@@ -75,19 +75,18 @@ class DryRunResults(BaseModel):
 def dry_run_node(state: AgentBuilderState):
     json_schema: JSONSchema = state["json_schema"]
     SYS_PROMPT= ChatPromptTemplate.from_template("""
+Your job is to verify if the given langgraph workflow meets the specificied agent requirements.
 You are given the json of a workflow graph below.
 {json_schema}
 
-You are also provided with the following user information:
+You are also provided with the following expectations of the agent to build:
 {agent_instructions}
-You are supposed to write use cases for the graph.
-You will also do dry run of the graph with the use cases.
-The use cases should be in the format of a list of dictionaries.
-Each dictionary should have the following
+
+Do a bunch of dry runs, figure out if the objectives, usecases and examples are satisfied via the given langgraph workflow, think critically.
 keys:
 - name: The name of the use case
 - description: The description of the use case
-- dry_run: The dry run of the use case
+- dry_run: The dry run of the use case, explaining your critical reasoning that why this langgraph workflow does/does not satisfy the run.
 If you find that the dry run fails in any of the cases, you should return the updated json_schema.
 """)
     llm_with_struct = get_model().with_structured_output(DryRunResults)
