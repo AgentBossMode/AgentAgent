@@ -12,6 +12,7 @@ dependencies = [
     "composio-langchain>=0.7.16",
     "composio-langgraph>=0.7.4",
     "composio-openai>=0.7.16",
+    "copilotkit>=0.1.49",
     "dotenv>=0.9.9",
     "e2b-code-interpreter>=1.2.1",
     "fastapi>=0.115.12",

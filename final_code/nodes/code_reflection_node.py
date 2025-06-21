@@ -5,7 +5,8 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from final_code.states.AgentBuilderState import AgentBuilderState
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from final_code.llms.model_factory import get_model, ModelName
-from pydantic import Field
+from pydantic import Field, BaseModel
+from copilotkit import CopilotKitState
 import os
 
 REFLECTION_SYSTEM_PROMPT = """
@@ -19,8 +20,9 @@ REFLECTION_SYSTEM_PROMPT = """
  """
 
 class CodeState(MessagesState):
-    graph_schema: str = Field(description="the graph schema obtained from e2b.")
-    main_logs: str = Field(description="logs appended from main.")
+    code_to_reflect: str = Field(description="the input code")
+    reflection_code: str= Field(description="the reflection code")
+    remaining_steps: int = 4
 
 def create_base_agent():
     def check_code(state: CodeState):
