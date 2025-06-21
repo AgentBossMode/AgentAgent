@@ -5,6 +5,7 @@ from final_code.llms.model_factory import get_model, ModelName
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import create_react_agent
 from final_code.nodes.tools.pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
+from final_code.nodes.code_reflection_node import code_reflection_node_updated
 import os
 import tempfile
 import subprocess
@@ -14,6 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class CodeEvalState(MessagesState):
+    reflection_code: str
     python_code: str
     json_dict: str
     use_cases: str
@@ -78,6 +80,7 @@ Both final response and trajectory type tests take a list of inputs and expected
 Output guidelines:
 - The given <CODE> should be present at the top of the final output
 - DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
+- Code should be compilable python code without errors, no formatting errors. Donot have any SyntaxError
 """
     app = create_react_agent(
     model= get_model(ModelName.GEMINI25FLASH),
@@ -98,8 +101,16 @@ def pytest_runner(state: CodeEvalState):
             f.write(state["pytest_code"])
 
     # Step 2: Run pipreqs to generate requirements.txt
+    try:
         subprocess.run(["pipreqs", tmpdir, "--force", "--encoding=utf-8"], check=True)
-
+    except Exception as e:
+        result = code_reflection_node_updated.invoke({"code_to_reflect":f"{state["pytest_code"]} ERROR: {e}"})
+        state["pytest_code"] = result["reflection_code"]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            code_path = os.path.join(tmpdir, "main.py")
+            with open(code_path, "w") as f:
+                f.write(state["pytest_code"])
+        subprocess.run(["pipreqs", tmpdir, "--force", "--encoding=utf-8"], check=True)
     # Step 3: Read requirements from the generated requirements.txt
         req_path = os.path.join(tmpdir, "requirements.txt")
         with open(req_path, "r") as f:
@@ -119,17 +130,23 @@ def pytest_runner(state: CodeEvalState):
 
     return {"pytest_out": "\n".join(pytest_out)}
 
+def reflection_node(state: CodeEvalState):
+    result = code_reflection_node_updated.invoke({"code_to_reflect": state["pytest_code"]})
+    return {"pytest_code": result["reflection_code"]}
+
 
 workflow = StateGraph(CodeEvalState)
 workflow.add_node("use_case_generator", use_case_generator)
 workflow.add_node("mock_code_generator", mock_code_generator)
 workflow.add_node("test_writer", test_writer)
+workflow.add_node("reflection", reflection_node)
 workflow.add_node("pytest_runner", pytest_runner)
 
 workflow.add_edge(START, "use_case_generator")
 workflow.add_edge("use_case_generator", "mock_code_generator")
 workflow.add_edge("mock_code_generator", "test_writer")
-workflow.add_edge("test_writer", "pytest_runner")
+workflow.add_edge("test_writer", "reflection")
+workflow.add_edge("reflection", "pytest_runner")
 workflow.add_edge("pytest_runner", END)
 
 eval_pipeline_graph = workflow.compile()

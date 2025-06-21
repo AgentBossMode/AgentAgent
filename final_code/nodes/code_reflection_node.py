@@ -4,8 +4,10 @@ from langgraph_reflection import create_reflection_graph
 from langgraph.graph import StateGraph, MessagesState, START, END
 from final_code.states.AgentBuilderState import AgentBuilderState
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langgraph.types import Command
+from typing import Literal
 from final_code.llms.model_factory import get_model, ModelName
-from pydantic import Field
+from pydantic import Field, BaseModel
 import os
 
 REFLECTION_SYSTEM_PROMPT = """
@@ -19,91 +21,43 @@ REFLECTION_SYSTEM_PROMPT = """
  """
 
 class CodeState(MessagesState):
-    graph_schema: str = Field(description="the graph schema obtained from e2b.")
-    main_logs: str = Field(description="logs appended from main.")
+    code_to_reflect: str = Field(description="the input code")
+    reflection_code: str= Field(description="the reflection code")
+    remaining_steps: int = 4
 
-def create_base_agent():
-    def check_code(state: CodeState):
+def code_rectification_node(state: CodeState) -> Command[Literal["run_reflection", "__end__"]]:
+        if state["remaining_steps"] == 0:
+            return Command(goto="__end__")
         llm = get_model(ModelName.GEMINI25FLASH)
-        result = llm.invoke([SystemMessage(content=REFLECTION_SYSTEM_PROMPT)]+ [state["messages"][-1]])
-        return {
-            "messages": [result]
-        }  
-    workflow = StateGraph(CodeState)
-    workflow.add_node("check_code", check_code)
-    workflow.add_edge(START, "check_code")
-    workflow.add_edge("check_code", END)
-    app = workflow.compile()
-    return app
-
-def create_judge_graph(sandbox: Sandbox):
-    def run_reflection(state: CodeState):
+        result = llm.invoke([SystemMessage(content=REFLECTION_SYSTEM_PROMPT)]+ [HumanMessage(content=state["code_to_reflect"])])
+        return Command(goto="run_reflection", update= {
+            "code_to_reflect": result.content
+        }  )
+        
+def run_reflection(state: CodeState) -> Command[Literal["__end__", "code_rectification_node"]]:
+        if "remaining_steps" not in state:
+            state["remaining_steps"] = 4
+        sandbox = Sandbox("OpenEvalsPython", timeout=60,envs={"OPENAI_API_KEY": os.environ["OPENAI_API_KEY"], "COMPOSIO_API_KEY" : os.environ["COMPOSIO_API_KEY"]})
         evaluator = create_e2b_execution_evaluator(
             sandbox=sandbox,
             code_extraction_strategy="markdown_code_blocks",
         )
-        py_code = state["messages"][-1].content
+        py_code = state["code_to_reflect"]
         result = evaluator(outputs=py_code)
-        try:
-            graph_schema = sandbox.files.read("/home/user/graph.json")
-        except:
-            graph_schema = "File not found"
-
-        try:
-            main_logs = sandbox.files.read("/home/user/llm_stream.txt")
-        except:
-            main_logs = "File not found"
-        
-
-        code_extraction_failed = result["metadata"] and result["metadata"].get(
-            "code_extraction_failed"
-        )
-
-        if not result["score"] and not code_extraction_failed:
-            return {
-                "graph_schema": graph_schema,
-                "main_logs": main_logs,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"I ran the code and found some problems: {result['comment']}\n\n"
+        if result["score"]:
+            return Command(goto="__end__", update={"reflection_code":py_code})
+        else:
+            return  Command(goto="code_rectification_node", update= {
+                "remaining_steps": state["remaining_steps"]-1,
+                "code_to_reflect":f"I ran the code and found some problems: {result['metadata']} {result['comment']}\n\n"
                         f"PYTHON CODE that led to above failures: \n\n{py_code}\n\n"
-                        "Try to fix it. Make sure to regenerate the entire code snippet. ",
-                    }
-                ]
-            }
+                        "Try to fix it. Make sure to regenerate the entire code snippet. "
+                
+            })
 
-    return (
-        StateGraph(CodeState)
-        .add_node("run_reflection", run_reflection)
-        .add_edge("__start__", "run_reflection")
-        .compile()
-    ).with_config(run_name="Judge Agent")
+workflow = StateGraph(CodeState)
+workflow.add_node("code_rectification_node", code_rectification_node)
+workflow.add_node("run_reflection", run_reflection)
 
-def code_reflection_node_updated(state: AgentBuilderState):
-    """
-    LangGraph node to run code reflection and fixing using E2B sandbox - updated for AgentBuilderState
-    """
-    python_code = state['python_code']
-    sandbox = Sandbox("OpenEvalsPython", envs={"OPENAI_API_KEY": os.environ["OPENAI_API_KEY"]})
-
-    judge = create_judge_graph(sandbox)
-    graph = create_base_agent()
-    reflection_agent = create_reflection_graph(graph, judge, CodeState).compile().with_config(run_name="Mini Chat LangChain")
-
-    # Run the reflection agent with the generated code
-    result = reflection_agent.invoke({
-        "messages": [HumanMessage(content=f"{python_code}\n")]
-    })
-    main_logs = result["main_logs"]
-    graph_schema = result["graph_schema"]
-    # Extract the final message content as the fixed code
-    final_message = result["messages"][-1]
-    fixed_code = final_message.content if hasattr(final_message, 'content') else str(final_message)
-
-    return {
-        "graph_schema": graph_schema,
-        "main_logs": main_logs,
-        "messages": [AIMessage(content="Code has been tested and fixed using E2B sandbox reflection.")],
-        "python_code": fixed_code
-    }
+workflow.add_edge(START, "run_reflection")
+code_reflection_node_updated = workflow.compile()
