@@ -7,7 +7,7 @@ from final_code.utils.fetch_docs import fetch_documents
 from final_code.llms.model_factory import get_model
 from langgraph.types import interrupt
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
-
+from copilotkit import CopilotKitState
 
 # --- LLM Initialization ---
 # Initialize the Language Model (LLM) to be used throughout the application
@@ -275,7 +275,7 @@ class ToolDescriptionList(BaseModel):
     """
     tools: List[ToolDescription] = Field(description="List of tool descriptions identified in the code.")
 
-class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for convention
+class ToolCollectorState(CopilotKitState): # Renamed from 'toolcollector' for convention
     """
     State for the graph that collects and compiles multiple tool codes.
     """
