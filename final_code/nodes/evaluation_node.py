@@ -1,6 +1,6 @@
 # generate use cases
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.llms.model_factory import get_model, ModelName
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import create_react_agent
@@ -11,6 +11,10 @@ import tempfile
 import subprocess
 from e2b_code_interpreter import Sandbox
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+from langgraph.types import Command
+from typing import Literal
+from langgraph.graph import END
 
 load_dotenv()
 
@@ -42,8 +46,6 @@ keys:
     use_cases = llm.invoke([HumanMessage(content=SYS_PROMPT.format(json_dict=state["json_dict"]))])
     return {"use_cases": use_cases.content}
 
-
-
 def mock_code_generator(state: CodeEvalState):
     TOOL_MOCK_PROMPT = """
     You are given a code, look for any methods with 'tool' decorator and modify them to have mock implementation.
@@ -55,8 +57,6 @@ def mock_code_generator(state: CodeEvalState):
     llm = get_model(ModelName.GEMINI25FLASH)
     mocked_code = llm.invoke([HumanMessage(content=TOOL_MOCK_PROMPT), HumanMessage(content=state["python_code"])])
     return {"mocked_code": mocked_code.content}
-
-
 
 def test_writer(state: CodeEvalState):
     TEST_WRITER_PROMPT = """
@@ -129,10 +129,39 @@ def pytest_runner(state: CodeEvalState):
         print(e)
 
     return {"pytest_out": "\n".join(pytest_out)}
-
+ 
 def reflection_node(state: CodeEvalState):
     result = code_reflection_node_updated.invoke({"code_to_reflect": state["pytest_code"]})
     return {"pytest_code": result["reflection_code"]}
+class PytestEvaluation(BaseModel):
+    is_correct: bool = Field(description="True if there were no failures or errors in the pytest run, otherwise False.")
+    pytest_code: str = Field(description= "If there were any failures or errors in the pytest run, this field will contain the corrected code with the fixes applied to the original code.")
+    explanation: str = Field(description="Explanation of the changes made to the code, if any.")
+
+def evaluate_test_results(state: CodeEvalState) -> Command[Literal["pytest_runner", "__end__"]]:
+    python_code = state["pytest_code"]
+    pytest_results = state["pytest_out"]
+
+    llm=get_model()
+    EVALUATION_PROMPT = """
+You will be provided with a code that would contain the main code along with the pytests
+
+You will also be provided with the output of the pytest run.
+
+Your job is to evaluate the pytest results and see if there were any errors or failures in the pytest run.
+Based on the failures, you are supposed to perform corrections in the code and return the corrected code.
+"""
+
+    prompt = ChatPromptTemplate.from_messages([SystemMessage(content=EVALUATION_PROMPT), HumanMessage(content=python_code), HumanMessage(content=pytest_results)])
+    llm_with_struct_output = llm.with_structured_output(PytestEvaluation)
+    eval_result: PytestEvaluation =  llm_with_struct_output.invoke(prompt.invoke())
+
+    if eval_result.is_correct:
+        return Command(goto=END)
+    else:
+        return Command(
+            goto="pytest_runner",
+            update={"pytest_code": eval_result.pytest_code})
 
 
 workflow = StateGraph(CodeEvalState)
@@ -141,12 +170,14 @@ workflow.add_node("mock_code_generator", mock_code_generator)
 workflow.add_node("test_writer", test_writer)
 workflow.add_node("reflection", reflection_node)
 workflow.add_node("pytest_runner", pytest_runner)
+workflow.add_node("evaluate_test_results", evaluate_test_results)
 
 workflow.add_edge(START, "use_case_generator")
 workflow.add_edge("use_case_generator", "mock_code_generator")
 workflow.add_edge("mock_code_generator", "test_writer")
+
 workflow.add_edge("test_writer", "reflection")
 workflow.add_edge("reflection", "pytest_runner")
-workflow.add_edge("pytest_runner", END)
+workflow.add_edge("pytest_runner", "evaluate_test_results")
 
 eval_pipeline_graph = workflow.compile()
