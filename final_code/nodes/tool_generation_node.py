@@ -6,6 +6,7 @@ from langgraph.graph import MessagesState,StateGraph, START, END
 from final_code.utils.fetch_docs import fetch_documents
 from final_code.llms.model_factory import get_model
 from langgraph.types import interrupt
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
 
 
 # --- LLM Initialization ---
@@ -278,6 +279,7 @@ class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for conv
     """
     State for the graph that collects and compiles multiple tool codes.
     """
+    json_schema: JSONSchema = Field(description="The JSON schema of the graph, including nodes and edges.")
     python_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
     total_code: List[str] = Field(default_factory=list, description="List of generated Python code snippets for tools.")
     compiled_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
