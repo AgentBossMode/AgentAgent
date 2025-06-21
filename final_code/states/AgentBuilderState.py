@@ -5,9 +5,11 @@ from final_code.states.AgentInstructions import AgentInstructions
 from final_code.states.ArchEvaluations import ArchEvaluationWithUrl
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
 import operator
+from copilotkit import CopilotKitState
 
 
-class AgentBuilderState(MessagesState):
+
+class AgentBuilderState(CopilotKitState):
     """
     Represents the state of the main agent building graph.
     Inherits from MessagesState to include a list of messages.

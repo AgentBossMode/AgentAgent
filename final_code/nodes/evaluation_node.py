@@ -15,10 +15,11 @@ from pydantic import BaseModel, Field
 from langgraph.types import Command
 from typing import Literal
 from langgraph.graph import END
-
+from copilotkit import CopilotKitState
 load_dotenv()
 
-class CodeEvalState(MessagesState):
+
+class CodeEvalState(CopilotKitState):
     reflection_code: str
     python_code: str
     json_dict: str

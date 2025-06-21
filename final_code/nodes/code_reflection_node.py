@@ -8,6 +8,7 @@ from langgraph.types import Command
 from typing import Literal
 from final_code.llms.model_factory import get_model, ModelName
 from pydantic import Field, BaseModel
+from copilotkit import CopilotKitState
 import os
 
 REFLECTION_SYSTEM_PROMPT = """

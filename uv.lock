@@ -14,6 +14,7 @@ dependencies = [
     { name = "composio-langchain" },
     { name = "composio-langgraph" },
     { name = "composio-openai" },
+    { name = "copilotkit" },
     { name = "dotenv" },
     { name = "e2b-code-interpreter" },
     { name = "fastapi" },
@@ -57,6 +58,7 @@ requires-dist = [
     { name = "composio-langchain", specifier = ">=0.7.16" },
     { name = "composio-langgraph", specifier = ">=0.7.4" },
     { name = "composio-openai", specifier = ">=0.7.16" },
+    { name = "copilotkit", specifier = ">=0.1.49" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "e2b-code-interpreter", specifier = ">=1.2.1" },
     { name = "fastapi", specifier = ">=0.115.12" },
@@ -611,6 +613,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/46/84/f608a0a71a05a476b2f1761ab8f3f776677d39f7996ecf1092a1ce741a7c/constructs-10.4.2.tar.gz", hash = "sha256:ce54724360fffe10bab27d8a081844eb81f5ace7d7c62c84b719c49f164d5307", size = 65434, upload_time = "2024-10-14T12:58:02.822Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f2/d9/c5e7458f323bf063a9a54200742f2494e2ce3c7c6873e0ff80f88033c75f/constructs-10.4.2-py3-none-any.whl", hash = "sha256:1f0f59b004edebfde0f826340698b8c34611f57848139b7954904c61645f13c1", size = 63509, upload_time = "2024-10-14T12:57:59.828Z" },
+]
+
+[[package]]
+name = "copilotkit"
+version = "0.1.49"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "langchain" },
+    { name = "langgraph" },
+    { name = "partialjson" },
+    { name = "toml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/10/890d0809aa78c9953bab9c8ee6cbed0c9104b95a246612e17a90df073108/copilotkit-0.1.49.tar.gz", hash = "sha256:74afead7c4d80db72d35d22b5f88f3694efd814c1bb744d8cd259d8723d0ad51", size = 32469, upload_time = "2025-06-10T04:29:58.557Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/e1/b26e6409e56ccb2c0f84b8b840f0c5860c0550dc015c221e56eb4b96d064/copilotkit-0.1.49-py3-none-any.whl", hash = "sha256:1a1d71850eb9f06396bfb34c39987cb2ad36ff8afad15aa10d2c647334629992", size = 40884, upload_time = "2025-06-10T04:29:57.476Z" },
 ]
 
 [[package]]
@@ -2187,6 +2205,15 @@ wheels = [
 ]
 
 [[package]]
+name = "partialjson"
+version = "0.0.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5d/b2/59669fdc3ecbc724a077c598c1c9b4068549af0cd8c3b5add9337bd4d93a/partialjson-0.0.8.tar.gz", hash = "sha256:91217e19a15049332df534477f56420065ad1729cedee7d8c7433e1d2acc7dca", size = 4142, upload_time = "2024-08-03T18:03:15.798Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/fb/453af21468774dbd0954853735a4fc7841544c3022ff86e5d93252d7ea72/partialjson-0.0.8-py3-none-any.whl", hash = "sha256:22c6c60944137f931a7033fa0eeee2d74b49114f3d45c25a560b07a6ebf22b76", size = 4549, upload_time = "2024-08-03T18:03:14.447Z" },
+]
+
+[[package]]
 name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3047,6 +3074,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7a/fd/7a5ee21fd08ff70d3d33a5781c255cbe779659bd03278feb98b19ee550f4/tinycss2-1.4.0.tar.gz", hash = "sha256:10c0972f6fc0fbee87c3edb76549357415e94548c1ae10ebccdea16fb404a9b7", size = 87085, upload_time = "2024-10-24T14:58:29.895Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/34/ebdc18bae6aa14fbee1a08b63c015c72b64868ff7dae68808ab500c492e2/tinycss2-1.4.0-py3-none-any.whl", hash = "sha256:3a49cf47b7675da0b15d0c6e1df8df4ebd96e9394bb905a5775adb0d884c5289", size = 26610, upload_time = "2024-10-24T14:58:28.029Z" },
+]
+
+[[package]]
+name = "toml"
+version = "0.10.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload_time = "2020-11-01T01:40:22.204Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload_time = "2020-11-01T01:40:20.672Z" },
 ]
 
 [[package]]
