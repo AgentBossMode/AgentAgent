@@ -1,11 +1,13 @@
 # generate use cases
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.llms.model_factory import get_model, ModelName
-from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import create_react_agent
 from final_code.nodes.tools.pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
+from final_code.nodes.tools.composio_info_tools import get_raw_tool_schema
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
+from final_code.states.DryRunState import UseCaseAnalysis
 import os
 import tempfile
 import subprocess
@@ -13,7 +15,7 @@ from e2b_code_interpreter import Sandbox
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langgraph.types import Command
-from typing import Literal
+from typing import Literal, List
 from langgraph.graph import END
 from copilotkit import CopilotKitState
 load_dotenv()
@@ -23,73 +25,54 @@ class CodeEvalState(CopilotKitState):
     reflection_code: str
     python_code: str
     json_dict: str
-    use_cases: str
+    use_cases: List[UseCaseAnalysis]
     mocked_code: str
     pytest_code: str
     packages: list[str]
     pytest_out: str
 
 
-def use_case_generator(state: CodeEvalState):
-    SYS_PROMPT= ChatPromptTemplate.from_template("""
-You are given the json of a workflow graph below.
-{json_dict}
-You are supposed to write use cases for the graph.
-You will also do dry run of the graph with the use cases.
-The use cases should be in the format of a list of dictionaries.
-Each dictionary should have the following
-keys:
-- name: The name of the use case
-- description: The description of the use case
-- dry_run: The dry run of the use case
-""")
-    llm = get_model(ModelName.GEMINI25FLASH)
-    use_cases = llm.invoke([HumanMessage(content=SYS_PROMPT.format(json_dict=state["json_dict"]))])
-    return {"use_cases": use_cases.content}
-
-def mock_code_generator(state: CodeEvalState):
-    TOOL_MOCK_PROMPT = """
-    You are given a code, look for any methods with 'tool' decorator and modify them to have mock implementation.
-
-    Return the modified code in the same format as the input code.
-
-- DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
-    """
-    llm = get_model(ModelName.GEMINI25FLASH)
-    mocked_code = llm.invoke([HumanMessage(content=TOOL_MOCK_PROMPT), HumanMessage(content=state["python_code"])])
-    return {"mocked_code": mocked_code.content}
-
 def test_writer(state: CodeEvalState):
     TEST_WRITER_PROMPT = """
-    You are given langgraph code below:
-    <CODE>
-    {code}
+You are a python code writing expert, your job is to write a pytest given the langgraph code and use cases.
+You are given langgraph code below:
+<CODE>
+{code}
 </CODE>
 You are given the use cases for a workflow graph along with dry runs.
 <USE_CASES>
 {use_cases}
 </USE_CASES>
-                                                   
-You are supposed to write test cases for the graph in the <CODE> section, use the <USE_CASES> for generating test case inputs.
-                                              
-The tests should cover the following:
-1. Final response: use 'write_final_response_pytest_code' tool. the input should be what the user asked and the output would be something that an assistant would respond in a natural language.
-2. Trajectory: use the 'write_trajectory_pytest_code' tool.
 
-Both final response and trajectory type tests take a list of inputs and expected outputs.
+<INSTRUCTIONS>
+1. You will first write mock code for the code in <CODE> section, this means any tool marked with @tool decorator, or if there is any composio_tool being used, you are going to write equivalent python mock stub code, you can use 'get_raw_tool_schema' to get description of the composio tools.
+    a. In case of composio --> create a python function with an appropriate name, based on description from get_raw_tool_schema create the mock code.
+2. With the mock code generated in step 1, you will now write pytest code,use the <USE_CASES> for generating test case inputs.The tests should cover the following:
+    a. Final response: use 'write_final_response_pytest_code' tool. the input should be what the user asked and the output would be something that an assistant would respond in a natural language.
+    b. Trajectory: use the 'write_trajectory_pytest_code' tool.
+    c. Both final response and trajectory type tests take a list of inputs and expected outputs.
+</INSTRUCTIONS>
 
-Output guidelines:
-- The given <CODE> should be present at the top of the final output
-- DONT WRITE ANYTHING ELSE IN THE OUTPUT, ONLY OUTPUT THE PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
-- Code should be compilable python code without errors, no formatting errors. Donot have any SyntaxError
+<OUTPUT>
+You are supposed to generate a compilable python file.
+1. The generated MOCK CODE should be present at the top of the final output
+2. The generated pytest code in step 2 of INSTRUCTION should be appended at bottom
+3. All imports from both code pieces are supposed to be at the top of the output.
+    <OUTPUT_FORMAT>
+        - ONLY THE FINAL PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
+        - Code should be compilable python code without errors, no formatting errors
+        - No SyntaxError
+    </OUTPUT_FORMAT>
+</OUTPUT>
 """
-    app = create_react_agent(
-    model= get_model(ModelName.GEMINI25FLASH),
-    tools=[write_final_response_pytest_code, write_trajectory_pytest_code],
+    app = create_react_agent(model= get_model(ModelName.GEMINI25FLASH),
+    tools=[write_final_response_pytest_code, write_trajectory_pytest_code, get_raw_tool_schema],
     name="pytest_writer")
 
+    use_case_list : List[UseCaseAnalysis] = state["use_cases"]
+    use_cases = "\n".join(use_case.model_dump_json(indent=2) for use_case in use_case_list)
     final_response = app.invoke(
-        {"messages": [HumanMessage(content=TEST_WRITER_PROMPT.format(code=state["mocked_code"], use_cases=state["use_cases"]))]})
+        {"messages": [HumanMessage(content=TEST_WRITER_PROMPT.format(code=state["python_code"], use_cases=use_cases))]})
     return {"pytest_code": final_response["messages"][-1].content}
 
 def pytest_runner(state: CodeEvalState):
@@ -123,9 +106,10 @@ def pytest_runner(state: CodeEvalState):
             sandbox.commands.run(f"pip install {joined_packages}")
     sandbox.files.write("/home/user/test_code_to_run.py", state["pytest_code"])
     try:
-        commandResult = sandbox.commands.run("pytest -vv /home/user/test_code_to_run.py", background=False, 
-                                                     on_stderr=lambda x: print(x),
-                                                     on_stdout=lambda x: pytest_out.append(x))
+        commandResult = sandbox.commands.run("pytest -vv /home/user/test_code_to_run.py",
+                                              background=False, 
+                                              on_stderr=lambda x: print(x),
+                                              on_stdout=lambda x: pytest_out.append(x))
     except Exception as e:
         print(e)
 
@@ -134,6 +118,7 @@ def pytest_runner(state: CodeEvalState):
 def reflection_node(state: CodeEvalState):
     result = code_reflection_node_updated.invoke({"code_to_reflect": state["pytest_code"]})
     return {"pytest_code": result["reflection_code"]}
+
 class PytestEvaluation(BaseModel):
     is_correct: bool = Field(description="True if there were no failures or errors in the pytest run, otherwise False.")
     pytest_code: str = Field(description= "If there were any failures or errors in the pytest run, this field will contain the corrected code with the fixes applied to the original code.")
@@ -166,17 +151,12 @@ Based on the failures, you are supposed to perform corrections in the code and r
 
 
 workflow = StateGraph(CodeEvalState)
-workflow.add_node("use_case_generator", use_case_generator)
-workflow.add_node("mock_code_generator", mock_code_generator)
 workflow.add_node("test_writer", test_writer)
 workflow.add_node("reflection", reflection_node)
 workflow.add_node("pytest_runner", pytest_runner)
 workflow.add_node("evaluate_test_results", evaluate_test_results)
 
-workflow.add_edge(START, "use_case_generator")
-workflow.add_edge("use_case_generator", "mock_code_generator")
-workflow.add_edge("mock_code_generator", "test_writer")
-
+workflow.add_edge(START, "test_writer")
 workflow.add_edge("test_writer", "reflection")
 workflow.add_edge("reflection", "pytest_runner")
 workflow.add_edge("pytest_runner", "evaluate_test_results")

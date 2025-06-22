@@ -67,7 +67,7 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
             #        trajectory.append(tc['name'])
     grading_assignment = f\"\"\"QUESTION: {{input_query}}
     GROUND TRUTH RESPONSE: {{" ".join(expected_tool_call_names)}}
-    STUDENT RESPONSE: {{" ".join(trajectory}}\"\"\"
+    STUDENT RESPONSE: {{" ".join(trajectory)}}\"\"\"
     grade: GradeTrajectory = grade_trajectory_llm.invoke([{{"role": "system", "content": grader_instructions}}, {{"role": "user", "content": grading_assignment}}])
     return grade.is_correct
 """
