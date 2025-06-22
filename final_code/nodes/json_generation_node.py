@@ -12,7 +12,7 @@ from typing import List
 llm = get_model()
 
 JSON_GEN_PROMPT = PromptTemplate.from_template("""
-You are tasked with generating a JSONSchema object which essentially represents a langgraph workflow, you've been given the below input:
+You are tasked with generating a JSONSchema object which represents a langgraph workflow, you've been given the below input:
 
 <INPUT>
 <OBJECTIVE>
