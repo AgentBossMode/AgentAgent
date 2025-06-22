@@ -1,15 +1,14 @@
 import json
-
-def dict_to_tree_positions(langjson):
+from final_code.states.NodesAndEdgesSchemas import NodeSchema, EdgeSchema
+from typing import List
+def dict_to_tree_positions(nodes: List[NodeSchema], edges: List[EdgeSchema]) -> str:
     reactflow = {"nodes": [], "edges": []}
-    nodes = langjson.get("nodes", [])
-    edges = langjson.get("edges", [])
 
     # Create a mapping of edges to track parent-child relationships
     children_map = {}
     for edge in edges:
-        parent = edge["source"]
-        child = edge["target"]
+        parent = edge.source
+        child = edge.target
         if parent not in children_map:
             children_map[parent] = []
         children_map[parent].append(child)
@@ -24,13 +23,13 @@ def dict_to_tree_positions(langjson):
         if node_id not in node_positions:
             node_positions[node_id] = {"x": x_offset, "y": depth * y_spacing}
             # Add node to ReactFlow nodes
-            node = next((n for n in nodes if n["id"] == node_id), None)
+            node = next((n for n in nodes if n.id == node_id), None)
             if node:
                 reactflow["nodes"].append({
                     "id": node_id,
                     "data": {
-                        "description": node.get("description", ""),
-                        "function_name": node.get("function_name", ""),
+                        "description": node.description,
+                        "function_name": node.function_name,
                         "label": node_id.replace("_", " ").title()
                     },
                     "position": {"x": x_offset, "y": depth * y_spacing}
@@ -57,10 +56,10 @@ def dict_to_tree_positions(langjson):
     # Add regular edges to ReactFlow
     for edge in edges:
         reactflow["edges"].append({
-            "id": f'{edge["source"]}_to_{edge["target"]}',
-            "source": edge["source"],
-            "target": edge["target"],
-            "animated": edge.get("conditional", False)  # Set animated if conditional is True
+            "id": f'{edge.source}_to_{edge.target}',
+            "source": edge.source,
+            "target": edge.target,
+            "animated": edge.conditional  # Set animated if conditional is True
         })
 
     # Convert to JSON with double quotes

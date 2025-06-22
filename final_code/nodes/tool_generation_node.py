@@ -6,7 +6,8 @@ from langgraph.graph import MessagesState,StateGraph, START, END
 from final_code.utils.fetch_docs import fetch_documents
 from final_code.llms.model_factory import get_model
 from langgraph.types import interrupt
-
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from copilotkit import CopilotKitState
 
 # --- LLM Initialization ---
 # Initialize the Language Model (LLM) to be used throughout the application
@@ -274,10 +275,11 @@ class ToolDescriptionList(BaseModel):
     """
     tools: List[ToolDescription] = Field(description="List of tool descriptions identified in the code.")
 
-class ToolCollectorState(MessagesState): # Renamed from 'toolcollector' for convention
+class ToolCollectorState(CopilotKitState): # Renamed from 'toolcollector' for convention
     """
     State for the graph that collects and compiles multiple tool codes.
     """
+    json_schema: JSONSchema = Field(description="The JSON schema of the graph, including nodes and edges.")
     python_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
     total_code: List[str] = Field(default_factory=list, description="List of generated Python code snippets for tools.")
     compiled_code: str = Field(description="The main agent Python code, potentially with placeholders for tools.")
@@ -422,11 +424,13 @@ def compile_tool_code_node(state: ToolCollectorState): # Renamed for clarity
 tool_compile_workflow = StateGraph(ToolCollectorState)
 
 # Add nodes to the tool compilation graph
+tool_compile_workflow.add_node("get_tool_descriptions", get_tool_description_node) # Node to extract tool descriptions
 tool_compile_workflow.add_node("graph_map_step", graph_map_step)
 tool_compile_workflow.add_node("compile_tools", compile_tool_code_node) # Renamed node
 
 # Define edges for the tool compilation graph
-tool_compile_workflow.add_edge(START, "graph_map_step")
+tool_compile_workflow.add_edge(START, "get_tool_descriptions")
+tool_compile_workflow.add_edge("get_tool_descriptions", "graph_map_step")
 tool_compile_workflow.add_edge("graph_map_step", "compile_tools")
 tool_compile_workflow.add_edge("compile_tools", END)
 
