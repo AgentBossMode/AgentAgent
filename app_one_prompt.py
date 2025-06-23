@@ -13,7 +13,7 @@ from final_code.nodes.code_reflection_node import code_reflection_node_updated
 from langchain_core.messages import HumanMessage
 
 def reflection_node(state: AgentBuilderState):
-    result = code_reflection_node_updated.invoke({"messages": [HumanMessage(content=state["python_code"])]})
+    result = code_reflection_node_updated.invoke({"code_to_reflect": state["python_code"]})
     return {"python_code": result["reflection_code"] }
 
 
