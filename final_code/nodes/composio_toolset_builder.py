@@ -15,15 +15,19 @@ from final_code.pydantic_models.EndOrContinue import EndOrContinue
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
 TOOL_PROMPT = ChatPromptTemplate.from_template("""
-You are responsible for getting the right tools from Composio given different tool_names and tool_descriptions.
+You are a helpful assistant, user will provide you with a list of tool names along with their descriptions
+You are also provided with a list of Composio apps along with their descriptions below.
+<COMPOSIO_APPS>
 {app_list}                                               
-</COMPOSIO_TOOLSET>
-Follow the following instructions:
-1. Respond to the user to understand if they already have any Apps that they would like to use for the given tool_names. 
-2. Check which Apps in the COMPOSIO_TOOLSET are best matching the user response.
+</COMPOSIO_APPS>
+
+1. Respond with suggestions of an app for each tool_name provided by the user. Provide the suggestion in a structured manner.
+2. User may respond mentioning which app do they require corresponding to a tool description
+2. Check which Apps in the COMPOSIO_APPS are best matching the user response.
 3. For only the Apps retrieved in above step, check the list of actions corresponding to the app using 'get_actions_for_given_app' tool. The tool may return with an empty list, it is fine.
 4. check which of the action schema best suits the requirements, donot suggest actions which are remotely connected to the task at hand.
-                                               
+5. Your job is not to forcefully find a composio app if it is not available, do not impose on user. Understand what they say, if you donot have the app they require in the COMPOSIO_APPS list, just go and provide the final response.
+FINAL RESPONSE:                                               
 Corresponding to each input tool description:
 
 Example:

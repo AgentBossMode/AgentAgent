@@ -10,6 +10,12 @@ from final_code.nodes.json_generation_node import json_node, dry_run_node
 from final_code.nodes.code_generation_node import code_node
 from final_code.nodes.dfs_analysis_node import dfs_analysis_node
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
+from langchain_core.messages import HumanMessage
+
+def reflection_node(state: AgentBuilderState):
+    result = code_reflection_node_updated.invoke({"messages": [HumanMessage(content=state["python_code"])]})
+    return {"python_code": result["reflection_code"] }
+
 
 main_workflow = StateGraph(AgentBuilderState) # Define state type
 
@@ -23,7 +29,7 @@ main_workflow.add_node("tool_graph", tool_graph) # Renamed node
 main_workflow.add_node("eval_pipeline", eval_pipeline_graph) # Add evaluation pipeline graph
 
 main_workflow.add_node("dfs_analysis_node", dfs_analysis_node)
-main_workflow.add_node("code_reflection_node", code_reflection_node_updated)
+main_workflow.add_node("reflection_node", reflection_node)
 
 # Define edges for the main workflow
 main_workflow.add_edge(START, "requirement_analysis_node")
@@ -31,8 +37,8 @@ main_workflow.add_edge("json_node", "dry_run_node")  # Connect json_node to dry_
 main_workflow.add_edge("dry_run_node", "tool_graph")  # Connect dry_run_node to tool_graph
 main_workflow.add_edge("tool_graph", "code_node")
 main_workflow.add_edge("code_node", "dfs_analysis_node")
-main_workflow.add_edge("dfs_analysis_node", "code_reflection_node")
-main_workflow.add_edge("code_reflection_node", "eval_pipeline")         # End after tool processing
+main_workflow.add_edge("dfs_analysis_node", "reflection_node")
+main_workflow.add_edge("reflection_node", "eval_pipeline")         # End after tool processing
 main_workflow.add_edge("eval_pipeline", END)
 
 app = main_workflow.compile()
