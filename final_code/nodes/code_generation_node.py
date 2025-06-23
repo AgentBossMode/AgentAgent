@@ -337,6 +337,7 @@ Before finalizing your code, verify:
 - [ ] Structured output uses proper Pydantic models
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
+- [ ] Ensure that the code does not access graphstate like an object attribute, it needs be accessed like a dict
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>
