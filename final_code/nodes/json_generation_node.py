@@ -36,7 +36,12 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
 2.  **Architectural Decision:**
     * If you determine that one or more of these architectures are strongly applicable to the INPUT, choose to implement it.
     * If no specific advanced architecture seems directly applicable for the given INPUT, proceed with a standard stateful graph construction based on the explicit langgraph nodes and edges.
-    * Does any node need real-time/external data or if it requires data from web or has something in it's functionality that can be made deterministic through an API call? → In that case the toolset_required should be set to true and the tools list should be populated, the is_composio_tool and py_code should be set to default values.
+3.  **Populating the tools field":
+    1. Tools are helpful for the nodes if:
+        a. If any node need real-time/external data
+        b. if the node requires data from web or has something in it's functionality that can be made achieved through an API call
+    2. If you see any nodes meeting these requirements: fill the tools field.
+    3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ are separate tools.
     """)
 
 

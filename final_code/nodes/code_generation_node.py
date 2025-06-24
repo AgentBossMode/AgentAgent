@@ -18,8 +18,22 @@ You are an expert Python programmer specializing in AI agent development via the
 **When to use:** Node needs to interact with external systems, APIs, databases, or perform specific actions.
 
 **Example Implementation:**
+<TOOL BINDING INSTRUCTIONS>
+1. From the toolset field in the json schema identify the tool schema which might look like the following:
 IF the tools corresponding to a node are composio tools use the below format: 
-                                               
+{{
+          "name": "CRM_Tool",
+          "description": "Tool to interact with CRM systems to update lead information, log activities, and retrieve lead statuses.",
+          "is_composio_tool": true,
+          "composio_toolkit_name": "HubSpot",
+          "composio_tool_name": "DO_ABC_ACTIVITY",
+          "py_code": null,
+          "node_ids": [
+            "update_crm",
+            "schedule_human_reminder"
+          ]
+}}
+IF is_composio_tool is true, THEN: 
 ```python
                                                
 from langchain_core.tools import tool
@@ -27,7 +41,7 @@ from langchain_openai import ChatOpenAI
         
 from composio_langgraph import Action, ComposioToolSet, App
 composio_toolset = ComposioToolSet()
-tools = composio_toolset.get_tools(actions=[composio_action_name])  # Replace with actual action names
+tools = composio_toolset.get_tools(actions=[\"composio_tool_name\"])  # Replace with actual tool name (in this example DO_ABC_ACTIVITY)
 ```                                               
 ELSE IF the tools corresponding to a node are not composio tools and instead provide pycode:
 ``` python
@@ -50,7 +64,10 @@ def node_name(state: GraphState) -> GraphState:
     return {{
         "messages": [response["messages"]]
     }}
+            
 ```
+<TOOL BINDING INSTRUCTIONS>
+
 ## Pattern 2: LLM with Structured Output
 **When to use:** Node needs to make decisions, classify inputs, or extract structured data.
 

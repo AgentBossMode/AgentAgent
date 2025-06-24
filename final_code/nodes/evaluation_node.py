@@ -45,8 +45,23 @@ You are given the use cases for a workflow graph along with dry runs.
 </USE_CASES>
 
 <INSTRUCTIONS>
-1. You will first write mock code for the code in <CODE> section, this means any tool marked with @tool decorator, or if there is any composio_tool being used, you are going to write equivalent python mock stub code, you can use 'get_raw_tool_schema' to get description of the composio tools.
-    a. In case of composio --> create a python function with an appropriate name, based on description from get_raw_tool_schema create the mock code.
+1. You will first write mock code stubs for composio tools and any method with the @tool decorator in <CODE> section.
+    a. In case of a composio tool --> Follow <COMPOSIOMOCKINSTRUCTIONS> below:
+    <COMPOSIOMOCKINSTRUCTION>
+    Let's say you see the following composio tool being initialized
+    tool_name = composio_toolset.get_tools(actions=[\"TOOL_NAME_ABC\"])
+    
+    Instruction:
+    1. call 'get_raw_tool_schema' tool, this will fetch information about the TOOL_NAME_ABC
+    2. Now using this schema write a python function as follows:
+        def tool_name(required input parameters as per the schema output from step 1)
+            \"\"\"Docstring including what the tool does, as per the get_raw_tool_schema output \"\"\"
+            logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
+    </COMPOSIOMOCKINSTRUCTION>
+    b. In case of any method with @tool decorator --> Follow <METHODMOCKINSTRUCTIONS> below:
+    <METHODMOCKINSTRUCTIONS>
+     1. Read the method docstring, analyze the code, and generate the code again but with mock implementation.
+    </METHODMOCKINSTRUCTIONS>
 2. With the mock code generated in step 1, you will now write pytest code,use the <USE_CASES> for generating test case inputs.The tests should cover the following:
     a. Final response: use 'write_final_response_pytest_code' tool. the input should be what the user asked and the output would be something that an assistant would respond in a natural language.
     b. Trajectory: use the 'write_trajectory_pytest_code' tool.
