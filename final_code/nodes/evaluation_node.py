@@ -66,6 +66,8 @@ You are given the use cases for a workflow graph along with dry runs.
     a. Final response: use 'write_final_response_pytest_code' tool. the input should be what the user asked and the output would be something that an assistant would respond in a natural language.
     b. Trajectory: use the 'write_trajectory_pytest_code' tool.
     c. Both final response and trajectory type tests take a list of inputs and expected outputs.
+
+3. Remove any reference of ComposioToolset, related imports etc.
 </INSTRUCTIONS>
 
 <OUTPUT>
@@ -90,41 +92,83 @@ You are supposed to generate a compilable python file.
         {"messages": [HumanMessage(content=TEST_WRITER_PROMPT.format(code=state["python_code"], use_cases=use_cases))]})
     return {"pytest_code": final_response["messages"][-1].content}
 
+from openevals.code.e2b.sandbox.files import (
+    PYTHON_EVALUATOR_SEPARATOR
+)
+
+
+def reflection_node(state: CodeEvalState):
+    result = code_reflection_node_updated.invoke({"code_to_reflect": state["pytest_code"]})
+    return {"pytest_code": result["reflection_code"]}
+
+
+EXTRACT_IMPORT_NAMES="""
+import ast
+import sys
+
+BUILTIN_MODULES = set(sys.stdlib_module_names)
+
+def extract_import_names(file_path: str) -> list[str]:
+    with open(file_path, "r", encoding="utf-8") as f:
+        source_code = f.read()
+    
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError:
+        return []
+
+    python_imports = []
+    
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for name in node.names:
+                import_path = name.name
+                if not import_path.startswith((".", "/")):
+                    base_package = import_path.split(".")[0]
+                    if base_package not in python_imports and base_package not in BUILTIN_MODULES:
+                        python_imports.append(base_package)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and not node.module.startswith((".", "/")):
+                base_package = node.module.split(".")[0]
+                if base_package not in python_imports and base_package not in BUILTIN_MODULES:
+                    python_imports.append(base_package)
+
+    return python_imports
+
+file_path = "./test_runner.py"
+imports = extract_import_names(file_path)
+print("\\n".join(imports))
+"""
+
+
+def _create_e2b_execution_command(
+    *,
+    execution_command: str = "python",
+) -> str:
+    return (" && ").join(
+        [
+            f"echo '{EXTRACT_IMPORT_NAMES}' > extract_import_names.py",
+            "export PIP_DISABLE_PIP_VERSION_CHECK=1",
+            "python3 extract_import_names.py > openevals_requirements.txt",
+            'pip install -r openevals_requirements.txt',
+        ]
+    )
+
+
 def pytest_runner(state: CodeEvalState):
     pytest_out = []
     sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]})
-    # sandbox.commands.run("pip install langchain langchain-core langgraph-supervisor langchain-openai langgraph langsmith pytest typing-extensions")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        code_path = os.path.join(tmpdir, "main.py")
-        with open(code_path, "w") as f:
-            f.write(state["pytest_code"])
 
-    # Step 2: Run pipreqs to generate requirements.txt
+    sandbox.files.write("./test_runner.py", state["pytest_code"])
+    cmd = _create_e2b_execution_command()
+    sandbox.commands.run(cmd)
+    sandbox.commands.run("pip install pytest-xdist")
     try:
-        subprocess.run(["pipreqs", tmpdir, "--force", "--encoding=utf-8"], check=True)
-    except Exception as e:
-        result = code_reflection_node_updated.invoke({"code_to_reflect":f"{state["pytest_code"]} ERROR: {e}"})
-        state["pytest_code"] = result["reflection_code"]
-        with tempfile.TemporaryDirectory() as tmpdir:
-            code_path = os.path.join(tmpdir, "main.py")
-            with open(code_path, "w") as f:
-                f.write(state["pytest_code"])
-        subprocess.run(["pipreqs", tmpdir, "--force", "--encoding=utf-8"], check=True)
-    # Step 3: Read requirements from the generated requirements.txt
-        req_path = os.path.join(tmpdir, "requirements.txt")
-        with open(req_path, "r") as f:
-            requirements = [line.strip() for line in f if line.strip()]
-
-        if requirements:
-            joined_packages = " ".join(req.split("==")[0] for req in requirements)
-            print(f"Installing: {joined_packages}")
-            sandbox.commands.run(f"pip install {joined_packages}")
-    sandbox.files.write("/home/user/test_code_to_run.py", state["pytest_code"])
-    try:
-        commandResult = sandbox.commands.run("pytest -vv /home/user/test_code_to_run.py",
+        commandResult = sandbox.commands.run("pytest -n auto -rfEP ./test_runner.py",
                                               background=False, 
-                                              on_stderr=lambda x: print(x),
-                                              on_stdout=lambda x: pytest_out.append(x))
+                                              on_stderr=lambda x: pytest_out.append(x),
+                                              on_stdout=lambda x: pytest_out.append(x),
+                                              timeout=300)
     except Exception as e:
         print(e)
 
@@ -153,9 +197,8 @@ Your job is to evaluate the pytest results and see if there were any errors or f
 Based on the failures, you are supposed to perform corrections in the code and return the corrected code.
 """
 
-    prompt = ChatPromptTemplate.from_messages([SystemMessage(content=EVALUATION_PROMPT), HumanMessage(content=python_code), HumanMessage(content=pytest_results)])
     llm_with_struct_output = llm.with_structured_output(PytestEvaluation)
-    eval_result: PytestEvaluation =  llm_with_struct_output.invoke(prompt.invoke())
+    eval_result: PytestEvaluation =  llm_with_struct_output.invoke([SystemMessage(content=EVALUATION_PROMPT), HumanMessage(content=python_code), HumanMessage(content=pytest_results)])
 
     if eval_result.is_correct:
         return Command(goto=END)

@@ -17,7 +17,7 @@ REFLECTION_SYSTEM_PROMPT = """
  Make sure that any generated code is contained in a properly formatted markdown code block.
  Use ChatOpenAI gpt-4o-mini wherever llm is needed.
  
-Explain your reasoning for fix along with fixed code in a markdown format.
+Explain your reasoning for fix along with fixed code in a markdown format. 
 
 Some helpful information about imports for different objects that might be present in the code:
 
@@ -28,6 +28,9 @@ from typing import Literal
 from langgraph.prebuilt import create_react_agent
 
 
+OUTPUT FORMAT (in markdown): 
+1. What are the fixes identified as per the bug
+2. the fixed python code in markdown format
  """
 
 class CodeState(MessagesState):
@@ -55,6 +58,7 @@ def run_reflection(state: CodeState) -> Command[Literal["__end__", "code_rectifi
         py_code = state["code_to_reflect"]
         result = evaluator(outputs=py_code)
         if result["score"]:
+            py_code= sandbox.files.read("./openevals/outputs.py")
             return Command(goto="__end__", update={"reflection_code":py_code})
         else:
             return  Command(goto="code_rectification_node", update= {
