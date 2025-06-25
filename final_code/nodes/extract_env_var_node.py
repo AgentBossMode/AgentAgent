@@ -41,5 +41,5 @@ def env_var_node(state: AgentBuilderState):
 
     return {
         "messages": [AIMessage(content="extracted env variables!")],
-        "env_variables": var_extracted_output
+        "env_variables": var_extracted_output.env_variables
     } 
