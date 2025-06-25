@@ -182,7 +182,6 @@ from typing import Dict, Any, List, Optional, Literal
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.checkpoint.memory import MemorySaver, InMemorySaver
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -347,7 +346,7 @@ DONOT ADD '__main__' block or any other boilerplate code, the code should be sel
 
 <QUALITY_CHECKLIST>
 Before finalizing your code, verify:
-- [ ] All imports are included and correct
+- [ ] All imports are included and correct, no duplicate imports.
 - [ ] GraphState properly extends MessagesState  
 - [ ] LLM calls include proper error handling
 - [ ] Tools are self-contained (no nested LLM calls)
@@ -362,7 +361,7 @@ After generating the complete Python script, add a section titled:
 ## Required Keys and Credentials
 
 List all environment variables, API keys, and external dependencies needed as comment :
-- Environment variables (e.g., OPENAI_API_KEY, GOOGLE_API_KEY)
+- Environment variables (e.g., OPENAI_API_KEY)
 - Tool-specific credentials 
 - External service configurations
 - Database connection strings (if applicable)
