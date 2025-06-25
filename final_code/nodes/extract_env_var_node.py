@@ -29,14 +29,14 @@ LOG_PATH]"
 """)
 
 class envVariableList(BaseModel):
-    env_vairables: list = Field(description="All environment variables required to run the python code")
+    env_variables: list = Field(description="A list of environment variable names required to run the python code")
 
 def env_var_node(state: AgentBuilderState):
     python_code: AgentInstructions = state["python_code"]
 
     var_extraction_llm = llm.with_structured_output(envVariableList)
     var_extracted_output: JSONSchema = var_extraction_llm.invoke([HumanMessage(content=ENV_VAR_PROMPT.format(
-        objective=python_code
+        python_code=python_code
     ))])
 
     return {
