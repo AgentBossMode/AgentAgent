@@ -36,13 +36,14 @@ No tool TOOLKIT found
 4. check which of the raw_tool_schema best suits the requirements, donot suggest TOOL SLUG which are remotely connected to the task at hand.
 5. Your job is not to forcefully find a composio TOOLKIT if it is not available, do not impose on user. Understand what they say, if you donot have the app they require in the COMPOSIO_TOOLKITS list, just go and provide the final response.
 6. Get confirmation from the user about the tools you are going ahead with, use the RESPONSEFORMAT as reference.
+7. Now output the final user approved response, mentioning that the user has approved the response
 """)
 
 tools =  [get_all_raw_tool_schemas_for_a_toolkit]
 
 def get_human_review(state: ToolBuilderState) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
     llm_with_struct = llm.with_structured_output(EndOrContinue)
-    should_continue: EndOrContinue = llm_with_struct.invoke([SystemMessage(content="You are supposed to analyze if the given AI message is asking user for any inputs or approvals, if yes then mark should_end_conversation as true"), state["messages"][-1]])
+    should_continue: EndOrContinue = llm_with_struct.invoke([SystemMessage(content="You are supposed to analyze if the given AI message is asking user for any inputs or approvals, if yes then mark should_end_conversation as false, else if AI message says that the user has approved the suggestions, mark should_end_conversation as true"), state["messages"][-1]])
     if should_continue.should_end_conversation:
         return Command(goto="select_final_tool")
     value = interrupt(state["messages"][-1].content)
