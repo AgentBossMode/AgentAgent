@@ -1,12 +1,9 @@
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
 from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
-from final_code.utils.dict_to_reactflow import dict_to_tree_positions
 from final_code.llms.model_factory import get_model
-from final_code.states.NodesAndEdgesSchemas import JSONSchema
-from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List 
 
 
 llm = get_model()
@@ -29,15 +26,16 @@ LOG_PATH]"
 """)
 
 class envVariableList(BaseModel):
-    env_variables: list = Field(description="A list of environment variable names required to run the python code")
+    env_variables: List[str] = Field(description="List of environment variable names required to run the python code")
 
 def env_var_node(state: AgentBuilderState):
     python_code: AgentInstructions = state["python_code"]
 
     var_extraction_llm = llm.with_structured_output(envVariableList)
-    var_extracted_output: JSONSchema = var_extraction_llm.invoke([HumanMessage(content=ENV_VAR_PROMPT.format(
+    var_extracted_output = var_extraction_llm.invoke([HumanMessage(content=ENV_VAR_PROMPT.format(
         python_code=python_code
     ))])
+    print(var_extracted_output)
 
     return {
         "messages": [AIMessage(content="extracted env variables!")],
