@@ -46,27 +46,26 @@ You are given the use cases for a workflow graph along with dry runs.
 
 <INSTRUCTIONS>
 1. You will first write mock code stubs for composio tools and any method with the @tool decorator in <CODE> section.
-    a. In case of a composio tool --> Follow <COMPOSIOMOCKINSTRUCTIONS> below:
+    a. In case of a composio tool --> Follow 'COMPOSIOMOCKINSTRUCTIONS' below:
     <COMPOSIOMOCKINSTRUCTION>
-    Let's say you see the following composio tool being initialized
-    tool_name = composio_toolset.get_tools(actions=[\"TOOL_NAME_ABC\"])
+        Let's say you see the following composio tool being initialized
+        tool_name = composio_toolset.get_tools(actions=[\"TOOL_NAME_ABC\"])
     
-    Instruction:
-    1. call 'get_raw_tool_schema' tool, this will fetch information about the TOOL_NAME_ABC
-    2. Now using this schema write a python function as follows:
-        def tool_name(required input parameters as per the schema output from step 1)
-            \"\"\"Docstring including what the tool does, as per the get_raw_tool_schema output \"\"\"
-            logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
+        Instruction:
+        1. call 'get_raw_tool_schema' tool, this will fetch information about the TOOL_NAME_ABC
+        2. Now using this schema write a python function as follows:
+            def tool_name(required input parameters as per the schema output from step 1)
+                \"\"\"Docstring including what the tool does, as per the get_raw_tool_schema output \"\"\"
+                logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
     </COMPOSIOMOCKINSTRUCTION>
-    b. In case of any method with @tool decorator --> Follow <METHODMOCKINSTRUCTIONS> below:
+    b. In case of any method with @tool decorator --> Follow 'METHODMOCKINSTRUCTIONS' below:
     <METHODMOCKINSTRUCTIONS>
-     1. Read the method docstring, analyze the code, and generate the code again but with mock implementation.
+        Read the method docstring, analyze the code, and generate the code again but with mock implementation.
     </METHODMOCKINSTRUCTIONS>
-2. With the mock code generated in step 1, you will now write pytest code,use the <USE_CASES> for generating test case inputs.The tests should cover the following:
-    a. Final response: use 'write_final_response_pytest_code' tool. the input should be what the user asked and the output would be something that an assistant would respond in a natural language.
+2. With the mock code generated in step 1, you will now write pytest code,use the 'USE_CASES' to generate test cases for the code in 'CODE' section.The tests should cover the following:
+    a. Final response: use 'write_final_response_pytest_code' tool. 
     b. Trajectory: use the 'write_trajectory_pytest_code' tool.
-    c. Both final response and trajectory type tests take a list of inputs and expected outputs.
-
+    c. Donot make changes to the code output retrieved from the tools. 
 3. Remove any reference of ComposioToolset, related imports etc.
 </INSTRUCTIONS>
 
@@ -189,12 +188,17 @@ def evaluate_test_results(state: CodeEvalState) -> Command[Literal["pytest_runne
 
     llm=get_model()
     EVALUATION_PROMPT = """
-You will be provided with a code that would contain the main code along with the pytests
+You will be provided with a code that would contain the main code along with pytests at the bottom.
 
 You will also be provided with the output of the pytest run.
 
 Your job is to evaluate the pytest results and see if there were any errors or failures in the pytest run.
 Based on the failures, you are supposed to perform corrections in the code and return the corrected code.
+
+<INSTRUCTIONS>
+1. For pytests, only the pytest parameters can be changed, no change in the implementation of the test function.
+2. If you think any change is needed in the python code, think carefully that it does not negatively impact any other pytest.
+</INSTRUCTIONS>
 """
 
     llm_with_struct_output = llm.with_structured_output(PytestEvaluation)
@@ -210,13 +214,11 @@ Based on the failures, you are supposed to perform corrections in the code and r
 
 workflow = StateGraph(CodeEvalState)
 workflow.add_node("test_writer", test_writer)
-workflow.add_node("reflection", reflection_node)
 workflow.add_node("pytest_runner", pytest_runner)
 workflow.add_node("evaluate_test_results", evaluate_test_results)
 
 workflow.add_edge(START, "test_writer")
-workflow.add_edge("test_writer", "reflection")
-workflow.add_edge("reflection", "pytest_runner")
+workflow.add_edge("test_writer", "pytest_runner")
 workflow.add_edge("pytest_runner", "evaluate_test_results")
 
 eval_pipeline_graph = workflow.compile()

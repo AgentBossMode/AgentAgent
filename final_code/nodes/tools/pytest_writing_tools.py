@@ -4,7 +4,9 @@ def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) 
 
     Args:
         query (list[str]): List of input queries to test against the workflow
+            Example: ["What is the capital of France?", "How are you?"]
         trajectory (list[list[str]]): List of expected tool call trajectories for each query
+            Example: [["start", "agent", "search", "agent", "end"], ["start", "agent", "end"]]
 
     Returns:
         str: Formatted pytest code that tests if the actual tool call trajectory matches the expected trajectory
@@ -18,17 +20,26 @@ def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) 
     code_to_format ="""
 
 # LLM-as-judge instructions
-grader_instructions = \"\"\"You are a teacher grading a quiz.
+grader_trajectory_instructions = \"\"\"You are a teacher grading a quiz.
 
 You will be given a QUESTION, a REFERENCE RESPONSE, and the STUDENT RESPONSE.
 
 You are grading whether the student's response is appropriate to the question and matches the reference response in spirit.
 
-Correctness:
+<OUTPUT_INSTRUCTIONS>
+is_correct:
 True means that the student's response meets the criteria.
 False means that the student's response does not meet the criteria.
 
-Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct.\"\"\"
+reasoning should follow the following format:
+STUDENT TRAJECTORY: list of student trajectory displayed
+GROUND TRUTH TRAJECTORY: list of ground truth trajectory displayed
+Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct.
+</OUTPUT_INSTRUCTIONS>
+
+\"\"\"
+
+
 
 # LLM-as-judge output schema
 class GradeTrajectory(BaseModel):
@@ -66,9 +77,9 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
             #    for tc in chunk['payload']['input']['messages'][-1].tool_calls:
             #        trajectory.append(tc['name'])
     grading_assignment = f\"\"\"QUESTION: {{input_query}}
-    GROUND TRUTH RESPONSE: {{" ".join(expected_tool_call_names)}}
-    STUDENT RESPONSE: {{" ".join(trajectory)}}\"\"\"
-    grade: GradeTrajectory = grade_trajectory_llm.invoke([{{"role": "system", "content": grader_instructions}}, {{"role": "user", "content": grading_assignment}}])
+    GROUND TRUTH TRAJECTORY: {{" ".join(expected_tool_call_names)}}
+    STUDENT TRAJECTORY: {{" ".join(trajectory)}}\"\"\"
+    grade: GradeTrajectory = grade_trajectory_llm.invoke([{{"role": "system", "content": grader_trajectory_instructions}}, {{"role": "user", "content": grading_assignment}}])
     return grade.is_correct
 """
     return code_to_format.format(result=result)
@@ -78,11 +89,16 @@ def write_final_response_pytest_code(query: list[str], responses: list[str]) -> 
     """Generate pytest code for testing final responses against expected outputs.
     
     Args:
-        query (list[str]): List of input queries to test
-        responses (list[str]): List of expected responses corresponding to each query
-        
+        query (list[str]): List of input queries to test.
+            Example: ["What is the capital of France?", "Who painted the Mona Lisa?"]
+        responses (list[str]): List of expected responses corresponding to each query.
+            Example: ["The capital of France is Paris.", "The Mona Lisa was painted by Leonardo da Vinci."]
     Returns:
         str: Generated pytest code as a string containing test cases
+
+    <Additional_Context>
+    
+    </Additional_Context>
     """
     result = ""
     for i, (q, t) in enumerate(zip(query, responses)):
