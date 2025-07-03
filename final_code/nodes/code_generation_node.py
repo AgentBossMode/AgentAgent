@@ -7,49 +7,89 @@ from langgraph.checkpoint.memory import InMemorySaver
 llm = get_model()
 
 CODE_GEN_PROMPT = PromptTemplate.from_template("""
-You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'INPUT' section below. You must prioritize LLM-based implementations for relevant tasks.
+You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'JSON' section below. You must prioritize LLM-based implementations for relevant tasks.
 
 <JSON>                                              
 {json_schema}
 </JSON>
-
-<IMPLEMENTATION_PATTERNS_2025>
-## Pattern 1: LLM with Tool Calling
-**When to use:** Node needs to interact with external systems, APIs, databases, or perform specific actions.
-
-**Example Implementation:**
+<TOOL_BINDING_INSTRUCTIONS>
+1. From the toolset field in the json schema identify the tool schema which might look like the following:
 IF the tools corresponding to a node are composio tools use the below format: 
-                                               
+{{
+          "name": "CRM_Tool",
+          "description": "Tool to interact with CRM systems to update lead information, log activities, and retrieve lead statuses.",
+          "is_composio_tool": true,
+          "composio_toolkit_name": "HubSpot",
+          "composio_tool_name": "DO_ABC_ACTIVITY",
+          "py_code": null,
+          "node_ids": [
+            "update_crm",
+            "schedule_human_reminder"
+          ]
+}}
+2. IF is_composio_tool is true, THEN: 
 ```python
-                                               
-from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
-        
 from composio_langgraph import Action, ComposioToolSet, App
 composio_toolset = ComposioToolSet()
-tools = composio_toolset.get_tools(actions=[composio_action_name])  # Replace with actual action names
+tools = composio_toolset.get_tools(actions=[\"composio_tool_name\"])  # Replace with actual tool name (in this example DO_ABC_ACTIVITY)
 ```                                               
-ELSE IF the tools corresponding to a node are not composio tools and instead provide pycode:
+3. ELSE IF the tools corresponding to a node are not composio tools and instead use the py_code field in the json schema:
 ``` python
+                                               
+from langchain_core.tools import tool
+        
+@tool
 def search_customer_database(customer_id: str) -> str:
     '''Search for customer information by ID.'''
     # Direct implementation - no nested LLM calls
     return f"Customer {{customer_id}} data retrieved"
-tools = [search_customer_database]
 ```
+4. Follow the above for all the different tools in the Tool List.
+</TOOL_BINDING_INSTRUCTIONS>
 
-Finally use the following format:
+<NODE_IMPLEMENTATION_INSTRUCTIONS>
+
+<COMMONINSTRUCTION>
+1. Always use MessagesState as base and extend as needed, refer to the input_schema attached to a node definition.
 ```python
+class GraphState(MessagesState):
+    \"\"\" The GraphState represents the state of the LangGraph workflow.
+    Below is the definition of MessagesState, the AnyMessage refers to AIMessage, HumanMessage, or SystemMessage etc.
+    the add_messages is a reducer, which means that when doing return {{\"messages\": [AIMessage(content=\"...\")]}}, it will append the new message to the messages variable and not override it..
+    class MessagesState(TypedDict):
+        messages: Annotated[list[AnyMessage], add_messages]
+    \"\"\" 
+    # Add domain-specific fields based on your analysis
+    # Add other fields as required by your architecture
+
+2. For each node, include reasoning comments:
+```python
+def node_name(state: GraphState) -> GraphState:
+    \"\"\"
+    Node purpose: [Clear description]
+    Implementation reasoning: [Why this pattern was chosen]
+    \"\"\"
+    # Implementation here
+    return {{"field": "value"}}
+```
+</COMMONINSTRUCTION>
+                                            
+## Pattern 1: Tool-calling react agent
+1. if the Id of the node is linked to any of the tool in the tools list, you will follow the below format:
+```python
+node_name_tools = [list_of_tools]
+from langchain_openai import ChatOpenAI
 def node_name(state: GraphState) -> GraphState:
     '''Node purpose: [Clear description]'''
     agent = create_react_agent(
         model=ChatOpenAI(model="gpt-4o", temperature=0.7),
-        tools=tools,
+        tools=node_name_tools,
         prompt="The prompt for the agent to follow, also mention which tools to use, if any.")
     response = agent.invoke([HumanMessage(content="Perform action based on state")])
     return {{
         "messages": [response["messages"]]
     }}
+            
 ```
 ## Pattern 2: LLM with Structured Output
 **When to use:** Node needs to make decisions, classify inputs, or extract structured data.
@@ -153,67 +193,10 @@ def content_enhancement_node(state: GraphState) -> dict:
         "processing_steps": ["structured", "enhanced"]
     }}
 ```
-</IMPLEMENTATION_PATTERNS_2025>
+</NODE_IMPLEMENTATION_INSTRUCTIONS>
 
-<CODE_GENERATION_INSTRUCTIONS>
-
-Generate a single, self-contained, and compilable Python script following this structure:
-
-### 1. Imports and Setup
-```python
-from typing import Dict, Any, List, Optional, Literal
-from langgraph.graph import StateGraph, START, END, MessagesState
-from langgraph.checkpoint.memory import MemorySaver, InMemorySaver
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from pydantic import BaseModel, Field
-from langchain_core.tools import tool
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-import re
-import json
-```
-
-### 2. State Definition
-Always use MessagesState as base and extend as needed:
-```python
-class GraphState(MessagesState):
-    \"\"\" The GraphState represents the state of the LangGraph workflow.
-    Below is the definition of MessagesState, the AnyMessage refers to AIMessage, HumanMessage, or SystemMessage etc.
-    the add_messages is a reducer, which means that when doing return {{\"messages\": [AIMessage(content=\"...\")]}}, it will append the new message to the messages variable and not override it..
-    class MessagesState(TypedDict):
-        messages: Annotated[list[AnyMessage], add_messages]
-    \"\"\" 
-    # Add domain-specific fields based on your analysis
-    intent: Optional[str] = None
-    confidence: Optional[float] = None
-    processing_complete: bool = False
-    # Add other fields as required by your architecture
-```
-
-### 3. Tool Definitions (if needed)
-Define tools before node functions that use them:
-```python
-@tool
-def example_tool(param: str) -> str:
-    '''Tool description for LLM understanding.'''
-    # Direct implementation - avoid nested LLM calls
-    return f"Tool result for {{param}}"
-```
-
-### 4. Node Implementation
-For each node, include reasoning comments:
-```python
-def node_name(state: GraphState) -> GraphState:
-    \"\"\"
-    Node purpose: [Clear description]
-    Implementation reasoning: [Why this pattern was chosen]
-    \"\"\"
-    # Implementation here
-    return {{"field": "value"}}
-```
-
-### 5. Routing Functions
-<Information>
+<EDGE_IMPLEMENTATION_INSTRUCTIONS>
+                                               
 <Edges>
 Edges define how the logic is routed and how the graph decides to stop. This is a big part of how your agents work and how different nodes communicate with each other. There are a few key types of edges:
 
@@ -307,7 +290,38 @@ if: non-conditional edge, then: refer to implementation in 'NonConditionalEdge' 
 else if: either the return type of the function is Command or according to 'CommandOrConditionalEdge' we should use Command functionality, then: refer to 'Command' section for implementation
 else if : according to 'CommandOrConditionalEdge' conditional_edge should be used, then: refer to 'ConditionalEdges' section for implementation.
 
-###6: Final Graph Compilation
+</EDGE_IMPLEMENTATION_INSTRUCTIONS>
+
+                                                                                       
+<INSTRUCTIONS>
+1. First create the tools, refer to <TOOLBINDINGINSTRUCTIONS> section.
+2. Now start analyzing the nodes, refer to <NODE_IMPLEMENTATION_INSTRUCTIONS>
+3. Now create the edges, refer to the <EDGE_IMPLEMENTATION_INSTRUCTIONS> section.
+4. Now to piece it all together follow <CODE_GENERATION_INSTRUCTIONS>
+</INSTRUCTIONS>
+
+
+<CODE_GENERATION_INSTRUCTIONS>
+
+Generate a single, self-contained, and compilable Python script following this structure:
+
+### 1. Imports and Setup
+Below are some common langggraph imports, you need note necessarily add them, refer to them when writing the code.
+```python
+from typing import Dict, Any, List, Optional, Literal
+from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.checkpoint.memory import MemorySaver, InMemorySaver
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+import re
+import json
+```
+
+
+
+###2: Final Graph Compilation
 ```python
 If there are 'interrupt' nodes in the graph, you must use a checkpointer to save the state of the graph.
 checkpointer = InMemorySaver()
@@ -326,11 +340,9 @@ app.invoke(some_input)
 
 DONOT ADD '__main__' block or any other boilerplate code, the code should be self-contained and compilable.
 ```
-</CODE_GENERATION_INSTRUCTIONS>
-
 <QUALITY_CHECKLIST>
 Before finalizing your code, verify:
-- [ ] All imports are included and correct
+- [ ] All imports are included and correct, no duplicate imports.
 - [ ] GraphState properly extends MessagesState  
 - [ ] LLM calls include proper error handling
 - [ ] Tools are self-contained (no nested LLM calls)
@@ -348,13 +360,16 @@ After generating the complete Python script, add a section titled:
 ## Required Keys and Credentials
 
 List all environment variables, API keys, and external dependencies needed as comment :
-- Environment variables (e.g., OPENAI_API_KEY, GOOGLE_API_KEY)
+- Environment variables (e.g., OPENAI_API_KEY)
 - Tool-specific credentials 
 - External service configurations
 - Database connection strings (if applicable)
 
 If no external keys are needed, state: "No external API keys required for this implementation."
 </KEY_EXTRACTION_INSTRUCTIONS>
+</CODE_GENERATION_INSTRUCTIONS>
+
+
 
 Please return only complete and compilable langgraph python code
 """)
