@@ -323,20 +323,11 @@ import json
 
 ###2: Final Graph Compilation
 ```python
-If there are 'interrupt' nodes in the graph, you must use a checkpointer to save the state of the graph.
 checkpointer = InMemorySaver()
 app = workflow.compile(
-    checkpointer=checkpointer # Required for `interrupt` to work
+    checkpointer=checkpointer
 )
-# Run the graph until the interrupt
-thread_config = {{"configurable": {{"thread_id": "some_id"}}}}
-app.invoke(some_input, config=thread_config)
-
-Else if there are no 'interrupt' nodes in the graph, you can compile the graph without a checkpointer.
-app = workflow.compile()
-# Run the graph
-app.invoke(some_input)
-                                               
+                        
 
 DONOT ADD '__main__' block or any other boilerplate code, the code should be self-contained and compilable.
 ```
