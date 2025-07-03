@@ -1,23 +1,4 @@
-def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) -> str:
-    """
-    Generate pytest code for testing the trajectory of tool calls in a workflow.
-
-    Args:
-        query (list[str]): List of input queries to test against the workflow
-            Example: ["What is the capital of France?", "How are you?"]
-        trajectory (list[list[str]]): List of expected tool call trajectories for each query
-            Example: [["start", "agent", "search", "agent", "end"], ["start", "agent", "end"]]
-
-    Returns:
-        str: Formatted pytest code that tests if the actual tool call trajectory matches the expected trajectory
-    """
-    result = ""
-    for i, (q, t) in enumerate(zip(query, trajectory)):
-        if i == len(query) - 1:
-            result += f'("{q}", {t})'
-        else:
-            result += f'("{q}", {t}),\n'
-    code_to_format ="""
+TRAJECTORY_STR ="""
 
 # LLM-as-judge instructions
 grader_trajectory_instructions = \"\"\"You are a teacher grading a quiz.
@@ -58,12 +39,14 @@ grade_trajectory_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_struc
 )
 def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: list[str]):   
     trajectory = []
+    thread_config = {{"configurable": {{"thread_id": "some_id"}}}}
+
     for namespace, chunk in app.stream({{"messages": [
             {{
                 "role": "user",
                 "content": input_query,
             }}]
-            }}, subgraphs=True, stream_mode="debug"):
+            }}, config=thread_config, subgraphs=True, stream_mode="debug"):
         # Event type for entering a node
         if chunk['type'] == 'task':
             # Record the node name
@@ -82,31 +65,30 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
     grade: GradeTrajectory = grade_trajectory_llm.invoke([{{"role": "system", "content": grader_trajectory_instructions}}, {{"role": "user", "content": grading_assignment}}])
     return grade.is_correct
 """
-    return code_to_format.format(result=result)
 
+def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) -> str:
+    """
+    Generate pytest code for testing the trajectory of tool calls in a workflow.
 
-def write_final_response_pytest_code(query: list[str], responses: list[str]) -> str:
-    """Generate pytest code for testing final responses against expected outputs.
-    
     Args:
-        query (list[str]): List of input queries to test.
-            Example: ["What is the capital of France?", "Who painted the Mona Lisa?"]
-        responses (list[str]): List of expected responses corresponding to each query.
-            Example: ["The capital of France is Paris.", "The Mona Lisa was painted by Leonardo da Vinci."]
-    Returns:
-        str: Generated pytest code as a string containing test cases
+        query (list[str]): List of input queries to test against the workflow
+            Example: ["What is the capital of France?", "How are you?"]
+        trajectory (list[list[str]]): List of expected tool call trajectories for each query
+            Example: [["start", "agent", "search", "agent", "end"], ["start", "agent", "end"]]
 
-    <Additional_Context>
-    
-    </Additional_Context>
+    Returns:
+        str: Formatted pytest code that tests if the actual tool call trajectory matches the expected trajectory
     """
     result = ""
-    for i, (q, t) in enumerate(zip(query, responses)):
+    for i, (q, t) in enumerate(zip(query, trajectory)):
         if i == len(query) - 1:
-            result += f'("{q}", "{t}")'
+            result += f'("{q}", {t})'
         else:
-            result += f'("{q}", "{t}"),\n'
-    code="""
+            result += f'("{q}", {t}),\n'
+
+    return TRAJECTORY_STR.format(result=result)
+
+FINAL_RESPONSE_STR="""
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage
 import pytest
@@ -153,10 +135,33 @@ def final_answer_correct(input: str, reference_output: str, actual_output: str) 
 )
 def test_full_workflow_final_response(input_query: str, reference_output: str):
     # Invoke the full graph
-    result = app.invoke({{"messages": [HumanMessage(content=input_query)]}})
+    thread_config = {{"configurable": {{"thread_id": "some_id"}}}}
+    result = app.invoke({{"messages": [HumanMessage(content=input_query)]}}, config=thread_config)
 
     # Get the last message, which is the final response
     actual_output = result["messages"][-1].content
     assert final_answer_correct(input, reference_output, actual_output) == True
     """
-    return code.format(result=result)
+
+def write_final_response_pytest_code(query: list[str], responses: list[str]) -> str:
+    """Generate pytest code for testing final responses against expected outputs.
+    
+    Args:
+        query (list[str]): List of input queries to test.
+            Example: ["What is the capital of France?", "Who painted the Mona Lisa?"]
+        responses (list[str]): List of expected responses corresponding to each query.
+            Example: ["The capital of France is Paris.", "The Mona Lisa was painted by Leonardo da Vinci."]
+    Returns:
+        str: Generated pytest code as a string containing test cases
+
+    <Additional_Context>
+    
+    </Additional_Context>
+    """
+    result = ""
+    for i, (q, t) in enumerate(zip(query, responses)):
+        if i == len(query) - 1:
+            result += f'("{q}", "{t}")'
+        else:
+            result += f'("{q}", "{t}"),\n'
+    return FINAL_RESPONSE_STR.format(result=result)

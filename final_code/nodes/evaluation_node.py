@@ -4,10 +4,11 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.llms.model_factory import get_model, ModelName
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import create_react_agent
-from final_code.nodes.tools.pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code
+from final_code.nodes.tools.pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code, TRAJECTORY_STR, FINAL_RESPONSE_STR
 from final_code.nodes.tools.composio_info_tools import get_raw_tool_schema
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
 from final_code.states.DryRunState import UseCaseAnalysis
+from final_code.pydantic_models.UtGen import UtGeneration
 import os
 import tempfile
 import subprocess
@@ -15,7 +16,7 @@ from e2b_code_interpreter import Sandbox
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langgraph.types import Command
-from typing import Literal, List
+from typing import Literal, List, Optional
 from langgraph.graph import END
 from copilotkit import CopilotKitState
 load_dotenv()
@@ -32,17 +33,12 @@ class CodeEvalState(CopilotKitState):
     pytest_out: str
 
 
-def test_writer(state: CodeEvalState):
-    TEST_WRITER_PROMPT = """
-You are a python code writing expert, your job is to write a pytest given the langgraph code and use cases.
+def mock_test_writer(state: CodeEvalState):
+    MOCK_TEST_WRITER = """
 You are given langgraph code below:
 <CODE>
 {code}
 </CODE>
-You are given the use cases for a workflow graph along with dry runs.
-<USE_CASES>
-{use_cases}
-</USE_CASES>
 
 <INSTRUCTIONS>
 1. You will first write mock code stubs for composio tools and any method with the @tool decorator in <CODE> section.
@@ -62,18 +58,12 @@ You are given the use cases for a workflow graph along with dry runs.
     <METHODMOCKINSTRUCTIONS>
         Read the method docstring, analyze the code, and generate the code again but with mock implementation.
     </METHODMOCKINSTRUCTIONS>
-2. With the mock code generated in step 1, you will now write pytest code,use the 'USE_CASES' to generate test cases for the code in 'CODE' section.The tests should cover the following:
-    a. Final response: use 'write_final_response_pytest_code' tool. 
-    b. Trajectory: use the 'write_trajectory_pytest_code' tool.
-    c. Donot make changes to the code output retrieved from the tools. 
-3. Remove any reference of ComposioToolset, related imports etc.
+
+2. Remove any reference of ComposioToolset, related imports etc.
 </INSTRUCTIONS>
 
 <OUTPUT>
-You are supposed to generate a compilable python file.
-1. The generated MOCK CODE should be present at the top of the final output
-2. The generated pytest code in step 2 of INSTRUCTION should be appended at bottom
-3. All imports from both code pieces are supposed to be at the top of the output.
+You are supposed to generate a compilable python file with the mock code.
     <OUTPUT_FORMAT>
         - ONLY THE FINAL PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
         - Code should be compilable python code without errors, no formatting errors
@@ -82,14 +72,72 @@ You are supposed to generate a compilable python file.
 </OUTPUT>
 """
     app = create_react_agent(model= get_model(ModelName.GEMINI25FLASH),
-    tools=[write_final_response_pytest_code, write_trajectory_pytest_code, get_raw_tool_schema],
-    name="pytest_writer")
+    tools=[get_raw_tool_schema],
+    name="mock_test_writer")
 
+    
+    final_response = app.invoke(
+        {"messages": [HumanMessage(content=MOCK_TEST_WRITER.format(code=state["python_code"]))]})
+    return {"mocked_code": final_response["messages"][-1].content}
+
+
+def pytest_writer(state: CodeEvalState):
+    
+    PYTEST_WRITER_PROMPT = """
+You are a python code writing expert, your job is to write a pytest given the langgraph code and use cases.
+<CODE>
+{code}
+</CODE>
+You are given the use cases for a workflow graph along with dry runs.
+<USE_CASES>
+{use_cases}
+</USE_CASES>
+2. With the mock code generated in step 1, you will now write pytest code,use the 'USE_CASES' to generate test cases for the code in 'CODE' section.The tests should cover the following:
+    a. Final response: refer to <FINALRESPONSE> section
+    b. Trajectory: refer to <TRAJECTORY> section
+
+<FINALRESPONSE>
+{FINAL_RESPONSE_STR}
+</FINALRESPONSE>
+
+<TRAJECTORY>
+{TRAJECTORY_STR}
+</TRAJECTORY>
+"""
     use_case_list : List[UseCaseAnalysis] = state["use_cases"]
     use_cases = "\n".join(use_case.model_dump_json(indent=2) for use_case in use_case_list)
-    final_response = app.invoke(
-        {"messages": [HumanMessage(content=TEST_WRITER_PROMPT.format(code=state["python_code"], use_cases=use_cases))]})
-    return {"pytest_code": final_response["messages"][-1].content}
+    pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)
+    utgenerated: UtGeneration = pytest_llm.invoke([HumanMessage(content=PYTEST_WRITER_PROMPT.format(code=state["python_code"], use_cases=use_cases, FINAL_RESPONSE_STR=FINAL_RESPONSE_STR, TRAJECTORY_STR=TRAJECTORY_STR))])
+    
+    inputs = []
+    responses = []
+    for ut in utgenerated.final_response_uts:
+        inputs.append(ut.input)
+        responses.append(ut.expected_response)
+
+    final_response_code = write_final_response_pytest_code(inputs, responses)
+
+    inputs_trajectory = []
+    responses_trajectory = []
+    for ut in utgenerated.trajectory_uts:
+        inputs_trajectory.append(ut.input)
+        responses_trajectory.append(ut.expected_trajectory)
+
+    final_trajectory_code = write_trajectory_pytest_code(inputs_trajectory, responses_trajectory)
+
+    PYTEST = """
+import pytest
+from app import app
+from pydantic import BaseModel, Field
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_openai import ChatOpenAI
+
+{final_response_code}
+
+{final_trajectory_code}
+"""
+    return {"pytest_code": PYTEST.format(final_response_code=final_response_code, final_trajectory_code=final_trajectory_code)}
+
 
 from openevals.code.e2b.sandbox.files import (
     PYTHON_EVALUATOR_SEPARATOR
@@ -97,8 +145,8 @@ from openevals.code.e2b.sandbox.files import (
 
 
 def reflection_node(state: CodeEvalState):
-    result = code_reflection_node_updated.invoke({"code_to_reflect": state["pytest_code"]})
-    return {"pytest_code": result["reflection_code"]}
+    result = code_reflection_node_updated.invoke({"code_to_reflect": state["mocked_code"]})
+    return {"mocked_code": result["reflection_code"]}
 
 
 EXTRACT_IMPORT_NAMES="""
@@ -134,7 +182,7 @@ def extract_import_names(file_path: str) -> list[str]:
 
     return python_imports
 
-file_path = "./test_runner.py"
+file_path = "./app.py"
 imports = extract_import_names(file_path)
 print("\\n".join(imports))
 """
@@ -158,12 +206,13 @@ def pytest_runner(state: CodeEvalState):
     pytest_out = []
     sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]})
 
-    sandbox.files.write("./test_runner.py", state["pytest_code"])
+    sandbox.files.write("./app.py", state["mocked_code"])
+    sandbox.files.write("./test_app.py", state["pytest_code"])
     cmd = _create_e2b_execution_command()
     sandbox.commands.run(cmd)
-    sandbox.commands.run("pip install pytest-xdist")
+    sandbox.commands.run("pip install pytest pytest-xdist")
     try:
-        commandResult = sandbox.commands.run("pytest -n auto -rfEP ./test_runner.py",
+        commandResult = sandbox.commands.run("pytest -n 2 -rfEP ./test_app.py",
                                               background=False, 
                                               on_stderr=lambda x: pytest_out.append(x),
                                               on_stdout=lambda x: pytest_out.append(x),
@@ -173,52 +222,77 @@ def pytest_runner(state: CodeEvalState):
 
     return {"pytest_out": "\n".join(pytest_out)}
  
-def reflection_node(state: CodeEvalState):
-    result = code_reflection_node_updated.invoke({"code_to_reflect": state["pytest_code"]})
-    return {"pytest_code": result["reflection_code"]}
 
-class PytestEvaluation(BaseModel):
-    is_correct: bool = Field(description="True if there were no failures or errors in the pytest run, otherwise False.")
-    pytest_code: str = Field(description= "If there were any failures or errors in the pytest run, this field will contain the corrected code with the fixes applied to the original code.")
-    explanation: str = Field(description="Explanation of the changes made to the code, if any.")
+class EvaluationResult(BaseModel):
+    no_failures: bool = Field(description="True if there were no failures in the pytest results, otherwise False.")
+    file_to_fix: Literal["mocked_code", "pytest_code", "none"] = Field(description="identify the file to fix, if no fix needed then say none")
+    fixed_code: Optional[str] = Field(default=None, description= "The code fix proposed for the 'file_to_fix' identified")
+    explanation: Optional[str] = Field(default=None, description="Explanation of the changes made for 'file_to_fix', if any.")
 
 def evaluate_test_results(state: CodeEvalState) -> Command[Literal["pytest_runner", "__end__"]]:
-    python_code = state["pytest_code"]
-    pytest_results = state["pytest_out"]
+    mocked_code = state["mocked_code"]
+    pytest_code = state["pytest_code"]
+    pytest_out = state["pytest_out"]
 
     llm=get_model()
     EVALUATION_PROMPT = """
-You will be provided with a code that would contain the main code along with pytests at the bottom.
+You are provided with the following three things:
+1. The 'app' code that needs to be tested.
+2. The 'pytest' code written to test the 'app' code.
+3. The 'pytest_out' results when the 'pytest' was run
 
-You will also be provided with the output of the pytest run.
-
-Your job is to evaluate the pytest results and see if there were any errors or failures in the pytest run.
-Based on the failures, you are supposed to perform corrections in the code and return the corrected code.
 
 <INSTRUCTIONS>
-1. For pytests, only the pytest parameters can be changed, no change in the implementation of the test function.
-2. If you think any change is needed in the python code, think carefully that it does not negatively impact any other pytest.
+1. Analyze the 'pytest_out' section, and the 'app' + 'pytest' code together. 
+2. If there were no errors in the pytest results, just mark no_failures as true.
+3. Else Figure what needs to be fixed, the 'app' code or the 'pytest' code.
+4. If the 'app' code needs to be fixed, remember the app code is a langgraph agent, use factual information you have about langgraph and make fixes accordingly.
+    a. If a value error is happening or a variable is not populated, remember that is an issue with the code, you will need to update the app code to remove that dependency.
+5. Else if the 'pytest' code needs to be fixed, remember that the only fix you are allowed to make is the inputs in pytest parameterize. Or it could be any missing imports that are to be added.
 </INSTRUCTIONS>
 """
 
-    llm_with_struct_output = llm.with_structured_output(PytestEvaluation)
-    eval_result: PytestEvaluation =  llm_with_struct_output.invoke([SystemMessage(content=EVALUATION_PROMPT), HumanMessage(content=python_code), HumanMessage(content=pytest_results)])
+    MESSAGE_PROMPT= """
+User input:
+<APP>
+{mocked_code}
+</APP>
 
-    if eval_result.is_correct:
+<PYTEST>
+{pytest_code}
+</PYTEST>
+
+<PYTEST_OUT>
+{pytest_out}
+</PYTEST_OUT>
+"""
+
+    llm_with_struct_output = llm.with_structured_output(EvaluationResult)
+    eval_result: EvaluationResult =  llm_with_struct_output.invoke([SystemMessage(content=EVALUATION_PROMPT), HumanMessage(content=MESSAGE_PROMPT.format(mocked_code=mocked_code, pytest_code=pytest_code, pytest_out=pytest_out))])
+
+    if eval_result.no_failures:
         return Command(goto=END)
     else:
-        return Command(
-            goto="pytest_runner",
-            update={"pytest_code": eval_result.pytest_code})
+        if eval_result.file_to_fix == "mocked_code":
+            return Command(
+                goto="pytest_runner",
+                update={"mocked_code": eval_result.fixed_code})
+        elif eval_result.file_to_fix == "pytest_code":
+            return Command(
+                goto="pytest_runner",
+                update={"pytest_code": eval_result.fixed_code})
 
 
 workflow = StateGraph(CodeEvalState)
-workflow.add_node("test_writer", test_writer)
+workflow.add_node("mock_test_writer", mock_test_writer)
+workflow.add_node("pytest_writer", pytest_writer)
+workflow.add_node("reflection", reflection_node)
 workflow.add_node("pytest_runner", pytest_runner)
 workflow.add_node("evaluate_test_results", evaluate_test_results)
 
-workflow.add_edge(START, "test_writer")
-workflow.add_edge("test_writer", "pytest_runner")
+workflow.add_edge(START, "mock_test_writer")
+workflow.add_edge("mock_test_writer", "pytest_writer")
+workflow.add_edge("pytest_writer", "reflection")
+workflow.add_edge("reflection", "pytest_runner")
 workflow.add_edge("pytest_runner", "evaluate_test_results")
-
 eval_pipeline_graph = workflow.compile()

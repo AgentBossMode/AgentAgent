@@ -58,8 +58,13 @@ def run_reflection(state: CodeState) -> Command[Literal["__end__", "code_rectifi
         )
         py_code = state["code_to_reflect"]
         result = evaluator(outputs=py_code)
+        
+        try:
+           py_code= sandbox.files.read("openevals/outputs.py")
+        except:
+           py_code = state["code_to_reflect"]
+
         if result["score"]:
-            py_code= sandbox.files.read("./openevals/outputs.py")
             return Command(goto="__end__", update={"reflection_code":py_code})
         else:
             return  Command(goto="code_rectification_node", update= {
