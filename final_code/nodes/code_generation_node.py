@@ -14,7 +14,7 @@ You are an expert Python programmer specializing in AI agent development via the
 </JSON>
 <TOOL_BINDING_INSTRUCTIONS>
 1. From the toolset field in the json schema identify the tool schema which might look like the following:
-IF the tools corresponding to a node are composio tools use the below format: 
+Example 1 (composio tool)
 {{
           "name": "CRM_Tool",
           "description": "Tool to interact with CRM systems to update lead information, log activities, and retrieve lead statuses.",
@@ -23,21 +23,39 @@ IF the tools corresponding to a node are composio tools use the below format:
           "composio_tool_name": "DO_ABC_ACTIVITY",
           "py_code": null,
           "node_ids": [
-            "update_crm",
-            "schedule_human_reminder"
+            "node_a",
+            "node_c"
           ]
 }}
-2. IF is_composio_tool is true, THEN: 
+
+Example 2 (non-comosio tool)
+{{
+          "name": "search_customer_database",
+          "description": "Tool to search customer database",
+          "is_composio_tool": false,
+          "composio_toolkit_name": "None",
+          "composio_tool_name": "None",
+          "py_code": "The python code to implement this tool ....",
+          "node_ids": [
+            "node_a",
+            "node_b"
+          ]
+}}
+                                               
+2. IF is_composio_tool is true (Example 1), THEN: 
 ```python
-from composio_langgraph import Action, ComposioToolSet, App
-composio_toolset = ComposioToolSet()
-tools = composio_toolset.get_tools(actions=[\"composio_tool_name\"])  # Replace with actual tool name (in this example DO_ABC_ACTIVITY)
+from composio import Composio
+from composio_langchain import LangchainProvider
+composio = Composio(provider=LangchainProvider())
+tools = composio.tools.get(user_id=os.environ(\"USER_ID\"), tools=[\"composio_tool_name\"])  # Replace with actual tool name (in this example DO_ABC_ACTIVITY)
+
 ```                                               
-3. ELSE IF the tools corresponding to a node are not composio tools and instead use the py_code field in the json schema:
+3. ELSE IF the tools corresponding to a node are non-composio tools  (Example 2) use the py_code field in the json schema:
 ``` python
                                                
 from langchain_core.tools import tool
-        
+
+#py_code goes here. For example:
 @tool
 def search_customer_database(customer_id: str) -> str:
     '''Search for customer information by ID.'''
