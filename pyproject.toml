@@ -10,7 +10,7 @@ dependencies = [
     "bs4>=0.0.2",
     "composio-langchain==1.0.0rc5",
     "composio[langchain]==1.0.0rc5",
-    "copilotkit>=0.1.49",
+    "copilotkit==0.1.53",
     "dotenv>=0.9.9",
     "e2b-code-interpreter>=1.2.1",
     "fastapi>=0.115.12",
