@@ -1,7 +1,7 @@
 from langchain_core.messages import AIMessage, HumanMessage
 from final_code.llms.model_factory import get_model
 from final_code.states.AgentBuilderState import AgentBuilderState
-
+from pydantic import BaseModel, Field
 llm = get_model()
 
 
@@ -278,20 +278,28 @@ Output:
 Provide only the updated and corrected LangGraph Python code in a single block. Do not include explanations outside of the code's comments.
 """
 
+
+
+class DFSAnalysis(BaseModel):
+    correct_code: str = Field(description= "If there are any issues in the code, this field will contain the corrected code with the fixes applied to the original code.")
+    explanation: str = Field(description="Explanation of the changes made to the code, if any.")
+
+
 def dfs_analysis_node(state: AgentBuilderState): # Renamed for clarity
      """
      LangGraph node to analyse the code
      """
      main_agent_code = state['python_code']
+     llm_dfs = llm.with_structured_output(DFSAnalysis)
 
      # Use LLM to merge the main agent code with the generated tool definitions
-     response = llm.invoke([HumanMessage(content=ANALYSIS_COMPILE_PROMPT.format(
+     response: DFSAnalysis = llm_dfs.invoke([HumanMessage(content=ANALYSIS_COMPILE_PROMPT.format(
          compiled_code=main_agent_code,
      ))])
 
      # The response from this LLM call is expected to be the final, complete Python code
      return {
-         "messages": [AIMessage(content=response.content)], # Storing the LLM's final code as a message for now
-         "python_code": response.content # Update compiled_code with the final merged code
+         "messages": [AIMessage(content=response.explanation)], # Storing the LLM's final code as a message for now
+         "python_code": response.correct_code # Update compiled_code with the final merged code
      }
 
