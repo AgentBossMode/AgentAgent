@@ -2,6 +2,7 @@ from typing import Optional
 import uuid
 from typing import Dict, Any
 from langchain_core.messages import AIMessage
+from langgraph.types import interrupt
 from copilotkit.langgraph import copilotkit_messages_to_langchain
 
 def copilotkit_interrupt(
