@@ -59,7 +59,6 @@ def json_node(state: AgentBuilderState):
     reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
     # Return the generated Python code and an AI message
     return {
-        "messages": [AIMessage(content="Generated json schema!")],
         "json_schema": json_extracted_output,
         "json_dict": reactflow_json,
         "justification": json_extracted_output.justification,

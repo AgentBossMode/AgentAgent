@@ -1,12 +1,12 @@
-from final_code.nodes.tool_generation_node import ToolCollectorState
+from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from final_code.nodes.composio_toolset_builder import composio_tool_builder
 from final_code.nodes.native_tool_builder import native_tool_builder
 from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage
 
-workflow = StateGraph(ToolCollectorState)
-def get_composio_tools_node(state: ToolCollectorState):
+workflow = StateGraph(AgentBuilderState)
+def get_composio_tools_node(state: AgentBuilderState):
     json_schema: JSONSchema = state["json_schema"]
     tool_list = ""
 
@@ -15,10 +15,10 @@ def get_composio_tools_node(state: ToolCollectorState):
     if tool_list == "":
         return 
     updated_json_schema = composio_tool_builder.invoke({"messages": [HumanMessage(content=tool_list)], "json_schema": json_schema})
-    return {"json_schema": updated_json_schema["json_schema"]}
+    return {"json_schema": updated_json_schema["json_schema"], "messages": updated_json_schema["messages"]}
 
 
-def process_non_composio_tools(state: ToolCollectorState):
+def process_non_composio_tools(state: AgentBuilderState):
     json_schema: JSONSchema = state["json_schema"]
     tool_list = ""
 
@@ -28,7 +28,7 @@ def process_non_composio_tools(state: ToolCollectorState):
     if tool_list == "":
         return 
     updated_json_schema = native_tool_builder.invoke({"messages": [HumanMessage(content=tool_list)], "json_schema": json_schema})
-    return {"json_schema": updated_json_schema["json_schema"]}
+    return {"json_schema": updated_json_schema["json_schema"], "messages": updated_json_schema["messages"]}
 
 
 workflow.add_node("get_composio_tools", get_composio_tools_node)

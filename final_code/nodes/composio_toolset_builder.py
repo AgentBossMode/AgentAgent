@@ -4,11 +4,16 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing import Literal
-from langgraph.types import interrupt, Command
-from final_code.states.ToolBuilderState import ToolBuilderState
+from langgraph.types import Command
+from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from final_code.pydantic_models.EndOrContinue import EndOrContinue
 from final_code.nodes.tools.composio_info_tools import get_all_raw_tool_schemas_for_a_toolkit, get_all_toolkits
+from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
+from langchain_core.runnables import RunnableConfig
+from final_code.states.ReactCopilotKitState import ReactCopilotState
+from copilotkit.langgraph import copilotkit_customize_config
+
 
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
@@ -41,25 +46,38 @@ No tool TOOLKIT found
 
 tools =  [get_all_raw_tool_schemas_for_a_toolkit]
 
-def get_human_review(state: ToolBuilderState) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
+def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False, # if you want to disable message streaming 
+        emit_tool_calls=False # if you want to disable tool call streaming 
+    )
     llm_with_struct = llm.with_structured_output(EndOrContinue)
-    should_continue: EndOrContinue = llm_with_struct.invoke([SystemMessage(content="You are supposed to analyze if the given AI message is asking user for any inputs or approvals, if yes then mark should_end_conversation as false, else if AI message says that the user has approved the suggestions, mark should_end_conversation as true"), state["messages"][-1]])
+    should_continue: EndOrContinue = llm_with_struct.invoke(
+        [SystemMessage(content="You are supposed to analyze if the given AI message is asking user for any inputs or approvals, if yes then mark should_end_conversation as false, else if AI message says that the user has approved the suggestions, mark should_end_conversation as true"), state["messages"][-1]]
+        , config=modifiedConfig)
     if should_continue.should_end_conversation:
         return Command(goto="select_final_tool")
-    value = interrupt(state["messages"][-1].content)
-    return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=value)]} ) 
+    answer, new_messages = copilotkit_interrupt(message=state["messages"][-1].content)
+    return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=answer)]} ) 
 
-
-def select_final_tool(state: ToolBuilderState):
+def select_final_tool(state: AgentBuilderState, config: RunnableConfig):
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False, # if you want to disable message streaming 
+        emit_tool_calls=False # if you want to disable tool call streaming 
+    )
     json_schema = state["json_schema"]
     llm_with_struct = llm.with_structured_output(JSONSchema)
     prompt= "User will provide the representation of the JSONSchema object, and also provide a list of functions, along with the commposio TOOLKIT_SLUG_NAME and TOOL_SLUG_NAME pair that corresponds to the function, in some cases there might not be any composio_action provided. You are to generate a JSONSchema object with the updated information. "
-    updated_json_schema: JSONSchema = llm_with_struct.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=json_schema.model_dump_json())] + [state["messages"][-1]])
+    updated_json_schema: JSONSchema = llm_with_struct.invoke(
+        [SystemMessage(content=prompt)] + [HumanMessage(content=json_schema.model_dump_json())] + [state["messages"][-1]],
+        config=modifiedConfig)
     return {"json_schema": updated_json_schema}
 
-composio_tool_fetch_app = create_react_agent(llm, prompt=TOOL_PROMPT.format(toolkit_list=get_all_toolkits()), tools=tools, name="composio_tool_fetch")
+composio_tool_fetch_app = create_react_agent(llm, prompt=TOOL_PROMPT.format(toolkit_list=get_all_toolkits()), tools=tools, state_schema=ReactCopilotState, name="composio_tool_fetch")
 
-workflow = StateGraph(ToolBuilderState)
+workflow = StateGraph(AgentBuilderState)
 workflow.add_node("human_review", get_human_review)
 workflow.add_node("composio_tool_fetch", composio_tool_fetch_app)
 workflow.add_node("select_final_tool", select_final_tool)
