@@ -11,7 +11,6 @@ from final_code.nodes.code_generation_node import code_node
 from final_code.nodes.dfs_analysis_node import dfs_analysis_node
 from final_code.nodes.tool_interrupt import tool_interrupt
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
-from final_code.nodes.extract_env_var_node import env_var_node
 from langchain_core.messages import HumanMessage
 
 main_workflow = StateGraph(AgentBuilderState) # Define state type
@@ -28,7 +27,6 @@ main_workflow.add_node("eval_pipeline", eval_pipeline_graph) # Add evaluation pi
 
 main_workflow.add_node("dfs_analysis_node", dfs_analysis_node)
 
-main_workflow.add_node("env_var_node", env_var_node)
 # Define edges for the main workflow
 main_workflow.add_edge(START, "requirement_analysis_node")
 main_workflow.add_edge("json_node", "dry_run_node")  # Connect json_node to dry_run_node
