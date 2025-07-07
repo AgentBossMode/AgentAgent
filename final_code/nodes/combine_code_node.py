@@ -1,24 +1,23 @@
-import json 
-from typing import List 
 from langchain_core.messages import HumanMessage, AIMessage
-from pydantic import BaseModel, Field 
-from langgraph.graph import MessagesState,StateGraph, START, END
-from final_code.utils.fetch_docs import fetch_documents
+from pydantic import Field 
+from langgraph.graph import StateGraph, START, END
+from final_code.nodes.code_reflection_node import code_reflection_node_updated
 from final_code.llms.model_factory import get_model
-from langgraph.types import interrupt
-from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from copilotkit import CopilotKitState
+from e2b_code_interpreter import Sandbox
 
 # --- LLM Initialization ---
 # Initialize the Language Model (LLM) to be used throughout the application
 llm = get_model()
 
-class pythonCodeState(CopilotKitState): # Renamed from 'toolcollector' for convention
+class pythonCodeState(CopilotKitState): 
     """
     State for the graph that collects and compiles multiple tool codes.
     """
     python_code: str = Field(description="The Python code generated for the agent")
     pytest_code: str = Field(description= "If there were any failures or errors in the pytest run, this field will contain the corrected code with the fixes applied to the original code.")
+    imports: str = Field(description="Required imports to run the generated python code")
+
 
 compile_prompt = """
 You are python code writing expert. You are given 2 snippets of code, your job is to combine them. 
@@ -61,7 +60,75 @@ Return a **single complete Python file** with:
 Make sure the final output is ready to run as-is.
 """
 
-def env_var_node(state: pythonCodeState):
+EXTRACT_IMPORT_NAMES="""
+import ast
+import sys
+
+BUILTIN_MODULES = set(sys.stdlib_module_names)
+
+def extract_import_names(file_path: str) -> list[str]:
+    with open(file_path, "r", encoding="utf-8") as f:
+        source_code = f.read()
+    
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError:
+        return []
+
+    python_imports = []
+    
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for name in node.names:
+                import_path = name.name
+                if not import_path.startswith((".", "/")):
+                    base_package = import_path.split(".")[0]
+                    if base_package not in python_imports and base_package not in BUILTIN_MODULES:
+                        python_imports.append(base_package)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and not node.module.startswith((".", "/")):
+                base_package = node.module.split(".")[0]
+                if base_package not in python_imports and base_package not in BUILTIN_MODULES:
+                    python_imports.append(base_package)
+
+    return python_imports
+
+file_path = "./app.py"
+imports = extract_import_names(file_path)
+print("\\n".join(imports))
+"""
+
+
+def _create_e2b_execution_command(
+    *,
+    execution_command: str = "python",
+) -> str:
+    return (" && ").join(
+        [
+            f"echo '{EXTRACT_IMPORT_NAMES}' > extract_import_names.py",
+            "export PIP_DISABLE_PIP_VERSION_CHECK=1",
+            "python3 extract_import_names.py > requirements.txt",
+        ]
+    )
+
+
+def import_runner(state: pythonCodeState):
+    sandbox = Sandbox()
+    cmd = _create_e2b_execution_command()
+    sandbox.commands.run(cmd)
+    file_content = sandbox.files.read('./requirements.txt')
+
+    return{
+        "messages": [AIMessage(content="extracted imports")],
+        "imports": file_content
+    }
+
+
+def reflection_node(state: pythonCodeState):
+    result = code_reflection_node_updated.invoke({"code_to_reflect": state["python_code"]})
+    return {"python_code": result["reflection_code"]}
+
+def combine_node(state: pythonCodeState):
     python_code = state["python_code"]
     refactored_code = state["pytest_code"]
     compiled_code_output = llm.invoke([HumanMessage(content=compile_prompt.format(
@@ -73,3 +140,14 @@ def env_var_node(state: pythonCodeState):
         "messages": [AIMessage(content="extracted env variables!")],
         "python_code": compiled_code_output
     } 
+
+workflow = StateGraph(pythonCodeState)
+workflow.add_node("reflection", reflection_node)
+workflow.add_node("combine_node", combine_node)
+workflow.add_node("import_runner", import_runner)
+
+workflow.add_edge(START, "combine_node")
+workflow.add_edge("combine_node", "reflection")
+workflow.add_edge("reflection", "import_runner")
+workflow.add_edge("import_runner", END)
+combine_code_pipeline_graph = workflow.compile()
