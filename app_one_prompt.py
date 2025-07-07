@@ -36,7 +36,8 @@ main_workflow.add_edge("dry_run_node", "tool_graph")  # Connect dry_run_node to 
 main_workflow.add_edge("tool_graph", "tool_interrupt")
 main_workflow.add_edge("tool_interrupt", "code_node")
 main_workflow.add_edge("code_node", "dfs_analysis_node")
-main_workflow.add_edge("dfs_analysis_node", "eval_pipeline")
+main_workflow.add_edge("dfs_analysis_node", "env_var_node")
+main_workflow.add_edge("env_var_node", "eval_pipeline")
 main_workflow.add_edge("eval_pipeline", END)
 
 app = main_workflow.compile()
