@@ -363,6 +363,9 @@ Before finalizing your code, verify:
 - [ ] Structured output uses proper Pydantic models
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
+- [ ] Ensure that the code does not access graphstate like an object attribute, it needs be accessed like a dict
+- [ ] Assume any API keys(e.g., OPENAI_API_KEY, GOOGLE_API_KEY) are part of the environment variables and all environment variables are to be defined using the os.environs notation
+- [ ] Ensure that the naming of the environment variables is consistent with what is generally in practice to name the API key that is being used (example: GOOGLE_API_KEY for google API, COMPOSIO_API_KEY for composio API key and so on ) 
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>
