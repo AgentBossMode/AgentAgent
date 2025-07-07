@@ -3,9 +3,10 @@ from typing import List, Optional
 
 class Tool(BaseModel):
     name: str = Field(description="Name of the tool")
-    description: str = Field(description="Description of the tool's functionality")
+    description: str = Field(description="Description of the tool's functionality, the input to the node, and the output of the node")
     is_composio_tool: bool = Field(default=False, description="Indicates if the tool is present in the composio toolset, default is False")
-    composio_action_name: Optional[str] = Field(default=None, description="Name of the Composio action, if applicable, default is None")
+    composio_toolkit_slug: Optional[str] = Field(default=None, description="The specific Composio toolkit SLUG, ex: Apollo, Hubspot and so on, if applicable, default is None")
+    composio_tool_slug: Optional[str] = Field(default=None, description="The specific Composio tool SLUG, if applicable, default is None")
     py_code: Optional[str] = Field(default=None, description="Python code for the tool, if applicable")
     node_ids: List[str] = Field(description="The node ids of the nodes for which the tool is relevant. This is the id variable in NodeSchema")
 

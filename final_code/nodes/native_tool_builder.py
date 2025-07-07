@@ -1,4 +1,4 @@
-from final_code.states.ToolBuilderState import ToolBuilderState
+from final_code.states.AgentBuilderState import AgentBuilderState
 from langgraph.graph import StateGraph, START, END  # Core LangGraph components for building stateful graphs
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
@@ -7,8 +7,15 @@ from final_code.pydantic_models.EndOrContinue import EndOrContinue
 from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.llms.model_factory import get_model
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
-from langchain_tavily import TavilySearch, TavilyExtract, TavilyCrawl
+from langchain_tavily import TavilySearch, TavilyExtract
 from langchain_openai import ChatOpenAI
+from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
+from final_code.states.ReactCopilotKitState import ReactCopilotState
+from langchain_core.runnables import RunnableConfig
+from copilotkit.langgraph import copilotkit_customize_config
+
+
+
 tavily_extract_tool = TavilyExtract(
     extract_depth="advanced",
     include_images=False)
@@ -69,26 +76,39 @@ def tool_name_2():
 
 native_react_agent = create_react_agent(
     model=llm,
-    prompt=TOOL_PROMPT,tools=[tavily_search_tool, tavily_extract_tool])
+    prompt=TOOL_PROMPT,tools=[tavily_search_tool, tavily_extract_tool],
+    state_schema=ReactCopilotState)
 
-def get_human_review(state: ToolBuilderState) -> Command[Literal["native_react_agent", "compile_final_tool"]]:
+def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent", "compile_final_tool"]]:
+
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False, # if you want to disable message streaming 
+        emit_tool_calls=False # if you want to disable tool call streaming 
+    )
+
     llm_with_struct = llm.with_structured_output(EndOrContinue)
-    should_continue: EndOrContinue = llm_with_struct.invoke([state["messages"][-1]])
+    should_continue: EndOrContinue = llm_with_struct.invoke([state["messages"][-1]], config=modifiedConfig)
     if should_continue.should_end_conversation:
         return Command(goto="compile_final_tool")
-    value = interrupt(state["messages"][-1].content)
-    return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=value)]} ) 
+    answer, new_messages = copilotkit_interrupt(message = state["messages"][-1].content)
+    return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer)]} ) 
 
-def compile_final_tool(state: ToolBuilderState):
+def compile_final_tool(state: AgentBuilderState, config: RunnableConfig):
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False, # if you want to disable message streaming 
+        emit_tool_calls=False # if you want to disable tool call streaming 
+    )
     json_schema = state["json_schema"]
     llm_with_struct = llm.with_structured_output(JSONSchema)
     prompt= "User will provide the representation of the JSONSchema object, and also provide a list of functions, along with the python code that corresponds to the function. You are to generate a JSONSchema object with the updated information. "
-    updated_json_schema: JSONSchema = llm_with_struct.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=json_schema.model_dump_json())] + [state["messages"][-1]])
+    updated_json_schema: JSONSchema = llm_with_struct.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=json_schema.model_dump_json())] + [state["messages"][-1]], config = modifiedConfig)
     return {"json_schema": updated_json_schema}
 
 
 
-native_tool_workflow = StateGraph(ToolBuilderState)
+native_tool_workflow = StateGraph(AgentBuilderState)
 native_tool_workflow.add_node("get_human_review", get_human_review)
 native_tool_workflow.add_node("native_react_agent", native_react_agent)
 native_tool_workflow.add_node("compile_final_tool", compile_final_tool)

@@ -4,6 +4,8 @@ from pydantic import Field
 from final_code.states.AgentInstructions import AgentInstructions
 from final_code.states.ArchEvaluations import ArchEvaluationWithUrl
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.DryRunState import UseCaseAnalysis
+from typing import List
 import operator
 from copilotkit import CopilotKitState
 
@@ -20,8 +22,7 @@ class AgentBuilderState(CopilotKitState):
     reactflow_json: str = Field(description="The JSON representation of the ReactFlow graph for the agent")
     justification: str = Field(description="Justification for the agent_architecture")
     python_code: str = Field(description="The Python code generated for the agent")
-    graph_schema: str = Field(description="Graph schema obtained from e2b")
-    main_logs: str = Field(description="Logs appended from main")
+    use_cases: List[UseCaseAnalysis] = Field(default_factory=list,description="List of use cases with their names, descriptions, and dry runs.")
     # the below are needed for the old flow
     arch_evaluation_reports: Annotated[list[ArchEvaluationWithUrl], operator.add]
     best_agent_architecture: ArchEvaluationWithUrl = Field(description="the best architecture selected")

@@ -1,8 +1,10 @@
 from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage
+from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from typing import Literal
 from final_code.llms.model_factory import get_model
-from langgraph.types import Command, interrupt
+from langgraph.types import Command
+from langchain_core.messages import AIMessage
 
 llm = get_model()
 
@@ -31,13 +33,13 @@ def requirement_analysis_node(state: AgentBuilderState) -> Command[Literal["requ
     response = llm_with_tool.invoke([SystemMessage(content=REQ_ANALYSIS_PROMPT)] + state["messages"])
     
     if not response.tool_calls:
-        value = interrupt(response.content)
-        return Command(goto="requirement_analysis_node", update={"messages": [response, HumanMessage(content=value)]})
+        answer, new_messages = copilotkit_interrupt(message=response.content)
+        return Command(goto="requirement_analysis_node", update={"messages": new_messages})
         
     agent_instructions_args = response.tool_calls[0]["args"]
     agent_instructions = AgentInstructions(**agent_instructions_args)
     
     return Command(
         goto="json_node",
-        update={"messages": [response], "agent_instructions": agent_instructions}
+        update={"messages": [AIMessage(content="Requirements have been identified")], "agent_instructions": agent_instructions}
     )

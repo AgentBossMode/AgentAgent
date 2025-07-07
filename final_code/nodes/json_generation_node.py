@@ -4,9 +4,8 @@ from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstruct
 from final_code.utils.dict_to_reactflow import dict_to_tree_positions
 from final_code.llms.model_factory import get_model
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.DryRunState import DryRunResults
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
-from typing import List
 
 
 llm = get_model()
@@ -37,7 +36,12 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
 2.  **Architectural Decision:**
     * If you determine that one or more of these architectures are strongly applicable to the INPUT, choose to implement it.
     * If no specific advanced architecture seems directly applicable for the given INPUT, proceed with a standard stateful graph construction based on the explicit langgraph nodes and edges.
-    * Does any node need real-time/external data or if it requires data from web or has something in it's functionality that can be made deterministic through an API call? → In that case the toolset_required should be set to true and the tools list should be populated, the is_composio_tool and py_code should be set to default values.
+3.  **Populating the tools field":
+    1. Tools are helpful for the nodes if:
+        a. If any node need real-time/external data
+        b. if the node requires data from web or has something in it's functionality that can be made achieved through an API call
+    2. If you see any nodes meeting these requirements: fill the tools field.
+    3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ are separate tools.
     """)
 
 
@@ -55,22 +59,12 @@ def json_node(state: AgentBuilderState):
     reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
     # Return the generated Python code and an AI message
     return {
-        "messages": [AIMessage(content="Generated json schema!")],
         "json_schema": json_extracted_output,
         "json_dict": reactflow_json,
         "justification": json_extracted_output.justification,
         "reactflow_json": reactflow_json
     }
 
-class UseCaseAnalysis(BaseModel):
-    name: str = Field(description="Name of the use case")
-    description: str = Field(description="Description of the use case")
-    dry_run: str = Field(description="Dry run of the use case, which is a string representation of the dry run results")
-
-class DryRunResults(BaseModel):
-    use_cases: List[UseCaseAnalysis] = Field(default_factory=list,description="List of use cases with their names, descriptions, and dry runs.")
-    updated_json_schema: JSONSchema | None = Field(default=None, description="Updated JSON schema if dry run fails")
-    justification: str | None = Field(default=None, description="Justification for updated JSON schema if applicable")
 
 def dry_run_node(state: AgentBuilderState):
     json_schema: JSONSchema = state["json_schema"]
@@ -94,6 +88,9 @@ If you find that the dry run fails in any of the cases, you should return the up
     dry_run_analysis:DryRunResults = llm_with_struct.invoke([HumanMessage(content=SYS_PROMPT.format(json_schema=json_schema.model_dump_json(indent=2), agent_instructions=state["agent_instructions"].model_dump_json(indent=2)))])
     if dry_run_analysis.updated_json_schema is not None:
         updated_json_schema: JSONSchema = dry_run_analysis.updated_json_schema
-        return {"json_schema": updated_json_schema}
+        return {
+            "json_schema": updated_json_schema,
+            "use_cases": dry_run_analysis.use_cases
+            }
     else:
-        return        
+        return {"use_cases": dry_run_analysis.use_cases}

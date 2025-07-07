@@ -1,6 +1,5 @@
 from e2b_code_interpreter import Sandbox
 from openevals.code.e2b.execution import create_e2b_execution_evaluator
-from langgraph_reflection import create_reflection_graph
 from langgraph.graph import StateGraph, MessagesState, START, END
 from final_code.states.AgentBuilderState import AgentBuilderState
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -17,8 +16,21 @@ REFLECTION_SYSTEM_PROMPT = """
  Make sure it is correct, complete, and executable without modification.
  Make sure that any generated code is contained in a properly formatted markdown code block.
  Use ChatOpenAI gpt-4o-mini wherever llm is needed.
+ 
+Explain your reasoning for fix along with fixed code in a markdown format. 
 
- Explain your reasoning for fix along with fixed code in a markdown format.
+Some helpful information about imports for different objects that might be present in the code:
+
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.types import Command
+from typing import Literal
+from langgraph.prebuilt import create_react_agent
+
+
+OUTPUT FORMAT (in markdown): 
+1. What are the fixes identified as per the bug
+2. the fixed python code in markdown format
  """
 
 class CodeState(MessagesState):
@@ -46,6 +58,12 @@ def run_reflection(state: CodeState) -> Command[Literal["__end__", "code_rectifi
         )
         py_code = state["code_to_reflect"]
         result = evaluator(outputs=py_code)
+        
+        try:
+           py_code= sandbox.files.read("openevals/outputs.py")
+        except:
+           py_code = state["code_to_reflect"]
+
         if result["score"]:
             return Command(goto="__end__", update={"reflection_code":py_code})
         else:

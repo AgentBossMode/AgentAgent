@@ -9,14 +9,10 @@ from final_code.nodes.tool_generation_nodev2 import tool_graph
 from final_code.nodes.json_generation_node import json_node, dry_run_node
 from final_code.nodes.code_generation_node import code_node
 from final_code.nodes.dfs_analysis_node import dfs_analysis_node
+from final_code.nodes.tool_interrupt import tool_interrupt
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
 from final_code.nodes.extract_env_var_node import env_var_node
 from langchain_core.messages import HumanMessage
-
-def reflection_node(state: AgentBuilderState):
-    result = code_reflection_node_updated.invoke({"code_to_reflect": state["python_code"]})
-    return {"python_code": result["reflection_code"] }
-
 
 main_workflow = StateGraph(AgentBuilderState) # Define state type
 
@@ -25,23 +21,22 @@ main_workflow.add_node("requirement_analysis_node", requirement_analysis_node)
 main_workflow.add_node("json_node", json_node)
 main_workflow.add_node("dry_run_node", dry_run_node)  # Add dry_run_node
 main_workflow.add_node("code_node", code_node)
+main_workflow.add_node("tool_interrupt", tool_interrupt)
 main_workflow.add_node("tool_graph", tool_graph) # Renamed node
 # app2
 main_workflow.add_node("eval_pipeline", eval_pipeline_graph) # Add evaluation pipeline graph
 
 main_workflow.add_node("dfs_analysis_node", dfs_analysis_node)
-main_workflow.add_node("reflection_node", reflection_node)
-main_workflow.add_node("env_var_node", env_var_node)
 
+main_workflow.add_node("env_var_node", env_var_node)
 # Define edges for the main workflow
 main_workflow.add_edge(START, "requirement_analysis_node")
 main_workflow.add_edge("json_node", "dry_run_node")  # Connect json_node to dry_run_node
 main_workflow.add_edge("dry_run_node", "tool_graph")  # Connect dry_run_node to tool_graph
-main_workflow.add_edge("tool_graph", "code_node")
+main_workflow.add_edge("tool_graph", "tool_interrupt")
+main_workflow.add_edge("tool_interrupt", "code_node")
 main_workflow.add_edge("code_node", "dfs_analysis_node")
-main_workflow.add_edge("dfs_analysis_node","env_var_node")
-main_workflow.add_edge("env_var_node", "reflection_node")
-main_workflow.add_edge("reflection_node", "eval_pipeline")         # End after tool processing
+main_workflow.add_edge("dfs_analysis_node", "eval_pipeline")
 main_workflow.add_edge("eval_pipeline", END)
 
 app = main_workflow.compile()
