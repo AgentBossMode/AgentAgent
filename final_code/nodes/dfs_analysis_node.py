@@ -2,6 +2,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 from final_code.llms.model_factory import get_model
 from final_code.states.AgentBuilderState import AgentBuilderState
 from pydantic import BaseModel, Field
+from copilotkit.langgraph import copilotkit_customize_config
+from langchain_core.runnables import RunnableConfig
 llm = get_model()
 
 
@@ -285,17 +287,22 @@ class DFSAnalysis(BaseModel):
     explanation: str = Field(description="Explanation of the changes made to the code, if any.")
 
 
-def dfs_analysis_node(state: AgentBuilderState): # Renamed for clarity
+def dfs_analysis_node(state: AgentBuilderState, config: RunnableConfig): # Renamed for clarity
      """
      LangGraph node to analyse the code
      """
+     modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False, # if you want to disable message streaming 
+        emit_tool_calls=False # if you want to disable tool call streaming 
+    )
      main_agent_code = state['python_code']
      llm_dfs = llm.with_structured_output(DFSAnalysis)
 
      # Use LLM to merge the main agent code with the generated tool definitions
      response: DFSAnalysis = llm_dfs.invoke([HumanMessage(content=ANALYSIS_COMPILE_PROMPT.format(
          compiled_code=main_agent_code,
-     ))])
+     ))], config =modifiedConfig)
 
      # The response from this LLM call is expected to be the final, complete Python code
      return {
