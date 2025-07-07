@@ -1,8 +1,13 @@
 from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage, AIMessage
-from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
+from langchain_core.messages import HumanMessage, SystemMessage
+from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
-from langgraph.checkpoint.memory import InMemorySaver
+from final_code.utils.MockJsonSchema import json_schema_str
+from copilotkit.langgraph import copilotkit_customize_config
+from langchain_core.runnables import RunnableConfig
+import uuid
+from langchain_core.tools import tool
+
 
 llm = get_model()
 
@@ -380,23 +385,47 @@ If no external keys are needed, state: "No external API keys required for this i
 Please return only complete and compilable langgraph python code
 """)
 
-def code_node(state: AgentBuilderState):
+@tool
+def write_code(code: str): # pylint: disable=invalid-name,unused-argument
+    """Writes the code to a file.
+
+      Args:
+        code (str): The code to write.
+      """
+    
+
+def code_node(state: AgentBuilderState, config: RunnableConfig):
     """
     LangGraph node to generate the final Python code for the agent.
     It uses the gathered agent_instructions and the CODE_GEN_PROMPT.
     """
-    instructions: AgentInstructions = state["agent_instructions"]
- 
-    # Invoke LLM to generate code based on the detailed prompt and instructions
-    code_output = llm.invoke([HumanMessage(content=CODE_GEN_PROMPT.format(
-        json_schema=state["json_schema"].model_dump_json(indent=2),
-        justification = state["justification"],
-        objective=instructions.objective,
-        usecases=instructions.usecases,
-        examples=instructions.examples
-    ))])
+
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_intermediate_state=[{
+            "state_key": "python_code",
+            "tool": "write_code",
+            "tool_argument": "code",
+        }],
+    )
+
+    code_llm_writer = llm.bind_tools([write_code])
+    json_schema_final = state["json_schema"].model_dump_json(indent=2)
+    #json_schema_final = json_schema_str
+    response = code_llm_writer.invoke([SystemMessage(content="Call the 'write_code' tool."), HumanMessage(content=CODE_GEN_PROMPT.format(json_schema=json_schema_final))], config=modifiedConfig)
+    if hasattr(response, "tool_calls") and response.tool_calls:
+        tool_call = response.tool_calls[0]
+        # Handle tool_call as a dictionary or an object
+        if isinstance(tool_call, dict):
+            tool_call_id = tool_call["id"]
+            tool_call_args = tool_call["args"]
+            tool_call_name= tool_call["name"]
+        else:
+            # Handle as an object (backward compatibility)
+            tool_call_id = tool_call.id
+            tool_call_args = tool_call.args
+            tool_call_name= tool_call.name
     # Return the generated Python code and an AI message
     return {
-        "messages": [AIMessage(content="Generated final python code!")],
-        "python_code": code_output.content,
+        "python_code": tool_call_args["code"],
     }
