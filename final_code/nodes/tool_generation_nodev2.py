@@ -1,5 +1,6 @@
+from typing import List
 from final_code.states.AgentBuilderState import AgentBuilderState
-from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.NodesAndEdgesSchemas import JSONSchema, Tool
 from final_code.nodes.composio_toolset_builder import composio_tool_builder
 from final_code.nodes.native_tool_builder import native_tool_builder
 from langgraph.graph import StateGraph, START, END
@@ -15,7 +16,16 @@ def get_composio_tools_node(state: AgentBuilderState):
     if tool_list == "":
         return 
     updated_json_schema = composio_tool_builder.invoke({"messages": [HumanMessage(content=tool_list)], "json_schema": json_schema})
-    return {"json_schema": updated_json_schema["json_schema"], "messages": updated_json_schema["messages"]}
+
+    #json_schema: JSONSchema = state['json_schema']
+    final_tools: List[Tool] = updated_json_schema["json_schema"].tools
+    # define a set 
+    
+    tool_set = set()
+    for tool in final_tools:
+        if tool.is_composio_tool:
+            tool_set.add(tool.composio_toolkit_slug)
+    return {"tool_set": tool_set, "json_schema": updated_json_schema["json_schema"], "messages": updated_json_schema["messages"]}
 
 
 def process_non_composio_tools(state: AgentBuilderState):
