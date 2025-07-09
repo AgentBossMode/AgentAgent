@@ -6,7 +6,7 @@ from final_code.utils.MockJsonSchema import json_schema_str
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 import uuid
-from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 
 
 llm = get_model()
@@ -385,14 +385,8 @@ If no external keys are needed, state: "No external API keys required for this i
 Please return only complete and compilable langgraph python code
 """)
 
-@tool
-def write_code(code: str): # pylint: disable=invalid-name,unused-argument
-    """Writes the code to a file.
-
-      Args:
-        code (str): The code to write.
-      """
-    
+class PythonCode(BaseModel):
+    code: str = Field(description="The generated python code")
 
 def code_node(state: AgentBuilderState, config: RunnableConfig):
     """
@@ -404,28 +398,16 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
         config,
         emit_intermediate_state=[{
             "state_key": "python_code",
-            "tool": "write_code",
+            "tool": "PythonCode",
             "tool_argument": "code",
         }],
     )
 
-    code_llm_writer = llm.bind_tools([write_code])
-    json_schema_final = state["json_schema"].model_dump_json(indent=2)
-    #json_schema_final = json_schema_str
-    response = code_llm_writer.invoke([SystemMessage(content="Call the 'write_code' tool."), HumanMessage(content=CODE_GEN_PROMPT.format(json_schema=json_schema_final))], config=modifiedConfig)
-    if hasattr(response, "tool_calls") and response.tool_calls:
-        tool_call = response.tool_calls[0]
-        # Handle tool_call as a dictionary or an object
-        if isinstance(tool_call, dict):
-            tool_call_id = tool_call["id"]
-            tool_call_args = tool_call["args"]
-            tool_call_name= tool_call["name"]
-        else:
-            # Handle as an object (backward compatibility)
-            tool_call_id = tool_call.id
-            tool_call_args = tool_call.args
-            tool_call_name= tool_call.name
+    code_llm_writer = llm.with_structured_output(PythonCode)
+    #json_schema_final = state["json_schema"].model_dump_json(indent=2)
+    json_schema_final = json_schema_str
+    response: PythonCode = code_llm_writer.invoke([SystemMessage(content="You must call the 'write_code' tool for the given user message"), HumanMessage(content=CODE_GEN_PROMPT.format(json_schema=json_schema_final))], config=modifiedConfig)
     # Return the generated Python code and an AI message
     return {
-        "python_code": tool_call_args["code"],
+        "python_code": response.code,
     }
