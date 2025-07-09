@@ -27,3 +27,4 @@ class AgentBuilderState(CopilotKitState):
     arch_evaluation_reports: Annotated[list[ArchEvaluationWithUrl], operator.add]
     best_agent_architecture: ArchEvaluationWithUrl = Field(description="the best architecture selected")
     json_code: str = Field(description="Json of the code")
+    tool_set: set = Field(description="The composio tool slugs")
