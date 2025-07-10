@@ -97,7 +97,7 @@ def node_name(state: GraphState) -> GraphState:
     "messages": "value_message"
     }}
 ```
-**Important:** Every node's return dictionary **must** include a \"messages\" key, even if it just contains a system message for status.
+**Important:** Every node's return dictionary **must** include a \"messages\" key, even if it just contains a AiMessage for status.
 </COMMONINSTRUCTION>
                                             
 ## Pattern 1: Tool-calling react agent
@@ -125,6 +125,7 @@ def node_name(state: GraphState) -> GraphState:
 ```python
 from pydantic import BaseModel, Field
 from typing import Literal
+import langchain_core.messages import AIMessage
 
 class IntentClassification(BaseModel):
     '''Structured output for intent classification.'''
@@ -142,7 +143,7 @@ def intent_classifier_node(state: GraphState) -> GraphState:
     
     result = structured_llm.invoke(prompt)
     return {{
-        "messages": [("system", f"Intent classified as: {{result.intent}}")],
+        "messages": [AIMessage(content= f"Intent classified as: {{result.intent}}")],
         "intent": result.intent,
         "confidence": result.confidence
     }}
@@ -154,6 +155,7 @@ Here is an example of how to use structured output. In this example, we want the
 ``` python
 from typing import Optional
 from pydantic import BaseModel, Field
+import langchain_core.messages import AIMessage
 
 # Pydantic class for structured output
 class Joke(BaseModel):
@@ -169,7 +171,8 @@ class JokeBuilderState(MessagesState):
 def GenerateJoke(state: JokeBuilderState):
     structured_llm = llm.with_structured_output(Joke)
     joke: Joke = structured_llm.invoke("Tell me a joke about cats")
-    return {{ "joke": joke }}
+    return {{ "joke": joke,
+    "messages": [AIMessage(content= "Joke generated")]}}
 ```
 </Example2>
 
@@ -179,6 +182,7 @@ def GenerateJoke(state: JokeBuilderState):
 *** Example Implementation:***
 ```python
 from langgraph.types import interrupt
+import langchain_core.messages import AIMessage
 
 def human_node(state: State):
     value = interrupt(
@@ -191,7 +195,7 @@ def human_node(state: State):
     # Update the state with the human's input or route the graph based on the input.
     return {{
         "some_text": value,
-        "messages": [("system", "Human intervention occurred.")] # Example message
+        "messages": [AIMessage(content= "Human intervention occurred.")],
     }}
 ```
 
@@ -215,7 +219,7 @@ def content_enhancement_node(state: GraphState) -> dict:
     enhanced = llm.invoke(enhanced_prompt).content
     
     return {{
-        "messages": [("system", "Content enhanced with structure and examples")],
+        "messages": [AIMessage(content= "Content enhanced with structure and examples")],
         "enhanced_content": enhanced,
         "processing_steps": ["structured", "enhanced"]
     }}
