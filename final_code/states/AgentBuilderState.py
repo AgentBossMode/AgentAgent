@@ -28,3 +28,5 @@ class AgentBuilderState(CopilotKitState):
     best_agent_architecture: ArchEvaluationWithUrl = Field(description="the best architecture selected")
     json_code: str = Field(description="Json of the code")
     env_variables: List[str] = Field(description="List if all environment variables required to run the python code")
+    tool_set: set = Field(description="The composio tool slugs")
+
