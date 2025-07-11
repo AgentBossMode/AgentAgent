@@ -9,7 +9,7 @@ from final_code.nodes.tool_generation_nodev2 import tool_graph
 from final_code.nodes.json_generation_node import json_node, dry_run_node
 from final_code.nodes.code_generation_node import code_node
 from final_code.nodes.dfs_analysis_node import dfs_analysis_node
-from final_code.nodes.tool_interrupt import tool_interrupt
+from final_code.nodes.tool_interrupt import tool_interrupt, add_toolset
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
 from final_code.nodes.extract_env_var_node import env_var_node
 from langchain_core.messages import HumanMessage
@@ -22,6 +22,7 @@ main_workflow.add_node("json_node", json_node)
 main_workflow.add_node("dry_run_node", dry_run_node)  # Add dry_run_node
 main_workflow.add_node("code_node", code_node)
 main_workflow.add_node("tool_interrupt", tool_interrupt)
+main_workflow.add_node("add_toolset", add_toolset)
 main_workflow.add_node("tool_graph", tool_graph) # Renamed node
 # app2
 main_workflow.add_node("eval_pipeline", eval_pipeline_graph) # Add evaluation pipeline graph
@@ -41,5 +42,16 @@ main_workflow.add_edge("dfs_analysis_node", "env_var_node")
 main_workflow.add_edge("env_var_node", "eval_pipeline")
 main_workflow.add_edge("eval_pipeline", END)
 # main_workflow.add_edge("combine_code_pipeline_graph", END)
+
+# uncomment to test tool_set composio and comment the rest
+# main_workflow.set_entry_point("add_toolset")
+# main_workflow.add_edge(START, "add_toolset")
+# main_workflow.add_edge("add_toolset", "tool_interrupt")
+# main_workflow.add_edge("tool_interrupt", END)
+
+# uncomment to test code_node and comment the rest
+# main_workflow.set_entry_point("code_node")
+# main_workflow.add_edge(START, "code_node")
+# main_workflow.add_edge("code_node", END)
 
 app = main_workflow.compile()
