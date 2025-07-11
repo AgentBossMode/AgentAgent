@@ -32,6 +32,10 @@ main_workflow.add_node("combine_code_pipeline_graph", combine_code_pipeline_grap
 
 main_workflow.add_node("env_var_node", env_var_node)
 # Define edges for the main workflow
+
+# EDGE SECTION
+
+# PROD workflow
 main_workflow.add_edge(START, "requirement_analysis_node")
 main_workflow.add_edge("json_node", "dry_run_node")  # Connect json_node to dry_run_node
 main_workflow.add_edge("dry_run_node", "tool_graph")  # Connect dry_run_node to tool_graph
