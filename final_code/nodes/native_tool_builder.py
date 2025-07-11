@@ -72,27 +72,32 @@ def tool_name_2():
 7. If you get human input, responding to the above, now finally provide the final tools to be used corresponding to each user requirement.
 """
 
-
-
 native_react_agent = create_react_agent(
     model=llm,
     prompt=TOOL_PROMPT,tools=[tavily_search_tool, tavily_extract_tool],
     state_schema=ReactCopilotState)
 
-def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent", "compile_final_tool"]]:
-
+def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["compile_final_tool", "human_review"]]:
     modifiedConfig = copilotkit_customize_config(
         config,
         emit_messages=False, # if you want to disable message streaming 
         emit_tool_calls=False # if you want to disable tool call streaming 
     )
-
     llm_with_struct = llm.with_structured_output(EndOrContinue)
-    should_continue: EndOrContinue = llm_with_struct.invoke([state["messages"][-1]], config=modifiedConfig)
+    should_continue: EndOrContinue = llm_with_struct.invoke(
+        [SystemMessage(content="You are supposed to analyze if the given AI message is asking user for any inputs or approvals, if yes then mark should_end_conversation as false, else if AI message says that the user has approved the suggestions, mark should_end_conversation as true"), state["messages"][-1]]
+        , config=modifiedConfig)
     if should_continue.should_end_conversation:
         return Command(goto="compile_final_tool")
-    answer, new_messages = copilotkit_interrupt(message = state["messages"][-1].content)
-    return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer)]} ) 
+    else:
+        return Command(goto="human_review")
+
+def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent"]]:
+    answer: dict = interrupt(state["messages"][-1].content)
+    for key in answer.keys():
+        return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer[key])]}) 
+
+
 
 def compile_final_tool(state: AgentBuilderState, config: RunnableConfig):
     modifiedConfig = copilotkit_customize_config(
@@ -109,15 +114,13 @@ def compile_final_tool(state: AgentBuilderState, config: RunnableConfig):
 
 
 native_tool_workflow = StateGraph(AgentBuilderState)
-native_tool_workflow.add_node("get_human_review", get_human_review)
+native_tool_workflow.add_node("human_review", get_human_review)
 native_tool_workflow.add_node("native_react_agent", native_react_agent)
 native_tool_workflow.add_node("compile_final_tool", compile_final_tool)
+native_tool_workflow.add_node("select_tool_or_human_review", select_tool_or_human_review)
 
 native_tool_workflow.add_edge(START, "native_react_agent")
-native_tool_workflow.add_edge("native_react_agent", "get_human_review")
+native_tool_workflow.add_edge("native_react_agent", "select_tool_or_human_review")
 native_tool_workflow.add_edge("compile_final_tool", END)
 
 native_tool_builder = native_tool_workflow.compile()
-
-
-
