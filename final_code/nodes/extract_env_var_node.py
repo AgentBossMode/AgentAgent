@@ -4,6 +4,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
 from final_code.llms.model_factory import get_model
 from langchain_tavily import TavilySearch, TavilyExtract
+from final_code.states.NodesAndEdgesSchemas import JSONSchema, Tool
 from pydantic import BaseModel, Field
 from typing import List 
 
@@ -21,57 +22,85 @@ tavily_search_tool = TavilySearch(
 )
 
 ENV_VAR_PROMPT = PromptTemplate.from_template("""
-## Prompt: Extracting Required API Keys from Python Code
+### Prompt: Extracting API Key Names from Tool Names and Code Snippets
 
-You are tasked with analyzing Python code to identify and extract all **API keys** required for the code to execute properly.
+You are an expert in analyzing tool integrations in Python applications. Your task is to identify the **API key variable names** required for each tool listed.
+
+---
+
+### Input Format
+
+You are given:
+- A list of tools.
+- For each tool, a **Python code snippet** (optional, may be empty).
 
 ---
 
 ### Instructions
 
-1. **Identify Required API Keys**
+#### 1. Analyze Code Snippet (If Provided)
 
-   - Extract all API key variable names used in the code.
-   - Include keys for:
-     - LLMs such as `openai`, `gemini`, `anthropic`, etc. If the key name for a LLM is not present in any comment, the code or any config block. Use TavilySearch to Find API key name required (continue to step 3)
-     - Any **third-party tools that are not part of Composio**
+- Inspect the given code snippet for each tool.
+- If it includes API key usage (e.g., `os.getenv("API_KEY")`, `api_key="..."`, `Tool(api_key=...)`), extract the **API key variable name** (e.g., `"OPENAI_API_KEY"`).
 
-2. **Classify Tools**
+#### 2. Fallback to Tavily Search (If Needed)
 
-   - If the tool is an LLM or a node uses a LLM call (e.g., OpenAI, Gemini), extract the key name directly from the code or any config block.
-   - For **non-Composio tools**, continue to step 3.
-
-3. **Use TavilySearch to Find SDK or Code Samples**
-
-   - For each non-Composio tool, search using:
-     ```
-     TavilySearch("tool_name Python SDK or usage example")
-     ```
-
-4. **Use TavilyExtract to Extract Code**
-
-   - Use TavilyExtract on the search results to extract Python code snippets:
-   - Extract code that reveals the API key name, such as environment variable names or parameter names like `api_key=`.
-
-5. **Final Output Format**
-
-   - Return the list of key names (strings) in the following format:
-
-     ```python
-     ["OPENAI_API_KEY", "GEMINI_API_KEY", "TAVILY_API_KEY", "PINECONE_API_KEY"]
-     ```
+- If the code snippet does **not** show any API key usage:
+  - Run:
+    ```python
+    TavilySearch("tool_name Python SDK or usage example")
+    ```
+  - Then use `TavilyExtract` on the result to identify how the API key is set or passed.
+  - Extract the **API key name** (e.g., `"TOOLNAME_API_KEY"` or whatever is used in examples).
 
 ---
 
-### Additional Notes
+### Final Output Format
 
-- Do **not** include API keys used for Composio tools.
-- Extract only the exact names required to authenticate with each service (e.g., from `os.getenv`, direct variable names, or config parameters).
-- Be case-sensitive and preserve the exact naming conventions used in the code or SDK documentation.
+Return only a **Python list of strings**, where each string is the API key name:
 
-<PYTHON_CODE>
-{python_code}
-</PYTHON_CODE>
+```python
+["OPENAI_API_KEY", "PINECONE_API_KEY", "SERPAPI_API_KEY"]
+```
+
+---
+
+### Rules
+
+- Return only the **API key variable name** required to authenticate with each tool.
+- Ensure you go through all the tools provided in the input list
+- Be **case-sensitive** and **preserve exact naming** from the code snippet or SDK documentation.
+- If multiple valid names exist, choose the **most commonly used one** in official sources.
+
+---
+
+### Example Input
+
+```python
+tools = [
+  {
+    "tool": "OpenAI",
+    "code": "openai.ChatCompletion.create(model='gpt-4', messages=[...])"
+  },
+  {
+    "tool": "Pinecone",
+    "code": "pinecone.init(api_key=os.getenv('PINECONE_API_KEY'))"
+  },
+  {
+    "tool": "SerpAPI",
+    "code": ""
+  }
+]
+```
+
+### Example Output
+
+```python
+["OPENAI_API_KEY", "PINECONE_API_KEY", "SERPAPI_API_KEY"]
+```
+<INPUT_LIST>
+{tool_list}
+</INPUT_LIST>
 """)
 
 
@@ -79,11 +108,17 @@ class envVariableList(BaseModel):
     env_variables: List[str] = Field(description="List of environment variable names required to run the python code")
 
 def env_var_node(state: AgentBuilderState):
-    python_code: AgentInstructions = state["python_code"]
+    python_code = state["python_code"]
+    json_schema: JSONSchema = state["json_schema"]
+    tool_dict = []
+    for tool in json_schema.tools:
+        if not tool.is_composio_tool:
+            tool_dict.append({"tool":tool.name,"code":tool.py_code})
+    list_str = ''.join([str(d) for d in tool_dict])
     llm_with_tools = llm.bind_tools(tools=[tavily_search_tool, tavily_extract_tool])
     var_extraction_llm = llm_with_tools.with_structured_output(envVariableList)
     var_extracted_output = var_extraction_llm.invoke([HumanMessage(content=ENV_VAR_PROMPT.format(
-        python_code=python_code
+        tool_list = list_str
     ))])
     print(var_extracted_output)
 
