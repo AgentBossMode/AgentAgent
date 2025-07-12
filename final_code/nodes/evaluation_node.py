@@ -204,7 +204,7 @@ def _create_e2b_execution_command(
 
 def pytest_runner(state: CodeEvalState):
     pytest_out = []
-    sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]})
+    sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2"], "LANGCHAIN_PROJECT": "inception_prompt"})
 
     sandbox.files.write("./app.py", state["mocked_code"])
     sandbox.files.write("./test_app.py", state["pytest_code"])
