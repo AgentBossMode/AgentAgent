@@ -13,7 +13,7 @@ class ClassVisitor(ast.NodeVisitor):
         if node.name =="GraphState":
             assert node.bases[0].id == "MessagesState"
         elif node.name in self.structured_output_args:
-            assert any(base.id == "BaseModel2" for base in node.bases), f"class {node.name} should contain BaseModel"
+            assert any(base.id == "BaseModel" for base in node.bases), f"class {node.name} should contain BaseModel"
         self.generic_visit(node)
 
 
