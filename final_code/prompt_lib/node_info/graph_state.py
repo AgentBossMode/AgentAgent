@@ -47,7 +47,6 @@ from typing import List, Optional
 rom langgraph.graph import MessagesState
 
 class GraphState(MessageState):
-    messages: List[dict]
     query: str
     results: Optional[List[dict]] = None
     status: str = "initialized"
