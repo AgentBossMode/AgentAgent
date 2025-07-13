@@ -1,10 +1,8 @@
 import pytest
 from tests.test_utils.trading.py_code import py_code
 from tests.test_utils.trading.use_cases import use_cases
-from final_code.llms.model_factory import get_model, ModelName
 from final_code.pydantic_models.UtGen import UtGeneration, TrajectoryUt, ResponseUt
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from final_code.nodes.evaluation_node import PYTEST_WRITER_PROMPT, TRAJECTORY_STR, FINAL_RESPONSE_STR, generate_ut_llm_call
+from final_code.nodes.evaluation_node import generate_ut_llm_call
 from typing import List
 
 def test_pytest_writer():
