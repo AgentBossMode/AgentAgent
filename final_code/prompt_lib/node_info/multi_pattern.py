@@ -4,9 +4,7 @@ multi_pattern = """
 **Example Implementation:**
 ```python
 def content_enhancement_node(state: GraphState) -> dict:
-    # Reasoning: Multi-step enhancement requires sequential LLM processing
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
-    
+    # Reasoning: Multi-step enhancement requires sequential LLM processing    
     raw_content = state.get("raw_content", "")
     
     # Step 1: Structure the content

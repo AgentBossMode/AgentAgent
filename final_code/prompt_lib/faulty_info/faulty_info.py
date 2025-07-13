@@ -23,7 +23,6 @@ rom langgraph.graph import MessagesState
 from typing import List, Optional
 
 class GraphState(MessageState):
-    messages: List[dict]
     query: str
     results: Optional[List[dict]] = None
 
@@ -35,7 +34,7 @@ def research_node(state: GraphState):
         query = state.query  # Was: state["search_query"]
         
         # Fixed: Proper tool binding
-        model_with_tools = model.bind_tools([search_tool])
+        model_with_tools = llm.bind_tools([search_tool])
         result = model_with_tools.invoke([HumanMessage(content=query)])
         
         # Fixed: Proper state update

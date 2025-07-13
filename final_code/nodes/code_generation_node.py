@@ -125,9 +125,13 @@ import re
 import json
 ```
 
+### 2. Create llm definition
+```python
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+```
 
-
-###2: Final Graph Compilation
+###3: Final Graph Compilation
 ```python
 checkpointer = InMemorySaver()
 app = workflow.compile(
