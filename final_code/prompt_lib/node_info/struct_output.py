@@ -15,7 +15,6 @@ class IntentClassification(BaseModel):
 
 def intent_classifier_node(state: GraphState) -> GraphState:
     # Reasoning: This node needs structured decision making for routing
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
     structured_llm = llm.with_structured_output(IntentClassification)
     
     user_message = state["messages"][-1].content
