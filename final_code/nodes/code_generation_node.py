@@ -146,6 +146,7 @@ Before finalizing your code, verify:
 - [ ] Structured output uses proper Pydantic models
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
+- [ ] The code needs to be production ready, which means there is no place for any placeholder code, no assumptions, and no incomplete sections.
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>
@@ -186,9 +187,16 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
         }],
     )
 
+    json_schema_final = state["json_schema"].model_dump_json(indent=2)
+    #json_schema_final = json_schema_str
+    response: PythonCode  = generate_python_code(modifiedConfig, json_schema_final)
+    # Return the generated Python code and an AI message
+    return {
+        "python_code": response.code,
+    }
+
+def generate_python_code(modifiedConfig, json_schema_final) -> PythonCode:
     code_llm_writer = llm.with_structured_output(PythonCode)
-    #json_schema_final = state["json_schema"].model_dump_json(indent=2)
-    json_schema_final = json_schema_str
     response: PythonCode = code_llm_writer.invoke([HumanMessage(content=
                                                                 CODE_GEN_PROMPT.format(
                                                                     json_schema=json_schema_final,
@@ -201,7 +209,5 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
                                                                     multi_pattern=multi_pattern,
                                                                     edge_info=edge_info))],
                                                                       config=modifiedConfig)
-    # Return the generated Python code and an AI message
-    return {
-        "python_code": response.code,
-    }
+                                                                      
+    return response
