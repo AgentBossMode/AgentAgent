@@ -16,3 +16,8 @@ pip install
 ```
 uv run langgraph dev
 ```
+
+3. To run uts 
+```
+pytest -s tests
+```
