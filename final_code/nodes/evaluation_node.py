@@ -81,9 +81,8 @@ You are supposed to generate a compilable python file with the mock code.
     return {"mocked_code": final_response["messages"][-1].content}
 
 
-def pytest_writer(state: CodeEvalState):
     
-    PYTEST_WRITER_PROMPT = """
+PYTEST_WRITER_PROMPT = """
 You are a python code writing expert, your job is to write a pytest given the langgraph code and use cases.
 <CODE>
 {code}
@@ -104,10 +103,12 @@ You are given the use cases for a workflow graph along with dry runs.
 {TRAJECTORY_STR}
 </TRAJECTORY>
 """
+
+def pytest_writer(state: CodeEvalState):
     use_case_list : List[UseCaseAnalysis] = state["use_cases"]
     use_cases = "\n".join(use_case.model_dump_json(indent=2) for use_case in use_case_list)
-    pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)
-    utgenerated: UtGeneration = pytest_llm.invoke([HumanMessage(content=PYTEST_WRITER_PROMPT.format(code=state["python_code"], use_cases=use_cases, FINAL_RESPONSE_STR=FINAL_RESPONSE_STR, TRAJECTORY_STR=TRAJECTORY_STR))])
+    python_code = state["python_code"]
+    utgenerated = generate_ut_llm_call(use_cases, python_code)
     
     inputs = []
     responses = []
@@ -137,6 +138,11 @@ from langchain_openai import ChatOpenAI
 {final_trajectory_code}
 """
     return {"pytest_code": PYTEST.format(final_response_code=final_response_code, final_trajectory_code=final_trajectory_code)}
+
+def generate_ut_llm_call(use_cases, python_code):
+    pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)
+    utgenerated: UtGeneration = pytest_llm.invoke([HumanMessage(content=PYTEST_WRITER_PROMPT.format(code=python_code, use_cases=use_cases, FINAL_RESPONSE_STR=FINAL_RESPONSE_STR, TRAJECTORY_STR=TRAJECTORY_STR))])
+    return utgenerated
 
 
 from openevals.code.e2b.sandbox.files import (
@@ -204,7 +210,7 @@ def _create_e2b_execution_command(
 
 def pytest_runner(state: CodeEvalState):
     pytest_out = []
-    sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"]})
+    sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2"], "LANGCHAIN_PROJECT": "inception_prompt"})
 
     sandbox.files.write("./app.py", state["mocked_code"])
     sandbox.files.write("./test_app.py", state["pytest_code"])
