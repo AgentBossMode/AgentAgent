@@ -28,7 +28,6 @@ You are tasked with analyzing Python code to identify and extract all **API keys
      - LLMs such as `openai`, `gemini`, `anthropic`, etc. If the key name for a LLM is not present in any comment, the code or any config block. Use TavilySearch to Find API key name required (continue to step 3)
      - Any **third-party tools that are not part of Composio**
 2. **Classify Tools**
-   - If the tool is an LLM or a node uses a LLM call (e.g., OpenAI, Gemini), extract the key name directly from the code or any config block.
    - For **non-Composio tools**, continue to step 3.
 3. **Use TavilySearch to Find SDK or Code Samples**
    - For each non-Composio tool, search using:
