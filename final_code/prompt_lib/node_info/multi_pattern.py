@@ -16,7 +16,7 @@ def content_enhancement_node(state: GraphState) -> dict:
     enhanced = llm.invoke(enhanced_prompt).content
     
     return {{
-        "messages": [("system", "Content enhanced with structure and examples")],
+        "messages": [AIMessage(content= "Content enhanced with structure and examples")],
         "enhanced_content": enhanced,
         "processing_steps": ["structured", "enhanced"]
     }}
