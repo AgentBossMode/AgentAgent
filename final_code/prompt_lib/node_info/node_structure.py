@@ -7,8 +7,11 @@ def node_name(state: GraphState) -> GraphState:
     Implementation reasoning: [Why this pattern was chosen]
     \"\"\"
     # Implementation here
-    return {{"field": "value"}}
+    return {{"field": "value",
+        "messages": "value_message"
+    }}
 ```
+**Important:** Every node's return dictionary **must** include a \"messages\" key, even if it just contains a AiMessage for status.
 """
 
 function_structure= """

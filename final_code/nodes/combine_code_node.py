@@ -10,7 +10,7 @@ from e2b_code_interpreter import Sandbox
 # Initialize the Language Model (LLM) to be used throughout the application
 llm = get_model()
 
-class pythonCodeState(CopilotKitState): 
+class PythonCodeState(CopilotKitState): 
     """
     State for the graph that collects and compiles multiple tool codes.
     """
@@ -112,7 +112,7 @@ def _create_e2b_execution_command(
     )
 
 
-def import_runner(state: pythonCodeState):
+def import_runner(state: PythonCodeState):
     sandbox = Sandbox()
     cmd = _create_e2b_execution_command()
     sandbox.commands.run(cmd)
@@ -124,11 +124,11 @@ def import_runner(state: pythonCodeState):
     }
 
 
-def reflection_node(state: pythonCodeState):
+def reflection_node(state: PythonCodeState):
     result = code_reflection_node_updated.invoke({"code_to_reflect": state["python_code"]})
     return {"python_code": result["reflection_code"]}
 
-def combine_node(state: pythonCodeState):
+def combine_node(state: PythonCodeState):
     python_code = state["python_code"]
     refactored_code = state["pytest_code"]
     compiled_code_output = llm.invoke([HumanMessage(content=compile_prompt.format(
@@ -141,7 +141,7 @@ def combine_node(state: pythonCodeState):
         "python_code": compiled_code_output
     } 
 
-workflow = StateGraph(pythonCodeState)
+workflow = StateGraph(PythonCodeState)
 workflow.add_node("reflection", reflection_node)
 workflow.add_node("combine_node", combine_node)
 workflow.add_node("import_runner", import_runner)

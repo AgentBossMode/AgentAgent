@@ -4,6 +4,7 @@ interrupt_info ="""
 *** Example Implementation:***
 ```python
 from langgraph.types import interrupt
+import langchain_core.messages import AIMessage
 
 def human_node(state: State):
     value = interrupt(
@@ -15,7 +16,8 @@ def human_node(state: State):
     )
     # Update the state with the human's input or route the graph based on the input.
     return {{
-        "some_text": value
+        "some_text": value,
+        "messages": [AIMessage(content= "Human intervention occurred.")],
     }}
 ```
 """

@@ -7,13 +7,10 @@ from langchain_tavily import TavilySearch, TavilyExtract
 from pydantic import BaseModel, Field
 from typing import List 
 
-
 llm = get_model()
-
 tavily_extract_tool = TavilyExtract(
     extract_depth="advanced",
     include_images=False)
-
 tavily_search_tool = TavilySearch(
     max_results=5,
     topic="general",
@@ -22,53 +19,35 @@ tavily_search_tool = TavilySearch(
 
 ENV_VAR_PROMPT = PromptTemplate.from_template("""
 ## Prompt: Extracting Required API Keys from Python Code
-
 You are tasked with analyzing Python code to identify and extract all **API keys** required for the code to execute properly.
-
 ---
-
 ### Instructions
-
 1. **Identify Required API Keys**
-
    - Extract all API key variable names used in the code.
    - Include keys for:
      - LLMs such as `openai`, `gemini`, `anthropic`, etc. If the key name for a LLM is not present in any comment, the code or any config block. Use TavilySearch to Find API key name required (continue to step 3)
      - Any **third-party tools that are not part of Composio**
-
 2. **Classify Tools**
-
    - If the tool is an LLM or a node uses a LLM call (e.g., OpenAI, Gemini), extract the key name directly from the code or any config block.
    - For **non-Composio tools**, continue to step 3.
-
 3. **Use TavilySearch to Find SDK or Code Samples**
-
    - For each non-Composio tool, search using:
      ```
      TavilySearch("tool_name Python SDK or usage example")
      ```
-
 4. **Use TavilyExtract to Extract Code**
-
    - Use TavilyExtract on the search results to extract Python code snippets:
    - Extract code that reveals the API key name, such as environment variable names or parameter names like `api_key=`.
-
 5. **Final Output Format**
-
    - Return the list of key names (strings) in the following format:
-
      ```python
      ["OPENAI_API_KEY", "GEMINI_API_KEY", "TAVILY_API_KEY", "PINECONE_API_KEY"]
      ```
-
 ---
-
 ### Additional Notes
-
 - Do **not** include API keys used for Composio tools.
 - Extract only the exact names required to authenticate with each service (e.g., from `os.getenv`, direct variable names, or config parameters).
-- Be case-sensitive and preserve the exact naming conventions used in the code or SDK documentation.
-
+- Be case-sensitive and preserve the exact naming conventions used in the code or SDK documentation.<PYTHON_CODE>
 <PYTHON_CODE>
 {python_code}
 </PYTHON_CODE>
@@ -85,8 +64,6 @@ def env_var_node(state: AgentBuilderState):
     var_extracted_output = var_extraction_llm.invoke([HumanMessage(content=ENV_VAR_PROMPT.format(
         python_code=python_code
     ))])
-    print(var_extracted_output)
-
     return {
         "messages": [AIMessage(content="extracted env variables!")],
         "env_variables": var_extracted_output.env_variables

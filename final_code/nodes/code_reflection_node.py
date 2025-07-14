@@ -41,7 +41,7 @@ class CodeState(MessagesState):
 def code_rectification_node(state: CodeState) -> Command[Literal["run_reflection", "__end__"]]:
         if state["remaining_steps"] == 0:
             py_code = state["code_to_reflect"]
-            return Command(goto="__end__", update={"reflection_code":py_code})
+            return Command(goto="__end__", update={"reflection_code":py_code, "message": [AIMessage(content="Code reflection taking more than 4 steps")]})
         llm = get_model(ModelName.GEMINI25FLASH)
         result = llm.invoke([SystemMessage(content=REFLECTION_SYSTEM_PROMPT)]+ [HumanMessage(content=state["code_to_reflect"])])
         return Command(goto="run_reflection", update= {

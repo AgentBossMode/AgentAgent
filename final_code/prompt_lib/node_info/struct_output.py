@@ -6,6 +6,7 @@ struct_output= """
 ```python
 from pydantic import BaseModel, Field
 from typing import Literal
+import langchain_core.messages import AIMessage
 
 class IntentClassification(BaseModel):
     '''Structured output for intent classification.'''
@@ -22,7 +23,7 @@ def intent_classifier_node(state: GraphState) -> GraphState:
     
     result = structured_llm.invoke(prompt)
     return {{
-        "messages": [("system", f"Intent classified as: {{result.intent}}")],
+        "messages": [AIMessage(content= f"Intent classified as: {{result.intent}}")],
         "intent": result.intent,
         "confidence": result.confidence
     }}
@@ -34,6 +35,7 @@ Here is an example of how to use structured output. In this example, we want the
 ``` python
 from typing import Optional
 from pydantic import BaseModel, Field
+import langchain_core.messages import AIMessage
 
 # Pydantic class for structured output
 class Joke(BaseModel):
@@ -49,7 +51,8 @@ class JokeBuilderState(MessagesState):
 def GenerateJoke(state: JokeBuilderState):
     structured_llm = llm.with_structured_output(Joke)
     joke: Joke = structured_llm.invoke("Tell me a joke about cats")
-    return {{ "joke": joke }}
+    return {{ "joke": joke,
+    "messages": [AIMessage(content= "Joke generated")]}}
 ```
 </Example2>
 """
