@@ -2,7 +2,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
-from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
+# from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 import uuid
