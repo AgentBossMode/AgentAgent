@@ -16,7 +16,7 @@ class PythonCodeState(CopilotKitState):
     State for the graph that collects and compiles multiple tool codes.
     """
     python_code: str = Field(description="The Python code generated for the agent")
-    pytest_code: str = Field(description= "If there were any failures or errors in the pytest run, this field will contain the corrected code with the fixes applied to the original code.")
+    mocked_code: str = Field(description= "If there were any failures or errors in the pytest run, this field will contain the corrected code with the fixes applied to the original code.")
     imports: str = Field(description="Required imports to run the generated python code")
 
 
@@ -26,14 +26,14 @@ You will be given **two Python code snippets** written using the LangGraph frame
 
 #### Snippet A (Old Code)
 - Contains **complete and functional tool definitions**.
-- Uses **older LangGraph syntax** for nodes, edges, and graph creation.
+- **Complete but older version of the code** for nodes, edges, and graph creation.
 
 <SNIPPET A>
 {python_code}
 <\SNIPPET A>
 
 #### Snippet B (New Code)
-- Uses the **updated LangGraph API and structure** for nodes, edges, and graph creation.
+- Uses the **updated LangGraph implementation and structure** for nodes, edges, and graph creation.
 - Contains **mocked or placeholder tool definitions**.
 
 <SNIPPET B>
@@ -80,7 +80,7 @@ def reflection_node(state: PythonCodeState):
 
 def combine_node(state: PythonCodeState):
     python_code = state["python_code"]
-    refactored_code = state["pytest_code"]
+    refactored_code = state["mocked_code"]
     compiled_code_output = llm.invoke([HumanMessage(content=compile_prompt.format(
         python_code=python_code,
         refactored_code=refactored_code
