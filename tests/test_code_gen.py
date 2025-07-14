@@ -1,6 +1,7 @@
 import pytest
 from final_code.nodes.code_generation_node import generate_python_code
-from final_code.utils.MockJsonSchema import json_schema_str
+from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
+from tests.test_utils.trading.json_schema_trading import json_schema_trading
 from final_code.nodes.code_generation_node import PythonCode
 import ast
 
@@ -31,8 +32,15 @@ class StructuredOutputVisitor(ast.NodeVisitor):
                     self.structured_output_args.append(arg.id)
         self.generic_visit(node)
 
-def test_code_generation_llm():
-    generated_code: PythonCode = generate_python_code({}, json_schema_str)
+@pytest.mark.parametrize(
+    "json_schema",
+    [
+        json_schema_nutrition,
+        json_schema_trading
+    ],
+)
+def test_code_generation_llm(json_schema : str):
+    generated_code: PythonCode = generate_python_code({}, json_schema)
     print(generated_code.code)  # Print the generated code for debugging
 
     # assume code is a python code, how to write uts 
@@ -47,13 +55,13 @@ def test_code_generation_llm():
         assert "from pydantic import BaseModel, Field" in generated_code.code, "Generated code should contain 'from pydantic import BaseModel, Field'."
     # use the ast module to check if the code is valid python code
     try:
-        with open("generated_code.py", "w") as f:
-            module = ast.parse(generated_code.code)
-            f.write(ast.dump(module, indent=2))
-            structured_output_visitor = StructuredOutputVisitor()
-            structured_output_visitor.visit(module)
-            visitor = ClassVisitor(structured_output_visitor.structured_output_args)
-            visitor.visit(module)
+        # with open("generated_code.py", "w") as f:
+        #    f.write(ast.dump(module, indent=2))
+        module = ast.parse(generated_code.code)
+        structured_output_visitor = StructuredOutputVisitor()
+        structured_output_visitor.visit(module)
+        visitor = ClassVisitor(structured_output_visitor.structured_output_args)
+        visitor.visit(module)
         # searc
     except SyntaxError as e:
         pytest.fail(f"Generated code contains syntax errors: {e}")
