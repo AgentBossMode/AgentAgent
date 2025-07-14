@@ -1,11 +1,10 @@
 tool_calling = """
 ```python
 node_name_tools = [list_of_tools]
-from langchain_openai import ChatOpenAI
 def node_name(state: GraphState) -> GraphState:
     '''Node purpose: [Clear description]'''
     agent = create_react_agent(
-        model=ChatOpenAI(model="gpt-4o", temperature=0.7),
+        model=llm,
         tools=node_name_tools,
         prompt="The prompt for the agent to follow, also mention which tools to use, if any.")
     response = agent.invoke([HumanMessage(content="Perform action based on state")])
