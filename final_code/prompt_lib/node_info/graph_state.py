@@ -35,12 +35,19 @@ graph_state_checklist = """
 - [ ] **Entry Point**: Proper graph entry point definition
 - [ ] **Exit Conditions**: Clear termination conditions and END nodes
 - [ ] **Compilation**: Graph compiles without errors
+- [ ] **Message state**: The graphState schema does not need to explicitly add "messages"
 
 **Example Fix:**
 ```python
 # ❌ Incorrect - poorly defined state schema
 class GraphState(MessageState):
     data: any  # Vague type definition
+
+    # ❌ Incorrect - explicitly defines "messages" as part of state schema, when it already inherits "messages" attribute it's parent class: MessageState
+class GraphState(MessageState):
+    messages: str
+    results: Optional[List[dict]] = None
+    status: str = "initialized"
 
 # ✅ Correct - well-defined state schema
 from typing import List, Optional
