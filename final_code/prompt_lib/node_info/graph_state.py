@@ -35,7 +35,7 @@ graph_state_checklist = """
 - [ ] **Entry Point**: Proper graph entry point definition
 - [ ] **Exit Conditions**: Clear termination conditions and END nodes
 - [ ] **Compilation**: Graph compiles without errors
-- [ ] **Message state**: The graphState schema does not need to explicitly add "messages"
+- [ ] **Message state**: The graphState schema does not need to explicitly define "messags" when it is a subclass of MessageState
 
 **Example Fix:**
 ```python
