@@ -8,6 +8,7 @@ from final_code.nodes.tools.composio_info_tools import get_raw_tool_schema
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
 from final_code.states.DryRunState import UseCaseAnalysis
 from final_code.pydantic_models.UtGen import UtGeneration
+from final_code.utils.create_e2b_exe_cmd import create_e2b_execution_command
 import os
 import tempfile
 import subprocess
@@ -157,66 +158,13 @@ def reflection_node(state: CodeEvalState):
     return {"mocked_code": result["reflection_code"]}
 
 
-EXTRACT_IMPORT_NAMES="""
-import ast
-import sys
-
-BUILTIN_MODULES = set(sys.stdlib_module_names)
-
-def extract_import_names(file_path: str) -> list[str]:
-    with open(file_path, "r", encoding="utf-8") as f:
-        source_code = f.read()
-    
-    try:
-        tree = ast.parse(source_code)
-    except SyntaxError:
-        return []
-
-    python_imports = []
-    
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for name in node.names:
-                import_path = name.name
-                if not import_path.startswith((".", "/")):
-                    base_package = import_path.split(".")[0]
-                    if base_package not in python_imports and base_package not in BUILTIN_MODULES:
-                        python_imports.append(base_package)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module and not node.module.startswith((".", "/")):
-                base_package = node.module.split(".")[0]
-                if base_package not in python_imports and base_package not in BUILTIN_MODULES:
-                    python_imports.append(base_package)
-
-    return python_imports
-
-file_path = "./app.py"
-imports = extract_import_names(file_path)
-print("\\n".join(imports))
-"""
-
-
-def _create_e2b_execution_command(
-    *,
-    execution_command: str = "python",
-) -> str:
-    return (" && ").join(
-        [
-            f"echo '{EXTRACT_IMPORT_NAMES}' > extract_import_names.py",
-            "export PIP_DISABLE_PIP_VERSION_CHECK=1",
-            "python3 extract_import_names.py > openevals_requirements.txt",
-            'pip install -r openevals_requirements.txt',
-        ]
-    )
-
-
 def pytest_runner(state: CodeEvalState):
     pytest_out = []
     sandbox = Sandbox(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2"], "LANGCHAIN_PROJECT": "inception_prompt"})
 
     sandbox.files.write("./app.py", state["mocked_code"])
     sandbox.files.write("./test_app.py", state["pytest_code"])
-    cmd = _create_e2b_execution_command()
+    cmd = create_e2b_execution_command()
     sandbox.commands.run(cmd)
     sandbox.commands.run("pip install pytest pytest-xdist")
     try:

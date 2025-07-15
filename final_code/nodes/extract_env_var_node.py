@@ -1,6 +1,6 @@
 from langchain_core.prompts import PromptTemplate
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
 from final_code.llms.model_factory import get_model
 from langchain_tavily import TavilySearch, TavilyExtract
@@ -28,7 +28,6 @@ You are tasked with analyzing Python code to identify and extract all **API keys
      - LLMs such as `openai`, `gemini`, `anthropic`, etc. If the key name for a LLM is not present in any comment, the code or any config block. Use TavilySearch to Find API key name required (continue to step 3)
      - Any **third-party tools that are not part of Composio**
 2. **Classify Tools**
-   - If the tool is an LLM or a node uses a LLM call (e.g., OpenAI, Gemini), extract the key name directly from the code or any config block.
    - For **non-Composio tools**, continue to step 3.
 3. **Use TavilySearch to Find SDK or Code Samples**
    - For each non-Composio tool, search using:
@@ -51,20 +50,23 @@ You are tasked with analyzing Python code to identify and extract all **API keys
 <PYTHON_CODE>
 {python_code}
 </PYTHON_CODE>
+
+Now produce the final list of names environment variables
 """)
+tools=[tavily_search_tool, tavily_extract_tool]
 
-
-class envVariableList(BaseModel):
+class EnvVariableList(BaseModel):
     env_variables: List[str] = Field(description="List of environment variable names required to run the python code")
 
 def env_var_node(state: AgentBuilderState):
-    python_code: AgentInstructions = state["python_code"]
-    llm_with_tools = llm.bind_tools(tools=[tavily_search_tool, tavily_extract_tool])
-    var_extraction_llm = llm_with_tools.with_structured_output(envVariableList)
-    var_extracted_output = var_extraction_llm.invoke([HumanMessage(content=ENV_VAR_PROMPT.format(
-        python_code=python_code
-    ))])
+    python_code = state["python_code"]
+    env_var_react_agent = create_react_agent(llm, tools=tools, name="get_env_var")
+    final_response = env_var_react_agent.invoke(
+        {"messages": [HumanMessage(content=ENV_VAR_PROMPT.format(python_code=python_code))]})
+    prompt = "You will be provided a potentially containing a list of name of variables, from the given text you nee to extract the list the list of name of vriables and return them"
+    var_extraction_llm = llm.with_structured_output(EnvVariableList)
+    var_extracted_output = var_extraction_llm.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=final_response["messages"][-1].content)])
     return {
         "messages": [AIMessage(content="extracted env variables!")],
         "env_variables": var_extracted_output.env_variables
-    } 
+    }
