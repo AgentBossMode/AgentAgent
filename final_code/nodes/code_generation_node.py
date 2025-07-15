@@ -98,7 +98,7 @@ def search_customer_database(customer_id: str) -> str:
 <EDGE_IMPLEMENTATION_INSTRUCTIONS>
 {edge_info}
 </EDGE_IMPLEMENTATION_INSTRUCTIONS>
-                                               
+
 <CODE_GENERATION_INSTRUCTIONS>
 Generate a single, self-contained, and compilable Python script following this structure:
 
@@ -135,7 +135,7 @@ DONOT ADD '__main__' block or any other boilerplate code, the code should be sel
 <QUALITY_CHECKLIST>
 Before finalizing your code, verify:
 - [ ] All imports are included and correct, no duplicate imports.
-- [ ] GraphState properly extends MessagesState  
+- [ ] GraphState properly extends MessagesState 
 - [ ] LLM calls include proper error handling
 - [ ] Tools are self-contained (no nested LLM calls)
 - [ ] Structured output uses proper Pydantic models
@@ -143,6 +143,10 @@ Before finalizing your code, verify:
 - [ ] Code is compilable and logically consistent
 - [ ] No unterminated string literals or syntax errors
 - [ ] The code needs to be production ready, which means there is no place for any placeholder code, no assumptions, and no incomplete sections.
+- [ ] Ensure that the code does not access graphstate like an object attribute, it needs be accessed like a dict
+- [ ] Assume any API keys(e.g., OPENAI_API_KEY, GOOGLE_API_KEY) are part of the environment variables and all environment variables are to be defined using the os.environs notation
+- [ ] **Every node's return dictionary includes a "messages" key.**
+- [ ] **The first LLM call/node appropriately utilizes `state["messages"]` as part of its input.**
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>
@@ -164,10 +168,10 @@ If no external keys are needed, state: "No external API keys required for this i
 <INSTRUCTIONS>
 1. First create the tools, refer to <TOOLBINDINGINSTRUCTIONS> section.
 2. Now start analyzing the nodes, refer to <NODE_IMPLEMENTATION_INSTRUCTIONS>
+   - For the first LLM call or first node, ensure the LLM's input collects information contains `state["messages"]` to incorporate the conversation history.
 3. Now create the edges, refer to the <EDGE_IMPLEMENTATION_INSTRUCTIONS> section.
 4. Now to piece it all together follow <CODE_GENERATION_INSTRUCTIONS>
 </INSTRUCTIONS>
-
 
 
 
