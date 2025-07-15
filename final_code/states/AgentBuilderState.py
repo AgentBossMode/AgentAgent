@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 from langgraph.graph import MessagesState
 from pydantic import Field
 from final_code.states.AgentInstructions import AgentInstructions
@@ -27,4 +27,6 @@ class AgentBuilderState(CopilotKitState):
     arch_evaluation_reports: Annotated[list[ArchEvaluationWithUrl], operator.add]
     best_agent_architecture: ArchEvaluationWithUrl = Field(description="the best architecture selected")
     json_code: str = Field(description="Json of the code")
+    env_variables: List[str] = Field(description="List if all environment variables required to run the python code")
     tool_set: set = Field(description="The composio tool slugs")
+

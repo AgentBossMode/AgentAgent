@@ -11,8 +11,9 @@ from final_code.nodes.code_generation_node import code_node
 from final_code.nodes.dfs_analysis_node import dfs_analysis_node
 from final_code.nodes.tool_interrupt import tool_interrupt, add_toolset
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
+from final_code.nodes.extract_env_var_node import env_var_node
 from langchain_core.messages import HumanMessage
-
+from final_code.nodes.combine_code_node import combine_code_pipeline_graph
 main_workflow = StateGraph(AgentBuilderState) # Define state type
 
 # Add nodes to the main workflow
@@ -27,6 +28,10 @@ main_workflow.add_node("tool_graph", tool_graph) # Renamed node
 main_workflow.add_node("eval_pipeline", eval_pipeline_graph) # Add evaluation pipeline graph
 
 main_workflow.add_node("dfs_analysis_node", dfs_analysis_node)
+main_workflow.add_node("combine_code_pipeline_graph", combine_code_pipeline_graph)
+
+main_workflow.add_node("env_var_node", env_var_node)
+# Define edges for the main workflow
 
 # EDGE SECTION
 
@@ -38,7 +43,9 @@ main_workflow.add_edge("tool_graph", "tool_interrupt")
 main_workflow.add_edge("tool_interrupt", "code_node")
 main_workflow.add_edge("code_node", "dfs_analysis_node")
 main_workflow.add_edge("dfs_analysis_node", "eval_pipeline")
+# main_workflow.add_edge("env_var_node", "eval_pipeline")
 main_workflow.add_edge("eval_pipeline", END)
+# main_workflow.add_edge("combine_code_pipeline_graph", END)
 
 # uncomment to test tool_set composio and comment the rest
 # main_workflow.set_entry_point("add_toolset")

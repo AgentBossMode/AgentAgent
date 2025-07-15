@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing import Literal
-from langgraph.types import Command
+from langgraph.types import Command, interrupt
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from final_code.pydantic_models.EndOrContinue import EndOrContinue
@@ -46,7 +46,7 @@ No tool TOOLKIT found
 
 tools =  [get_all_raw_tool_schemas_for_a_toolkit]
 
-def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["composio_tool_fetch", "select_final_tool"]]:
+def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["select_final_tool", "human_review"]]:
     modifiedConfig = copilotkit_customize_config(
         config,
         emit_messages=False, # if you want to disable message streaming 
@@ -58,8 +58,13 @@ def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Comman
         , config=modifiedConfig)
     if should_continue.should_end_conversation:
         return Command(goto="select_final_tool")
-    answer, new_messages = copilotkit_interrupt(message=state["messages"][-1].content)
-    return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=answer)]} ) 
+    else:
+        return Command(goto="human_review")
+
+def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["composio_tool_fetch"]]:
+    answer: dict = interrupt(state["messages"][-1].content)
+    for key in answer.keys():
+        return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=answer[key])]}) 
 
 def select_final_tool(state: AgentBuilderState, config: RunnableConfig):
     modifiedConfig = copilotkit_customize_config(
@@ -75,13 +80,14 @@ def select_final_tool(state: AgentBuilderState, config: RunnableConfig):
         config=modifiedConfig)
     return {"json_schema": updated_json_schema}
 
-composio_tool_fetch_app = create_react_agent(llm, prompt=TOOL_PROMPT.format(toolkit_list=get_all_toolkits()), tools=tools, state_schema=ReactCopilotState, name="composio_tool_fetch")
+composio_tool_fetch_app = create_react_agent(llm, prompt=TOOL_PROMPT.format(toolkit_list=get_all_toolkits()), tools=tools, name="composio_tool_fetch")
 
 workflow = StateGraph(AgentBuilderState)
 workflow.add_node("human_review", get_human_review)
 workflow.add_node("composio_tool_fetch", composio_tool_fetch_app)
 workflow.add_node("select_final_tool", select_final_tool)
+workflow.add_node("select_tool_or_human_review", select_tool_or_human_review)
 workflow.add_edge(START, "composio_tool_fetch")
-workflow.add_edge("composio_tool_fetch", "human_review")
+workflow.add_edge("composio_tool_fetch", "select_tool_or_human_review")
 workflow.add_edge("select_final_tool", END)
 composio_tool_builder= workflow.compile()
