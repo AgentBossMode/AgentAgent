@@ -2,7 +2,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
-from final_code.utils.MockJsonSchema import json_schema_str
+# from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 import uuid
@@ -19,7 +19,8 @@ llm = get_model()
 
 CODE_GEN_PROMPT = PromptTemplate.from_template("""
 You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'JSON' section below. You must prioritize LLM-based implementations for relevant tasks.
-
+You must follow the 'INSTRUCTIONS' section carefully to ensure the generated code meets all requirements.
+                                               
 <JSON>                                              
 {json_schema}
 </JSON>
@@ -97,18 +98,8 @@ def search_customer_database(customer_id: str) -> str:
 <EDGE_IMPLEMENTATION_INSTRUCTIONS>
 {edge_info}
 </EDGE_IMPLEMENTATION_INSTRUCTIONS>
-
-                                                                                       
-<INSTRUCTIONS>
-1. First create the tools, refer to <TOOLBINDINGINSTRUCTIONS> section.
-2. Now start analyzing the nodes, refer to <NODE_IMPLEMENTATION_INSTRUCTIONS>
-3. Now create the edges, refer to the <EDGE_IMPLEMENTATION_INSTRUCTIONS> section.
-4. Now to piece it all together follow <CODE_GENERATION_INSTRUCTIONS>
-</INSTRUCTIONS>
-
-
+                                               
 <CODE_GENERATION_INSTRUCTIONS>
-
 Generate a single, self-contained, and compilable Python script following this structure:
 
 ### 1. Imports and Setup
@@ -125,9 +116,13 @@ import re
 import json
 ```
 
+### 2. Create llm definition
+```python
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+```
 
-
-###2: Final Graph Compilation
+###3: Final Graph Compilation
 ```python
 checkpointer = InMemorySaver()
 app = workflow.compile(
@@ -146,6 +141,8 @@ Before finalizing your code, verify:
 - [ ] Structured output uses proper Pydantic models
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
+- [ ] No unterminated string literals or syntax errors
+- [ ] The code needs to be production ready, which means there is no place for any placeholder code, no assumptions, and no incomplete sections.
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>
@@ -162,6 +159,15 @@ List all environment variables, API keys, and external dependencies needed as co
 If no external keys are needed, state: "No external API keys required for this implementation."
 </KEY_EXTRACTION_INSTRUCTIONS>
 </CODE_GENERATION_INSTRUCTIONS>
+
+                                                                                       
+<INSTRUCTIONS>
+1. First create the tools, refer to <TOOLBINDINGINSTRUCTIONS> section.
+2. Now start analyzing the nodes, refer to <NODE_IMPLEMENTATION_INSTRUCTIONS>
+3. Now create the edges, refer to the <EDGE_IMPLEMENTATION_INSTRUCTIONS> section.
+4. Now to piece it all together follow <CODE_GENERATION_INSTRUCTIONS>
+</INSTRUCTIONS>
+
 
 
 
@@ -186,9 +192,16 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
         }],
     )
 
+    json_schema_final = state["json_schema"].model_dump_json(indent=2)
+    #json_schema_final = json_schema_nutrition
+    response: PythonCode  = generate_python_code(modifiedConfig, json_schema_final)
+    # Return the generated Python code and an AI message
+    return {
+        "python_code": response.code,
+    }
+
+def generate_python_code(modifiedConfig, json_schema_final) -> PythonCode:
     code_llm_writer = llm.with_structured_output(PythonCode)
-    #json_schema_final = state["json_schema"].model_dump_json(indent=2)
-    json_schema_final = json_schema_str
     response: PythonCode = code_llm_writer.invoke([HumanMessage(content=
                                                                 CODE_GEN_PROMPT.format(
                                                                     json_schema=json_schema_final,
@@ -201,7 +214,5 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
                                                                     multi_pattern=multi_pattern,
                                                                     edge_info=edge_info))],
                                                                       config=modifiedConfig)
-    # Return the generated Python code and an AI message
-    return {
-        "python_code": response.code,
-    }
+                                                                      
+    return response
