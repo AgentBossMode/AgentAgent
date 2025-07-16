@@ -31,7 +31,7 @@ def process_node(state):
 def process_node(state):
     "Process input data and update state."
     result = process_data(state["input"])
-    return {{"output": result, "status": "processed","messages": "value_message"
+    return {{"output": result, "status": "processed","messages": [AIMessage("some_text")]
     }}
 ```
 """
