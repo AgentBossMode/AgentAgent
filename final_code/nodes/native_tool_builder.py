@@ -1,6 +1,5 @@
 from final_code.states.AgentBuilderState import AgentBuilderState
 from langgraph.graph import StateGraph, START, END  # Core LangGraph components for building stateful graphs
-from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
 from typing import Literal
 from final_code.pydantic_models.EndOrContinue import EndOrContinue
@@ -13,6 +12,8 @@ from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from final_code.states.ReactCopilotKitState import ReactCopilotState
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config
+from final_code.utils.create_react_agent_temp import create_react_agent
+# from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 
 

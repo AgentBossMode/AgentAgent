@@ -73,15 +73,25 @@ Your job is to verify if the given langgraph workflow meets the specificied agen
 You are given the json of a workflow graph below.
 {json_schema}
 
-You are also provided with the following expectations of the agent to build:
+You are also provided with the the functional requirements of the agent, which includes the objectives, usecases and examples.
+<FUNCTIONAL_REQUIREMENTS>
 {agent_instructions}
-
+</FUNCTIONAL_REQUIREMENTS>
+                                                 
+1. Analyze the FUNCTIONAL_REQUIREMENTS and the JSON schema of the langgraph workflow.
+2. Go through the examples, usecases and objectives, and critically analyze the langgraph workflow.
+3. Based on all the information create Dry runs of each scenario had it been processed by the langgraph workflow.
+4. If you find that the langgraph workflow does not satisfy the requirements, update the json schema to reflect the changes needed to satisfy the requirements.
+5. If you find that the langgraph
 Do a bunch of dry runs, figure out if the objectives, usecases and examples are satisfied via the given langgraph workflow, think critically.
 keys:
 - name: The name of the use case
 - description: The description of the use case
-- dry_run: The dry run of the use case, explaining your critical reasoning that why this langgraph workflow does/does not satisfy the run.
+- dry_run: The dry run of the use case, explaining your critical reasoning that why this langgraph workflow does/does not satisfy the run. 
+                                                 
 If you find that the dry run fails in any of the cases, you should return the updated json_schema.
+                                                 
+A dry run should be a step by step flow of the langgraph workflow, explaining how the nodes and edges interact to achieve the objectives, usecases and examples.
 """)
     llm_with_struct = get_model().with_structured_output(DryRunResults)
 

@@ -1,5 +1,4 @@
 from langgraph.graph import START, END, StateGraph
-from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -13,7 +12,8 @@ from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from langchain_core.runnables import RunnableConfig
 from final_code.states.ReactCopilotKitState import ReactCopilotState
 from copilotkit.langgraph import copilotkit_customize_config
-
+from final_code.utils.create_react_agent_temp import create_react_agent
+# from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
