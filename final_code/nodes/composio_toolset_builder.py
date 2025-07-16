@@ -37,7 +37,7 @@ No tool TOOLKIT found
                                                
 1. Respond with suggestions of a TOOLKIT SLUG in the COMPOSIO_TOOLKITS list for each tool_name provided by the user. Refer to RESPONSEFORMAT section
 2. Understand the user response, figure out which TOOLKIT SLUG in COMPOSIO_TOOLKITS are identified for each tool_name
-3. For only the TOOLKIT SLUGs retrieved in above step, check the list of TOOLS corresponding to the TOOLKIT using 'get_all_raw_tool_schemas_for_a_toolkit' tool. The tool may return with an empty list, it is fine.
+3. For only the TOOLKIT SLUGs retrieved in above step, check the list of TOOLS corresponding to the TOOLKIT using 'get_all_raw_tool_schemas_for_a_toolkit' tool. The tool may return with an empty list, in that case mention that the tool is not available in the COMPOSIO_TOOLKITS list and Suggest an alternative, call the tool again to get the TOOL SLUG for this alternative TOOLKIT slug.
 4. check which of the raw_tool_schema best suits the requirements, donot suggest TOOL SLUG which are remotely connected to the task at hand.
 5. Your job is not to forcefully find a composio TOOLKIT if it is not available, do not impose on user. Understand what they say, if you donot have the app they require in the COMPOSIO_TOOLKITS list, just go and provide the final response.
 6. Get confirmation from the user about the tools you are going ahead with, use the RESPONSEFORMAT as reference.
