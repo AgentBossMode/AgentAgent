@@ -1,5 +1,14 @@
 struct_output= """
-**When to use:** Node needs to make decisions, classify inputs, or extract structured data.
+## When to use: Node needs to make decisions, classify inputs, or extract structured data
+
+Use structured output **when the node must make a decision**, **classify inputs**, or **extract structured data** that will be used downstream in a type-safe way. This is particularly useful for tasks like:
+
+- Routing logic (e.g., intent classification)
+- Validated data extraction (e.g., extracting fields from unstructured text)
+- Consistent schema enforcement for generation (e.g., generating JSON-compatible content)
+- Multi-part outputs (e.g., when an LLM needs to output multiple fields at once)
+
+Structured output should be **based on necessity**, not convenience. Use it **only when the structure will be explicitly used or validated by other components** in the graph. If the output will simply be displayed or passed along as text, structured output is often unnecessary.
 
 **Example Implementation:**
 <Example1>
@@ -55,4 +64,34 @@ def GenerateJoke(state: JokeBuilderState):
     "messages": [AIMessage(content= "Joke generated")]}}
 ```
 </Example2>
+
+<Example3>
+Here is an example of how to use structured output with composite classes. In this example, we want the LLM to generate and fill up the pydantic class QnAOutput which has pydantic class answer as an attribute, based on user query. 
+``` python
+from typing import List
+from pydantic import BaseModel, Field
+
+class Answer(BaseModel):
+    text: str = Field(description="The body of the answer")
+    sources: List[str] = Field(description="URLs or citations supporting the answer")
+
+class QnAOutput(BaseModel):
+    question: str = Field(description="The original user question")
+    answer: Answer = Field(description="Structured answer and sources")
+    confidence: float = Field(description="Model confidence from 0 to 1")
+
+def answer_question_node(state: GraphState) -> GraphState:
+    # Justification: This output involves nested structure and will be consumed by a downstream renderer and filter.
+    structured_llm = llm.with_structured_output(QnAOutput)
+
+    question = state["messages"][-1].content
+    result = structured_llm.invoke(f"Answer the question: {{question}}")
+
+    return {
+        "messages": [AIMessage(content=f"Answer: {{result.answer.text}}")],
+        "answer": result.answer,
+        "confidence": result.confidence
+    }
+```
+</Example3>
 """

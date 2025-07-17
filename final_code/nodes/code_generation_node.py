@@ -196,8 +196,8 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
     )
 
     code_llm_writer = llm.with_structured_output(PythonCode)
-    #json_schema_final = state["json_schema"].model_dump_json(indent=2)
-    json_schema_final = json_schema_str
+    json_schema_final = state["json_schema"].model_dump_json(indent=2)
+    # json_schema_final = json_schema_str
     response: PythonCode = code_llm_writer.invoke([HumanMessage(content=
                                                                 CODE_GEN_PROMPT.format(
                                                                     json_schema=json_schema_final,
