@@ -8,7 +8,7 @@ def node_name(state: GraphState) -> GraphState:
     \"\"\"
     # Implementation here
     return {{"field": "value",
-        "messages": "value_message"
+        "messages": [AIMessage("some_text")]
     }}
 ```
 **Important:** Every node's return dictionary **must** include a \"messages\" key, even if it just contains a AiMessage for status.
