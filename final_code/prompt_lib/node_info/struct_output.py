@@ -89,7 +89,7 @@ def answer_question_node(state: GraphState) -> GraphState:
 
     return {
         "messages": [AIMessage(content=f"Answer: {{result.answer.text}}")],
-        "answer": result.answer,
+        "answer": result.answer.text,
         "confidence": result.confidence
     }
 ```
