@@ -39,7 +39,7 @@ grade_trajectory_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_struc
 )
 def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: list[str]):   
     trajectory = []
-    thread_config = {{"configurable": {{"thread_id": "some_id"}}}}
+    thread_config = {{"configurable": {{"thread_id": uuid4()}}}}
 
     for namespace, chunk in app.stream({{"messages": [
             {{
@@ -92,6 +92,8 @@ FINAL_RESPONSE_STR="""
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage
 import pytest
+from uuid import uuid4
+
 
 # LLM-as-judge instructions
 grader_instructions = \"\"\"You are a teacher grading a quiz.
@@ -135,7 +137,7 @@ def final_answer_correct(input: str, reference_output: str, actual_output: str) 
 )
 def test_full_workflow_final_response(input_query: str, reference_output: str):
     # Invoke the full graph
-    thread_config = {{"configurable": {{"thread_id": "some_id"}}}}
+    thread_config = {{"configurable": {{"thread_id": uuid4() }}}}
     result = app.invoke({{"messages": [HumanMessage(content=input_query)]}}, config=thread_config)
 
     # Get the last message, which is the final response

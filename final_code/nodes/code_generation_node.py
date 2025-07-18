@@ -17,13 +17,15 @@ from final_code.prompt_lib.node_info.multi_pattern import multi_pattern
 from final_code.prompt_lib.edge_info.edge_info import edge_info
 llm = get_model()
 
-CODE_GEN_PROMPT = PromptTemplate.from_template("""
-You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user 'JSON' section below. You must prioritize LLM-based implementations for relevant tasks.
-You must follow the 'INSTRUCTIONS' section carefully to ensure the generated code meets all requirements.
-                                               
+JSON_WRAPPER = """
 <JSON>                                              
 {json_schema}
 </JSON>
+"""
+CODE_GEN_PROMPT = PromptTemplate.from_template("""
+You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user provided 'JSON' section. You must prioritize LLM-based implementations for relevant tasks.
+You must follow the 'INSTRUCTIONS' section carefully to ensure the generated code meets all requirements.
+                                               
 <TOOL_BINDING_INSTRUCTIONS>
 1. From the toolset field in the json schema identify the tool schema which might look like the following:
 Example 1 (composio tool)
@@ -198,25 +200,24 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
 
     json_schema_final = state["json_schema"].model_dump_json(indent=2)
     #json_schema_final = json_schema_nutrition
-    response: PythonCode  = generate_python_code(modifiedConfig, json_schema_final)
+    response  = generate_python_code(modifiedConfig, json_schema_final)
     # Return the generated Python code and an AI message
     return {
-        "python_code": response.code,
+        "python_code": response,
     }
 
-def generate_python_code(modifiedConfig, json_schema_final) -> PythonCode:
-    code_llm_writer = llm.with_structured_output(PythonCode)
-    response: PythonCode = code_llm_writer.invoke([HumanMessage(content=
-                                                                CODE_GEN_PROMPT.format(
-                                                                    json_schema=json_schema_final,
-                                                                    # snippets
-                                                                    graph_state=graph_state,
-                                                                    node_structure=node_structure,
-                                                                    tool_calling=tool_calling,
-                                                                    struct_output=struct_output,
-                                                                    interrupt_info=interrupt_info,
-                                                                    multi_pattern=multi_pattern,
-                                                                    edge_info=edge_info))],
-                                                                      config=modifiedConfig)
+def generate_python_code(modifiedConfig, json_schema_final):
+    response = llm.invoke([
+        SystemMessage(content=CODE_GEN_PROMPT.format(
+            graph_state=graph_state,
+            node_structure=node_structure,
+            tool_calling=tool_calling,
+            struct_output=struct_output,
+            interrupt_info=interrupt_info,
+            multi_pattern=multi_pattern,
+            edge_info=edge_info)),
+        HumanMessage(content=JSON_WRAPPER.format(
+            json_schema=json_schema_final))],
+        config=modifiedConfig)
                                                                       
-    return response
+    return response.content
