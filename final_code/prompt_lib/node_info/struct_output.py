@@ -87,11 +87,11 @@ def answer_question_node(state: GraphState) -> GraphState:
     question = state["messages"][-1].content
     result = structured_llm.invoke(f"Answer the question: {{question}}")
 
-    return {
+    return {{
         "messages": [AIMessage(content=f"Answer: {{result.answer.text}}")],
         "answer": result.answer.text,
         "confidence": result.confidence
-    }
+    }}
 ```
 </Example3>
 """
