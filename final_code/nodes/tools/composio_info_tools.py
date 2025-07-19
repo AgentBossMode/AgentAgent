@@ -2,8 +2,6 @@ from composio import Composio
 from composio.client.types import Tool
 from composio_langchain import LangchainProvider
 import concurrent.futures
-from dotenv import load_dotenv
-load_dotenv()
 composio = Composio(provider=LangchainProvider())
 
 
@@ -25,8 +23,6 @@ toolkit slug: {app.slug}
 Description: {app.meta.description}
 \n\n
 """)
-        else:
-            print(f"App {app.name} ({app.slug}) has no tools.")
     return results
 
 def get_all_toolkits():

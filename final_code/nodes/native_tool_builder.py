@@ -102,6 +102,8 @@ def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig
 def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent"]]:
     answer: dict = interrupt(state["messages"][-1].content)
     print(answer)
+    if isinstance(answer, str):
+        return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer)]})
     for key in answer.keys():
         return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer[key])]}) 
 

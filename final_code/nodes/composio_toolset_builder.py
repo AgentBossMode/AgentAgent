@@ -72,6 +72,8 @@ def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig
 
 def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["composio_tool_fetch"]]:
     answer: dict = interrupt(state["messages"][-1].content)
+    if isinstance(answer, str):
+        return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=answer)]})
     for key in answer.keys():
         return Command(goto="composio_tool_fetch", update={"messages": [HumanMessage(content=answer[key])]}) 
 
