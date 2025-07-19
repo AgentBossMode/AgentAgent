@@ -1,29 +1,51 @@
 from composio import Composio
 from composio.client.types import Tool
 from composio_langchain import LangchainProvider
+import concurrent.futures
+from dotenv import load_dotenv
+load_dotenv()
 composio = Composio(provider=LangchainProvider())
 
 
-
-def get_all_toolkits():
+def _get_toolkits_with_tools_batch(apps_batch) -> list[str]:
     """
-    Retrieve a list of applications using the Composio Toolset.
-    This function fetches applications with the following options:
-    Returns:
-        str: Returns a well formatted string of all the apps found. It performs an operation
-        using the `composio_toolset.get_apps` method.
+    Helper function to get toolkit info for a batch of apps.
+    Returns a list of formatted strings for apps that have tools.
     """
-    apps = composio.toolkits.get()
-
-    app_list : str = ""
-    for app in apps:
-        app_list += f"""
+    slugs = [app.slug for app in apps_batch]
+    tools = composio.tools.get_raw_composio_tools(toolkits=slugs, limit=2000)
+    # Get unique toolkit slugs from the returned tools
+    toolkits_with_tools = set(tool.toolkit.slug for tool in tools)
+    results = []
+    for app in apps_batch:
+        if app.slug in toolkits_with_tools:
+            results.append(f"""\
 toolkit name: {app.name}
 toolkit slug: {app.slug}
 Description: {app.meta.description}
 \n\n
-"""
-    return app_list
+""")
+        else:
+            print(f"App {app.name} ({app.slug}) has no tools.")
+    return results
+
+def get_all_toolkits():
+    """
+    Retrieve a list of applications using the Composio Toolset.
+    This function fetches applications in batches and checks for tools in parallel.
+    Returns:
+        str: Returns a well-formatted string of all the apps found that have tools.
+    """
+    apps = composio.toolkits.get()
+
+    # Batch apps into batches of 10
+    batches = [apps[i:i+10] for i in range(0, len(apps), 10)]
+    app_list_parts = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = executor.map(_get_toolkits_with_tools_batch, batches)
+        for batch_result in results:
+            app_list_parts.extend(batch_result)
+    return "\n".join(app_list_parts)
 
 def get_all_raw_tool_schemas_for_a_toolkit(toolkit_name: str):
     """
@@ -39,12 +61,12 @@ def get_all_raw_tool_schemas_for_a_toolkit(toolkit_name: str):
     """
     action_schemas_list = "" 
     tool_list: list[Tool] = composio.tools.get_raw_composio_tools(toolkits=[toolkit_name])
+    
     for tool in tool_list:
         action_schemas_list += f"""
 TOOL SLUG: {tool.slug}
 TOOL NAME: {tool.name}
 TOOL DESCRIPTION: {tool.description}
-
 """
     return action_schemas_list
 
