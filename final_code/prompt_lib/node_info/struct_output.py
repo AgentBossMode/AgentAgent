@@ -94,4 +94,64 @@ def answer_question_node(state: GraphState) -> GraphState:
     }}
 ```
 </Example3>
+
+<Example4>
+Here is an example of how to use structured output with create_react_agent. In this example, we use a react agent to perform research about a competitor company and then extract structured insights from the agent's findings.
+```python
+from langchain_core.prompts import PromptTemplate
+from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from langchain_tavily import TavilySearch
+
+COMPETITOR_ANALYSIS_PROMPT = PromptTemplate.from_template('''
+## Task: Competitor Analysis Research
+You are tasked with researching a competitor company to gather business intelligence.
+
+### Instructions:
+1. **Company Overview**: Search for basic information about {{company_name}}
+2. **Recent News**: Find recent news or press releases about the company
+3. **Product/Service Analysis**: Identify their main products or services
+4. **Market Position**: Research their market position and key strengths
+5. **Financial Information**: Look for any publicly available financial data or funding news
+
+Provide a comprehensive analysis based on your research findings.
+''')
+
+class CompetitorInsights(BaseModel):
+    company_name: str = Field(description="Name of the analyzed company")
+    industry: str = Field(description="Primary industry/sector the company operates in")
+    key_products: List[str] = Field(description="List of main products or services")
+    market_position: str = Field(description="Brief description of market position")
+    recent_developments: List[str] = Field(description="Recent news, funding, or developments")
+    estimated_revenue: Optional[str] = Field(description="Revenue information if available", default=None)
+    key_strengths: List[str] = Field(description="Identified competitive strengths")
+
+def competitor_research_node(state: GraphState):
+    # Step 1: Use create_react_agent for comprehensive research
+    company_name = state["target_company"]
+    research_tools = [TavilySearch(max_results=5, search_depth="advanced")]
+    research_agent = create_react_agent(llm, tools=research_tools, name="competitor_researcher")
+    
+    research_response = research_agent.invoke({
+        "messages": [HumanMessage(content=COMPETITOR_ANALYSIS_PROMPT.format(company_name=company_name))]
+    })
+    
+    # Step 2: Use structured output to extract validated business insights
+    # Justification: Structured output ensures consistent data format for downstream business analysis and reporting
+    extraction_prompt = "Extract structured business insights from the research findings. Focus on actionable competitive intelligence."
+    insights_llm = llm.with_structured_output(CompetitorInsights)
+    structured_insights = insights_llm.invoke([
+        SystemMessage(content=extraction_prompt),
+        HumanMessage(content=research_response["messages"][-1].content)
+    ])
+    
+    return {
+        "messages": [AIMessage(content=f"Completed analysis of {structured_insights.company_name}")],
+        "competitor_insights": structured_insights,
+        "industry": structured_insights.industry
+    }
+```
+</Example4>
 """
