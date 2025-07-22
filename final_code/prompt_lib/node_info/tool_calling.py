@@ -59,8 +59,8 @@ agent = create_react_agent(
 
 # Use the agent directly - no need for manual ToolNode
 def agent_node(state):
-    response = agent.invoke({"messages": state["messages"]})
-    return {"messages": response["messages"]}
+    response = agent.invoke({{"messages": state["messages"]}})
+    return {{"messages": response["messages"]}}
 ```
 
 Use ToolNode implementation approach when:
