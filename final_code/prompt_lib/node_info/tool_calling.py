@@ -14,29 +14,35 @@ def node_name(state: GraphState) -> GraphState:
 
 ## Implementation Patterns
 
-### Pattern 1: Manual Tool Binding with ToolNode
+### Pattern 1: Manual Tool Binding with ToolNode. To be used when not using create_react_agent in a node and we want tool calling capabilities
 ```python
 # ❌ Incorrect - improper tool definition
 def analysis_node(state):
     tool_call = some_tool(state["data"])  # Direct tool call without binding
     
-# ✅ Correct - proper tool binding and invocation
-from langchain.tools import Tool
-from langgraph.prebuilt import ToolNode
+# ✅ Correct - proper tool binding and invocation using toolNode
+from langgraph.graph import START, END, StateGraph, MessagesState
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_core.tools import tool
 
-analysis_tool = Tool(
-    name="analyze_data",
-    description="Analyzes the provided data",
-    func=analyze_function
-)
+@tool
+def some_tool(x: str) -> str:
+    '''doc string for the tool'''
+    ## this part will have the tool implementation
 
-def analysis_node(state):
-    model_with_tools = model.bind_tools([analysis_tool])
+def analysis_node(state: MessagesState):
+    model_with_tools = model.bind_tools([some_tool])
     result = model_with_tools.invoke(state["messages"])
-    return {"messages": [result]}
+    return {{"messages": [result]}}
 
-# Add ToolNode to handle tool execution
-tool_node = ToolNode([analysis_tool])
+workflow = StateGraph(MessagesState)
+workflow.add_node("analysis_node", analysis_node)
+workflow.add_node("tools", ToolNode([some_tool]))
+
+workflow.add_edge(START, "analysis_node")
+workflow.add_conditional_edges("analysis_node", tools_condition, ["tools", END])
+workflow.add_edge("tools", "analysis_node")
+graph = workflow.compile()
 ```
 
 ### Pattern 2: Using create_react_agent (Simplified Approach)
@@ -56,6 +62,14 @@ def agent_node(state):
     response = agent.invoke({"messages": state["messages"]})
     return {"messages": response["messages"]}
 ```
+
+Use ToolNode implementation approach when:
+- You want to execute a specific sequence of tools in a controlled manner. 
+- You need more control over how tools are invoked and their results are handled. 
+
+Use create_react_agent when: 
+- You need a flexible agent that can reason about the best course of action. 
+- The task requires the LLM to make decisions based on its reasoning and understanding of the situation
 """
 
 tool_calling_checklist = """
