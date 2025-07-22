@@ -10,6 +10,7 @@ class GraphState(MessagesState):
     \"\"\" 
     # Add domain-specific fields based on your analysis
     # Add other fields as required by your architecture
+```
 """
 
 
@@ -20,14 +21,17 @@ node_state_management= """
 - [ ] **Required Fields**: Node handles missing or optional state fields appropriately
 
 **Example Fix:**
-```python
 # ❌ Incorrect - accessing undefined state property
+```python
 def research_node(state):
     query = state["search_query"]  # Property doesn't exist in state schema
+```
     
 # ✅ Correct - accessing properly defined state property
+```python
 def research_node(state):
     query = state["query"]  # Matches state schema definition
+```
 """
 
 graph_state_checklist = """
@@ -43,13 +47,14 @@ graph_state_checklist = """
 class GraphState(MessageState):
     data: any  # Vague type definition
 
-    # ❌ Incorrect - explicitly defines "messages" as part of state schema, when it already inherits "messages" attribute it's parent class: MessageState
+# ❌ Incorrect - explicitly defines "messages" as part of state schema, when it already inherits "messages" attribute it's parent class: MessageState
 class GraphState(MessageState):
     messages: str
     results: Optional[List[dict]] = None
     status: str = "initialized"
 
 # ✅ Correct - well-defined state schema
+```python
 from typing import List, Optional
 rom langgraph.graph import MessagesState
 
