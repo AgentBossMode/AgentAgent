@@ -119,7 +119,7 @@ You are tasked with researching a competitor company to gather business intellig
 Provide a comprehensive analysis based on your research findings.
 ''')
 
-class CompetitorInsights(BaseModel):
+class CompetitorInsightsReport(BaseModel):
     company_name: str = Field(description="Name of the analyzed company")
     industry: str = Field(description="Primary industry/sector the company operates in")
     key_products: List[str] = Field(description="List of main products or services")
@@ -128,7 +128,10 @@ class CompetitorInsights(BaseModel):
     estimated_revenue: Optional[str] = Field(description="Revenue information if available", default=None)
     key_strengths: List[str] = Field(description="Identified competitive strengths")
 
-def competitor_research_node(state: GraphState):
+class CompetitorInsights(MessageState):
+    competitor_insights: CompetitorInsightsReport = Field(description="Competitor analysis report")
+
+def competitor_research_node(state: CompetitorInsights):
     # Step 1: Use create_react_agent for comprehensive research
     company_name = state["target_company"]
     research_tools = [TavilySearch(max_results=5, search_depth="advanced")]
@@ -141,16 +144,15 @@ def competitor_research_node(state: GraphState):
     # Step 2: Use structured output to extract validated business insights
     # Justification: Structured output ensures consistent data format for downstream business analysis and reporting
     extraction_prompt = "Extract structured business insights from the research findings. Focus on actionable competitive intelligence."
-    insights_llm = llm.with_structured_output(CompetitorInsights)
+    insights_llm = llm.with_structured_output(CompetitorInsightsReport)
     structured_insights = insights_llm.invoke([
         SystemMessage(content=extraction_prompt),
         HumanMessage(content=research_response["messages"][-1].content)
     ])
     
     return {
-        "messages": [AIMessage(content=f"Completed analysis of {structured_insights.company_name}")],
+        "messages": [AIMessage(content=f"Completed analysis of {{structured_insights.company_name}}")],
         "competitor_insights": structured_insights,
-        "industry": structured_insights.industry
     }
 ```
 </Example4>
