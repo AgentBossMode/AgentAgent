@@ -42,6 +42,8 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
         b. if the node requires data from web or has something in it's functionality that can be made achieved through an API call
     2. If you see any nodes meeting these requirements: fill the tools field.
     3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ are separate tools.
+4. **Important Notes**
+    1. **Always** specify how the initial user input enters the workflow (typically through the messages field). In doing so ensure that the user input is part of the 'message' state of the node in the graph that comes directly after 'START' node
     """)
 
 
