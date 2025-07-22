@@ -137,9 +137,9 @@ def competitor_research_node(state: CompetitorInsights):
     research_tools = [TavilySearch(max_results=5, search_depth="advanced")]
     research_agent = create_react_agent(llm, tools=research_tools, name="competitor_researcher")
     
-    research_response = research_agent.invoke({
+    research_response = research_agent.invoke({{
         "messages": [HumanMessage(content=COMPETITOR_ANALYSIS_PROMPT.format(company_name=company_name))]
-    })
+    }})
     
     # Step 2: Use structured output to extract validated business insights
     # Justification: Structured output ensures consistent data format for downstream business analysis and reporting
@@ -150,10 +150,10 @@ def competitor_research_node(state: CompetitorInsights):
         HumanMessage(content=research_response["messages"][-1].content)
     ])
     
-    return {
+    return {{
         "messages": [AIMessage(content=f"Completed analysis of {{structured_insights.company_name}}")],
         "competitor_insights": structured_insights,
-    }
+    }}
 ```
 </Example4>
 """

@@ -29,7 +29,6 @@ def human_node(state: AgentState):
     )
     # 'value' here is the data sent by the human to resume the graph.
     # It could be a string, a dictionary, etc., depending on what you expect.
-    print(f"--- Human Node: Resumed with human input: {value} ---")
     return {{
         "some_text": value, # Update the state with the human's revised text
         "messages": [AIMessage(content="Human intervention occurred. Text revised.")],
@@ -46,16 +45,16 @@ from typing import Literal
 from langgraph.types import interrupt, Command
 
 def human_approval_node(state: State) -> Command[Literal["approved_path", "rejected_path"]]:
-    decision = interrupt({
+    decision = interrupt({{
         "question": "Do you approve this action?",
         "action_details": state["proposed_action"],
         "risk_level": "high"
-    })
+    }})
     
     if decision == "approve":
-        return Command(goto="approved_path", update={"status": "approved"})
+        return Command(goto="approved_path", update={{"status": "approved"}})
     else:
-        return Command(goto="rejected_path", update={"status": "rejected"})
+        return Command(goto="rejected_path", update={{"status": "rejected"}})
 ```
 
 ### 2. Edit/Review Pattern
@@ -63,17 +62,17 @@ Use when content needs human review and editing.
 
 ```python
 def human_review_node(state: State):
-    result = interrupt({
+    result = interrupt({{
         "task": "Review and edit the generated content",
         "generated_content": state["draft_content"],
         "guidelines": "Check for accuracy, tone, and completeness"
-    })
+    }})
     
-    return {
+    return {{
         "final_content": result["edited_content"],
         "review_notes": result.get("notes", ""),
         "messages": [AIMessage(content="Content reviewed and updated")]
-    }
+    }}
 ```
 
 ### 3. Input Collection Pattern
@@ -81,16 +80,16 @@ Use when additional information is needed from human.
 
 ```python
 def collect_input_node(state: State):
-    user_input = interrupt({
+    user_input = interrupt({{
         "prompt": "What additional context should I consider?",
         "current_context": state["context"],
         "input_type": "text"
-    })
+    }})
     
-    return {
-        "context": state["context"] + f"\nUser input: {user_input}",
+    return {{
+        "context": state["context"] + f"\nUser input: {{user_input}}",
         "messages": [AIMessage(content="Additional context collected")]
-    }
+    }}
 ```
 
 ### Placement and Handling Returned Values
