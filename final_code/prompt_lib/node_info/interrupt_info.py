@@ -5,11 +5,11 @@ interrupt_info ="""
 ```python
 from langgraph.types import interrupt
 from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.graph import MessagesState
 import operator
 
 # Define your graph's state
-class AgentState(TypedDict):
-    messages: List[AIMessage | HumanMessage]
+class AgentState(MessageState):
     some_text: str
     decision: str # To store human's decision
 
@@ -19,7 +19,6 @@ def human_node(state: AgentState):
     This node interrupts the graph and surfaces 'text_to_revise' to the human.
     Upon resumption, 'value' will contain the input provided by the human.
     '''
-    print("--- Human Node: Interrupting for review ---")
     value = interrupt(
         # Any JSON serializable value to surface to the human.
         # This is what the human sees and can act upon.
