@@ -32,7 +32,7 @@ def human_node(state: AgentState):
     print(f"--- Human Node: Resumed with human input: {value} ---")
     return {{
         "some_text": value, # Update the state with the human's revised text
-        "messages": state["messages"] + [AIMessage(content="Human intervention occurred. Text revised.")],
+        "messages": [AIMessage(content="Human intervention occurred. Text revised.")],
     }}
 ```
 
