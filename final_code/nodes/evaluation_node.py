@@ -46,7 +46,8 @@ You are given langgraph code below:
     a. In case of a composio tool --> Follow 'COMPOSIOMOCKINSTRUCTIONS' below:
     <COMPOSIOMOCKINSTRUCTION>
         Let's say you see the following composio tool being initialized
-        tool_name = composio_toolset.get_tools(actions=[\"TOOL_NAME_ABC\"])
+
+        tool_name = composio.tools.get(user_id=os.environ(\"USER_ID\"), tools=[\"TOOL_NAME_ABC\"])
     
         Instruction:
         1. call 'get_raw_tool_schema' tool, this will fetch information about the TOOL_NAME_ABC
