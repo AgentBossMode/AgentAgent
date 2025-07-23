@@ -3,7 +3,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.llms.model_factory import get_model, ModelName
 from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import create_react_agent
 from final_code.nodes.tools.pytest_writing_tools import write_final_response_pytest_code, write_trajectory_pytest_code, TRAJECTORY_STR, FINAL_RESPONSE_STR
 from final_code.nodes.tools.composio_info_tools import get_raw_tool_schema
 from final_code.nodes.code_reflection_node import code_reflection_node_updated
@@ -20,6 +19,8 @@ from langgraph.types import Command
 from typing import Literal, List, Optional
 from langgraph.graph import END
 from copilotkit import CopilotKitState
+from final_code.utils.create_react_agent_temp import create_react_agent
+#from langgraph.prebuilt import create_react_agent
 load_dotenv()
 
 
@@ -57,8 +58,40 @@ You are given langgraph code below:
                 logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
     </COMPOSIOMOCKINSTRUCTION>
     b. In case of any method with @tool decorator --> Follow 'METHODMOCKINSTRUCTIONS' below:
-    <METHODMOCKINSTRUCTIONS>
+<METHODMOCKINSTRUCTIONS>
         Read the method docstring, analyze the code, and generate the code again but with mock implementation.
+        Remove any related imports, any initializations done to support the tool etc.
+
+Example:
+Lets say tool looks like this:    
+from import1 import module1
+
+@tool
+def SimulationEngineTool(N: int, width: int, height: int) -> dict:
+    class RandomClass(Agent):
+        def __init__(self, unique_id, model):
+            super().__init__(unique_id, model)
+
+        def step(self):
+            pass  # Define agent behavior here
+
+    class RandomModel(module1):
+        # some model implementation
+
+        def step(self):
+            self.datacollector.collect(self)
+            self.schedule.step()
+    
+    # Simulate a basic run and return dummy results for demonstration
+    model = RandomModel(N, width, height)
+    # some invocation to this model and returning the results
+    
+    
+Mocked output:
+@tool
+def SimulationEngineTool(N: int, width: int, height: int) -> dict:
+    # In a real scenario, this would return actual simulation data
+    return {{"metrics": {{"equity": 0.7, "sustainability": 0.6, "economic_growth": 0.8}}, "intervention_needed": True}}
     </METHODMOCKINSTRUCTIONS>
 
 2. Remove any reference of ComposioToolset, related imports etc.
@@ -67,9 +100,10 @@ You are given langgraph code below:
 <OUTPUT>
 You are supposed to generate a compilable python file with the mock code.
     <OUTPUT_FORMAT>
-        - ONLY THE FINAL PYTHON CODE, NO MARKDOWNS, no use of ``` blocks
+        - ONLY THE FINAL PYTHON CODE IN MARKDOWN CODE BLOCK
         - Code should be compilable python code without errors, no formatting errors
         - No SyntaxError
+        - No unnecessary imports, if they are not used in the code
     </OUTPUT_FORMAT>
 </OUTPUT>
 """
@@ -85,7 +119,7 @@ You are supposed to generate a compilable python file with the mock code.
 
     
 PYTEST_WRITER_PROMPT = """
-You are a python code writing expert, your job is to write a pytest given the langgraph code and use cases.
+You are a python code writing expert, your job is to write test case inputs given the langgraph code and use cases.
 <CODE>
 {code}
 </CODE>
@@ -93,9 +127,10 @@ You are given the use cases for a workflow graph along with dry runs.
 <USE_CASES>
 {use_cases}
 </USE_CASES>
-2. With the mock code generated in step 1, you will now write pytest code,use the 'USE_CASES' to generate test cases for the code in 'CODE' section.The tests should cover the following:
+2. With the mock code generated in step 1, you will now write pytest code, use the 'USE_CASES' to generate test cases for the code in 'CODE' section.The tests should cover the following:
     a. Final response: refer to <FINALRESPONSE> section
     b. Trajectory: refer to <TRAJECTORY> section
+3. The list size of the ResponseUts and TrajectoryUts should be equal to the number of use cases.
 
 <FINALRESPONSE>
 {FINAL_RESPONSE_STR}
@@ -181,7 +216,7 @@ def pytest_runner(state: CodeEvalState):
 class EvaluationResult(BaseModel):
     no_failures: bool = Field(description="True if there were no failures in the pytest results, otherwise False.")
     file_to_fix: Literal["mocked_code", "pytest_code", "none"] = Field(description="identify the file to fix, if no fix needed then say none")
-    fixed_code: Optional[str] = Field(default=None, description= "The code fix proposed for the 'file_to_fix' identified")
+    fixed_code: Optional[str] = Field(default=None, description= "The complete code with the fixes identified for 'file_to_fix'")
     explanation: Optional[str] = Field(default=None, description="Explanation of the changes made for 'file_to_fix', if any.")
 
 def evaluate_test_results(state: CodeEvalState) -> Command[Literal["pytest_runner", "__end__"]]:

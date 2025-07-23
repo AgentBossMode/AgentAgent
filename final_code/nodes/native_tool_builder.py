@@ -1,6 +1,5 @@
 from final_code.states.AgentBuilderState import AgentBuilderState
 from langgraph.graph import StateGraph, START, END  # Core LangGraph components for building stateful graphs
-from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
 from typing import Literal
 from final_code.pydantic_models.EndOrContinue import EndOrContinue
@@ -13,6 +12,8 @@ from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from final_code.states.ReactCopilotKitState import ReactCopilotState
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config
+from final_code.utils.create_react_agent_temp import create_react_agent
+# from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 
 
@@ -37,39 +38,45 @@ llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
 
 TOOL_PROMPT = """
-You are responsible for generating the right tool for the given requirements by user.
+You are a helpful assistant, user will provide you with a list of tool names along with their descriptions
+<RESPONSEFORMAT>
+For suggestions/final response follow this format:
+
+tool_name_1:
+TOOL_LIBRARY_IDENTIFIED: tool_lib_1
+
+FUNCTION IMPLEMENTATION:
+
+```python
+def tool_name_1():
+    # Python code snippet based on the search results for tool_name_1, using tool_lib_1
+```
+
+URL: https://example.com/tool_lib_1 (this is the url from where you got the python code snippet for tool_name_1)
+JUSTIFICATION: Justification for choosing tool_lib_1 for tool_name_1
+
+tool_name_2:
+TOOL_LIBRARY_IDENTIFIED: tool_lib_2
+
+FUNCTION IMPLEMENTATION:
+
+```python
+def tool_name_2():
+    # Python code snippet based on the search results for tool_name_1, using tool_lib_2
+```
+
+URL: https://example.com/tool_lib_2 (this is the url from where you got the python code snippet for tool_name_2)
+JUSTIFICATION: Justification for choosing tool_lib_2 for tool_name_2
+
+</RESPONSEFORMAT>
 
 Follow the following instructions:
-1. Respond to the user to understand if they already have any apps/tools that they would like to use for the given requirements. 
-2. If the user says donot build tools, you will just respond with "No tools required for the task at hand, please proceed with the next step."
-3. Use TavilySearch to find the websites which would provide the python code sdk or code samples for the given tools, this should be called only if the user has provided the name of a proper tool/service/library.
-4. Use TavilyExtract with extract_depth advanced to extract the python code snippets from the search results.
-5. Donot respond with your own knowledge, if you were not able to find anything from TavilySearch or TavilyExtract, just respond with "No tools found for the task at hand, please proceed with the next step."
-6. If you are able to find the python code snippets, do mention the url in the output
-
-Output:
-Corresponding to each input tool description: provide the python_code snippet based on the search results to implement the tool.
-
-                                               
-Example:
-
-Input:
-tool_name_1 and tool_description 1
-tool_name_2 and tool_description 2
-
-Output:
-
-*For tool_name_1, here are the following proposed tools:
-
-def tool_name_1():
-    # Python code snippet based on the search results for tool_name_1
-
-*For tool_name_2, here are the following proposed tools:
-def tool_name_2():
-    # Python code snippet based on the search results for tool_name_2
-
-
-7. If you get human input, responding to the above, now finally provide the final tools to be used corresponding to each user requirement.
+1. Respond to the user with suggestions of a TOOL_LIBRARY_IDENTIFIED for each tool_name provided by the user. Refer to RESPONSEFORMAT section
+2. Based on response of human, Use TavilySearch to find the websites which would provide the python code sdk or code samples for the given tools, this should be called only if the user has provided the name of a proper tool/service/library.
+3. Use TavilyExtract with extract_depth advanced to extract the python code snippets from the search results.
+4. Donot respond with your own knowledge, if you were not able to find anything from TavilySearch or TavilyExtract, just respond with "No tools found for the task at hand, please proceed with the next step." for that particular tool_name.
+5. Get confirmation from the user about the tools you are going ahead with, use the RESPONSEFORMAT as reference.
+6. Now output the final user approved response, mentioning that the user has approved the response
 """
 
 native_react_agent = create_react_agent(
@@ -94,6 +101,9 @@ def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig
 
 def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent"]]:
     answer: dict = interrupt(state["messages"][-1].content)
+    print(answer)
+    if isinstance(answer, str):
+        return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer)]})
     for key in answer.keys():
         return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer[key])]}) 
 
