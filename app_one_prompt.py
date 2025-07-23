@@ -41,8 +41,7 @@ main_workflow.add_edge("json_node", "dry_run_node")  # Connect json_node to dry_
 main_workflow.add_edge("dry_run_node", "tool_graph")  # Connect dry_run_node to tool_graph
 main_workflow.add_edge("tool_graph", "tool_interrupt")
 main_workflow.add_edge("tool_interrupt", "code_node")
-main_workflow.add_edge("code_node", "dfs_analysis_node")
-main_workflow.add_edge("dfs_analysis_node", "eval_pipeline")
+main_workflow.add_edge("code_node", "eval_pipeline")
 # main_workflow.add_edge("env_var_node", "eval_pipeline")
 main_workflow.add_edge("eval_pipeline", END)
 # main_workflow.add_edge("combine_code_pipeline_graph", END)

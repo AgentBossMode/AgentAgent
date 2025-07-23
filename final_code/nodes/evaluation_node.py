@@ -57,8 +57,40 @@ You are given langgraph code below:
                 logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
     </COMPOSIOMOCKINSTRUCTION>
     b. In case of any method with @tool decorator --> Follow 'METHODMOCKINSTRUCTIONS' below:
-    <METHODMOCKINSTRUCTIONS>
+<METHODMOCKINSTRUCTIONS>
         Read the method docstring, analyze the code, and generate the code again but with mock implementation.
+        Remove any related imports, any initializations done to support the tool etc.
+
+Example:
+Lets say tool looks like this:    
+from import1 import module1
+
+@tool
+def SimulationEngineTool(N: int, width: int, height: int) -> dict:
+    class RandomClass(Agent):
+        def __init__(self, unique_id, model):
+            super().__init__(unique_id, model)
+
+        def step(self):
+            pass  # Define agent behavior here
+
+    class RandomModel(module1):
+        # some model implementation
+
+        def step(self):
+            self.datacollector.collect(self)
+            self.schedule.step()
+    
+    # Simulate a basic run and return dummy results for demonstration
+    model = RandomModel(N, width, height)
+    # some invocation to this model and returning the results
+    
+    
+Mocked output:
+@tool
+def SimulationEngineTool(N: int, width: int, height: int) -> dict:
+    # In a real scenario, this would return actual simulation data
+    return {{"metrics": {{"equity": 0.7, "sustainability": 0.6, "economic_growth": 0.8}}, "intervention_needed": True}}
     </METHODMOCKINSTRUCTIONS>
 
 2. Remove any reference of ComposioToolset, related imports etc.
@@ -70,6 +102,7 @@ You are supposed to generate a compilable python file with the mock code.
         - ONLY THE FINAL PYTHON CODE IN MARKDOWN CODE BLOCK
         - Code should be compilable python code without errors, no formatting errors
         - No SyntaxError
+        - No unnecessary imports, if they are not used in the code
     </OUTPUT_FORMAT>
 </OUTPUT>
 """
@@ -182,7 +215,7 @@ def pytest_runner(state: CodeEvalState):
 class EvaluationResult(BaseModel):
     no_failures: bool = Field(description="True if there were no failures in the pytest results, otherwise False.")
     file_to_fix: Literal["mocked_code", "pytest_code", "none"] = Field(description="identify the file to fix, if no fix needed then say none")
-    fixed_code: Optional[str] = Field(default=None, description= "The code fix proposed for the 'file_to_fix' identified")
+    fixed_code: Optional[str] = Field(default=None, description= "The complete code with the fixes identified for 'file_to_fix'")
     explanation: Optional[str] = Field(default=None, description="Explanation of the changes made for 'file_to_fix', if any.")
 
 def evaluate_test_results(state: CodeEvalState) -> Command[Literal["pytest_runner", "__end__"]]:
