@@ -15,6 +15,7 @@ from final_code.prompt_lib.node_info.struct_output import struct_output
 from final_code.prompt_lib.node_info.interrupt_info import interrupt_info
 from final_code.prompt_lib.node_info.multi_pattern import multi_pattern
 from final_code.prompt_lib.edge_info.edge_info import edge_info
+from copilotkit.langgraph import copilotkit_emit_state 
 llm = get_model()
 
 JSON_WRAPPER = """
@@ -183,7 +184,7 @@ Please return only complete and compilable langgraph python code
 class PythonCode(BaseModel):
     code: str = Field(description="complete and compilable langgraph python code")
 
-def code_node(state: AgentBuilderState, config: RunnableConfig):
+async def code_node(state: AgentBuilderState, config: RunnableConfig):
     """
     LangGraph node to generate the final Python code for the agent.
     It uses the gathered agent_instructions and the CODE_GEN_PROMPT.
@@ -191,19 +192,21 @@ def code_node(state: AgentBuilderState, config: RunnableConfig):
 
     modifiedConfig = copilotkit_customize_config(
         config,
-        emit_intermediate_state=[{
-            "state_key": "python_code",
-            "tool": "PythonCode",
-            "tool_argument": "code",
-        }],
+        emit_messages=False
     )
 
     json_schema_final = state["json_schema"].model_dump_json(indent=2)
     #json_schema_final = json_schema_nutrition
+    state["current_tab"] = "python"
+    state["current_status"] = {"inProcess":True ,"status": "Generating Python code.."} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
     response  = generate_python_code(modifiedConfig, json_schema_final)
+    state["current_status"] = {"inProcess":False ,"status": "Python code generated successfully."} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
     # Return the generated Python code and an AI message
     return {
         "python_code": response,
+        "current_tab": "python"
     }
 
 def generate_python_code(modifiedConfig, json_schema_final):

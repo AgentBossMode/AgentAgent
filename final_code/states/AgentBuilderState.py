@@ -20,6 +20,7 @@ class AgentBuilderState(CopilotKitState):
     json_schema: JSONSchema = Field(description="The JSON schema of the agent's architecture, including nodes and edges")
     json_dict: str = Field(description="The JSON representation of the agent's architecture and nodes")
     reactflow_json: str = Field(description="The JSON representation of the ReactFlow graph for the agent")
+    react_flow_created: bool = Field(default=False, description="Flag to indicate if the ReactFlow graph has been created")
     justification: str = Field(description="Justification for the agent_architecture")
     python_code: str = Field(description="The Python code generated for the agent")
     use_cases: List[UseCaseAnalysis] = Field(default_factory=list,description="List of use cases with their names, descriptions, and dry runs.")
@@ -29,4 +30,6 @@ class AgentBuilderState(CopilotKitState):
     json_code: str = Field(description="Json of the code")
     env_variables: List[str] = Field(description="List if all environment variables required to run the python code")
     tool_set: set = Field(description="The composio tool slugs")
+    current_status: dict = Field(description="Current status of the agent building process")
+    current_tab: str = Field(default="python",description="Current tab of the agent building process")
 

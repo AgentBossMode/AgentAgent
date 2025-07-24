@@ -1,0 +1,27 @@
+{
+    "completed": [
+      {
+        "tool_name": "WebCrawler",
+        "toolkit_slug": "Firecrawl",
+        "tool_slug": "FIRECRAWL_SCRAPE_EXTRACT_DATA_LLM",
+        "selected_action": "FIRECRAWL_SCRAPE_EXTRACT_DATA_LLM"
+      },
+      {
+        "tool_name": "CRMSender",
+        "toolkit_slug": "Salesforce",
+        "tool_slug": "SALESFORCE_CREATE_CAMPAIGN_RECORD_VIA_POST",
+        "selected_action": "SALESFORCE_CREATE_CAMPAIGN_RECORD_VIA_POST"
+      }, 
+      {
+        "tool_name": "EmailStatusMonitor",
+        "toolkit_slug": "Gmail",
+        "tool_slug": "GMAIL_FETCH_EMAILS",
+        "selected_action": "GMAIL_FETCH_EMAILS"
+      }
+    ], 
+    "incomplete": [
+      {
+        "tool_name": "CalendarScheduler"
+      }
+    ]
+  }

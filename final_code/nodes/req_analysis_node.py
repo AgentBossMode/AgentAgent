@@ -5,6 +5,8 @@ from typing import Literal
 from final_code.llms.model_factory import get_model
 from langgraph.types import Command
 from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableConfig
+from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
 
 llm = get_model()
 
@@ -20,13 +22,19 @@ If you are not able to discern this info, ask them to clarify, you can suggest a
 
 After you are able to discern all the information, call the tool AgentInstruction"""
 
-def requirement_analysis_node(state: AgentBuilderState) -> Command[Literal["requirement_analysis_node", "json_node"]]:
+async def requirement_analysis_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["requirement_analysis_node", "json_node"]]:
     """
     LangGraph node for performing requirement analysis.
     It interacts with the LLM to gather agent specifications from the user.
     If information is insufficient, it interrupts the graph for user input.
     Otherwise, it proceeds to the code generation node.
     """
+    modifiedConfig = copilotkit_customize_config(
+        config,
+    )
+    state["current_status"] = {"inProcess":True ,"status": "Analyzing user requirements for agent building.."} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
+
     llm_with_tool = llm.bind_tools([AgentInstructions]) # Bind the AgentInstructions Pydantic model as a tool
     
     # Invoke the LLM with the system prompt and current message history
