@@ -7,6 +7,8 @@ BUILTIN_MODULES = set(sys.stdlib_module_names)
 def extract_import_names(file_path: str) -> list[str]:
     with open(file_path, "r", encoding="utf-8") as f:
         source_code = f.read()
+        if "from tools_code" in source_code:
+            source_code = "\\n".join([line for line in source_code.splitlines() if "from tools_code" not in line])
     
     try:
         tree = ast.parse(source_code)
