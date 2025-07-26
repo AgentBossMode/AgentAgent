@@ -11,7 +11,6 @@ def node_name(state: GraphState) -> GraphState:
         "messages": [AIMessage("some_text")]
     }}
 ```
-**Important:** Every node's return dictionary **must** include a \"messages\" key, even if it just contains a AiMessage for status.
 """
 
 function_structure= """

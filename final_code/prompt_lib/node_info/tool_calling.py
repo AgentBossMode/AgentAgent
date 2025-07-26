@@ -70,6 +70,10 @@ Use ToolNode implementation approach when:
 Use create_react_agent when: 
 - You need a flexible agent that can reason about the best course of action. 
 - The task requires the LLM to make decisions based on its reasoning and understanding of the situation
+
+Please ensure that the code produced for a tool node follows:
+1. **Tool Registration**: Tools are properly defined and registered in the node
+2. **Schema Adherence**: Tool inputs/outputs match their defined schemas exactly
 """
 
 tool_calling_checklist = """

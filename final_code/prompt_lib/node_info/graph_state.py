@@ -11,6 +11,31 @@ class GraphState(MessagesState):
     # Add domain-specific fields based on your analysis
     # Add other fields as required by your architecture
 ```
+
+Please ensure that graph is compliant with the following:
+1. **Message state**: The graphState schema does not need to explicitly define "messags" when it is a subclass of MessageState
+2. **Exit Conditions**: Clear termination conditions and END nodes
+
+Examples of incorrect vs correct ways of defining graph schema:
+# ❌ Incorrect - poorly defined state schema
+class GraphState(MessageState):
+    data: any  # Vague type definition
+
+# ❌ Incorrect - explicitly defines "messages" as part of state schema, when it already inherits "messages" attribute it's parent class: MessageState
+class GraphState(MessageState):
+    messages: str
+    results: Optional[List[dict]] = None
+    status: str = "initialized"
+
+# ✅ Correct - well-defined state schema
+```python
+from typing import List, Optional
+rom langgraph.graph import MessagesState
+
+class GraphState(MessageState):
+    query: str
+    results: Optional[List[dict]] = None
+    status: str = "initialized"
 """
 
 

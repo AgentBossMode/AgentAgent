@@ -93,6 +93,15 @@ def search_customer_database(customer_id: str) -> str:
 {interrupt_info}
 ## Pattern 4: Multi-Step LLM Processing
 {multi_pattern}
+                                               
+Code produced for each node needs to adhere to the following:
+**Important:** Every node's return dictionary **must** include a \"messages\" key, even if it just contains a AiMessage for status.
+**State Input Consistency**: Node correctly accesses state properties according to the state schema
+**State Output Updates**: Node properly updates state with correct data types and structure
+**Type Safety**: All state reads/writes maintain consistent data types
+**Required Fields**: Node handles missing or optional state fields appropriately
+**Return Format**: Node returns dictionary with proper state updates
+
 </NODE_IMPLEMENTATION_INSTRUCTIONS>
 
 <EDGE_IMPLEMENTATION_INSTRUCTIONS>
