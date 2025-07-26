@@ -1,24 +1,63 @@
 multi_pattern = """
-**When to use:** Complex tasks requiring multiple LLM operations.
+**When to use:** Tasks requiring multiple sequential LLM operations within a single node, where each step builds on previous outputs.
 
-**Example Implementation:**
+**Basic Node Structure:**
 ```python
-def content_enhancement_node(state: GraphState) -> dict:
-    # Reasoning: Multi-step enhancement requires sequential LLM processing    
-    raw_content = state.get("raw_content", "")
+def multi_step_node(state: GraphState) -> dict:
+    input_data = state.get("input_key", "")
     
-    # Step 1: Structure the content
-    structured_prompt = f"Structure this content logically: {{raw_content}}"
-    structured = llm.invoke(structured_prompt).content
+    # Step 1: First operation
+    result_a = llm.invoke(f"Operation A on: {{input_data}}").content
     
-    # Step 2: Enhance with examples
-    enhanced_prompt = f"Add relevant examples to: {{structured}}"
-    enhanced = llm.invoke(enhanced_prompt).content
+    # Step 2: Build on step 1
+    result_b = llm.invoke(f"Operation B using: {{result_a}}").content
     
-    return {{
-        "messages": [AIMessage(content= "Content enhanced with structure and examples")],
-        "enhanced_content": enhanced,
-        "processing_steps": ["structured", "enhanced"]
-    }}
+    # Step 3: Final processing
+    final = llm.invoke(f"Operation C combining: {{result_a}} and {{result_b}}").content
+    
+    return {
+        "messages": [AIMessage(content="Processing complete")],
+        "output": final,
+        "intermediates": {{"step1": result_a, "step2": result_b}}
+    }
 ```
+
+**Common Patterns:**
+
+**Sequential Processing:**
+*Use when:* Tasks need progressive refinement or building complexity
+*Examples:* Recipe development (ingredients → method → presentation), legal brief writing (facts → arguments → conclusion), product design (concept → prototype → specifications)
+```python
+# Each step enhances previous result
+step1 = llm.invoke(f"Process: {{input}}").content
+step2 = llm.invoke(f"Enhance: {{step1}}").content
+final = llm.invoke(f"Finalize: {{step2}}").content
+```
+
+**Multi-Aspect Analysis:**
+*Use when:* Need to examine different dimensions of the same input
+*Examples:* Market research (demographics + competitors + trends), medical diagnosis (symptoms + history + tests), financial assessment (revenue + costs + risks)
+```python
+# Analyze different aspects, then combine
+aspect_x = llm.invoke(f"Analyze X in: {{data}}").content
+aspect_y = llm.invoke(f"Analyze Y in: {{data}}").content
+combined = llm.invoke(f"Combine: {{aspect_x}} and {{aspect_y}}").content
+```
+
+**Validation Loop:**
+*Use when:* Output quality varies and needs iterative improvement
+*Examples:* Translation refinement (translate → check accuracy → improve), customer service responses (draft → tone check → personalize), mathematical proofs (solve → verify logic → correct errors)
+```python
+# Generate then validate/improve
+output = llm.invoke(f"Generate: {{input}}").content
+check = llm.invoke(f"Validate: {{output}}").content
+if "improve" in check.lower():
+    output = llm.invoke(f"Improve: {{output}} based on: {{check}}").content
+```
+
+**Key Guidelines:**
+- Use descriptive prompts that clearly define each step's purpose
+- Return structured state that downstream nodes can consume
+- Consider token limits when chaining operations
+- Pass relevant context from state to each prompt
 """
