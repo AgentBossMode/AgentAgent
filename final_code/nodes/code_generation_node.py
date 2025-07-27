@@ -7,7 +7,7 @@ from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 import uuid
 from pydantic import BaseModel, Field
-
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from final_code.prompt_lib.node_info.graph_state import graph_state
 from final_code.prompt_lib.node_info.node_structure import node_structure
 from final_code.prompt_lib.node_info.tool_calling import tool_calling
@@ -22,63 +22,22 @@ JSON_WRAPPER = """
 <JSON>                                              
 {json_schema}
 </JSON>
+
+<tools_info>
+{tools_info}
+</tools_info>
+
+<tools_code>
+{tools_code}
+</tools_code>
 """
 CODE_GEN_PROMPT = PromptTemplate.from_template("""
-You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user provided 'JSON' section. You must prioritize LLM-based implementations for relevant tasks.
+You are an expert Python programmer specializing in AI agent development via the Langgraph and Langchain SDK. 
+Your primary task is to generate compilable, logical, and complete Python code for a LangGraph state graph based on user provided 'JSON' section. You must prioritize LLM-based implementations for relevant tasks.
+You will also be provided a 'tools_code.py' which contains all the tools required for the langgraph agent.
+You will also be provided with information stating which tool is used by which node in the JSON.
+                                               
 You must follow the 'INSTRUCTIONS' section carefully to ensure the generated code meets all requirements.
-                                               
-<TOOL_BINDING_INSTRUCTIONS>
-1. From the toolset field in the json schema identify the tool schema which might look like the following:
-Example 1 (composio tool)
-{{
-          "name": "CRM_Tool",
-          "description": "Tool to interact with CRM systems to update lead information, log activities, and retrieve lead statuses.",
-          "is_composio_tool": true,
-          "composio_toolkit_name": "HubSpot",
-          "composio_tool_name": "DO_ABC_ACTIVITY",
-          "py_code": null,
-          "node_ids": [
-            "node_a",
-            "node_c"
-          ]
-}}
-
-Example 2 (non-comosio tool)
-{{
-          "name": "search_customer_database",
-          "description": "Tool to search customer database",
-          "is_composio_tool": false,
-          "composio_toolkit_name": "None",
-          "composio_tool_name": "None",
-          "py_code": "The python code to implement this tool ....",
-          "node_ids": [
-            "node_a",
-            "node_b"
-          ]
-}}
-                                               
-2. IF is_composio_tool is true (Example 1), THEN: 
-```python
-from composio import Composio
-from composio_langchain import LangchainProvider
-composio = Composio(provider=LangchainProvider())
-tools = composio.tools.get(user_id=os.environ(\"USER_ID\"), tools=[\"composio_tool_name\"])  # Replace with actual tool name (in this example DO_ABC_ACTIVITY)
-
-```                                               
-3. ELSE IF the tools corresponding to a node are non-composio tools  (Example 2) use the py_code field in the json schema:
-``` python
-                                               
-from langchain_core.tools import tool
-
-#py_code goes here. For example:
-@tool
-def search_customer_database(customer_id: str) -> str:
-    '''Search for customer information by ID.'''
-    # Direct implementation - no nested LLM calls
-    return f"Customer {{customer_id}} data retrieved"
-```
-4. Follow the above for all the different tools in the Tool List.
-</TOOL_BINDING_INSTRUCTIONS>
 
 <NODE_IMPLEMENTATION_INSTRUCTIONS>
 
@@ -89,6 +48,7 @@ def search_customer_database(customer_id: str) -> str:
                                             
 ## Pattern 1: Tool-calling react agent
 1. if the Id of the node is linked to any of the tool in the tools list, you will follow the below format:
+2. You will find the tool definition in the 'tools_code.py' provided by user
 {tool_calling}
 ## Pattern 2: LLM with Structured Output
 {struct_output}
@@ -103,7 +63,7 @@ def search_customer_database(customer_id: str) -> str:
 </EDGE_IMPLEMENTATION_INSTRUCTIONS>
 
 <CODE_GENERATION_INSTRUCTIONS>
-Generate a single, self-contained, and compilable Python script following this structure:
+Generate a compilable Python script following this structure:
 
 ### 1. Imports and Setup
 Below are some common langggraph imports, you need note necessarily add them, refer to them when writing the code.
@@ -118,7 +78,30 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import re
 import json
 ```
+                                               
+(IMPORTANT) Importing different tool definitions in 'tools_code.py' file.
+EXAMPLE:
+IF THE tools_code.py looks like:
+```python
+from composio import Composio
+from composio_langchain import LangchainProvider
+composio = Composio(provider=LangchainProvider())
 
+tool_name_1 = composio.tools.get(user_id=os.environ(\"USER_ID\"), tools=[\"RANDOM\"]) 
+tool_name_2 = composio.tools.get(user_id=os.environ(\"USER_ID\"), tools=[\"composio_tool_name_xyz\"])
+@tool
+def tool_name_3():
+    # method definition
+
+@tool
+def tool_name_3():
+    # method definition
+```
+                                               
+The import statement you will add to final output is (FOLLOW THIS STRICTLY)
+```python
+from tools_code import tool_name_1, tool_name_2, tool_name_3, tool_name_3 
+```                                          
 ### 2. Create llm definition
 ```python
 from langchain_openai import ChatOpenAI
@@ -131,16 +114,15 @@ checkpointer = InMemorySaver()
 app = workflow.compile(
     checkpointer=checkpointer
 )
-                        
+```                        
 
 DONOT ADD '__main__' block or any other boilerplate code, the code should be self-contained and compilable.
-```
+
 <QUALITY_CHECKLIST>
 Before finalizing your code, verify:
 - [ ] All imports are included and correct, no duplicate imports.
 - [ ] GraphState properly extends MessagesState 
 - [ ] LLM calls include proper error handling
-- [ ] Tools are self-contained (no nested LLM calls)
 - [ ] Structured output uses proper Pydantic models
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
@@ -150,6 +132,8 @@ Before finalizing your code, verify:
 - [ ] Assume any API keys(e.g., OPENAI_API_KEY, GOOGLE_API_KEY) are part of the environment variables and all environment variables are to be defined using the os.environs notation
 - [ ] **Every node's return dictionary includes a "messages" key.**
 - [ ] **The first LLM call/node appropriately utilizes `state["messages"]` as part of its input.**
+- [ ] The user provided code should not be copied to final_output, only the imports as mentioned in the CODE_GENERATION_INSTRUCTIONS section.
+
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>
@@ -169,8 +153,7 @@ If no external keys are needed, state: "No external API keys required for this i
 
                                                                                        
 <INSTRUCTIONS>
-1. First create the tools, refer to <TOOLBINDINGINSTRUCTIONS> section.
-2. Now start analyzing the nodes, refer to <NODE_IMPLEMENTATION_INSTRUCTIONS>
+1. start analyzing the nodes, refer to <NODE_IMPLEMENTATION_INSTRUCTIONS>
    - For the first LLM call or first node, ensure the LLM's input collects information contains `state["messages"]` to incorporate the conversation history.
 3. Now create the edges, refer to the <EDGE_IMPLEMENTATION_INSTRUCTIONS> section.
 4. Now to piece it all together follow <CODE_GENERATION_INSTRUCTIONS>
@@ -180,6 +163,16 @@ If no external keys are needed, state: "No external API keys required for this i
 
 Please return only complete and compilable langgraph python code
 """)
+
+def generate_code_gen_prompt():
+    return CODE_GEN_PROMPT.format(
+            graph_state=graph_state,
+            node_structure=node_structure,
+            tool_calling=tool_calling,
+            struct_output=struct_output,
+            interrupt_info=interrupt_info,
+            multi_pattern=multi_pattern,
+            edge_info=edge_info)
 
 class PythonCode(BaseModel):
     code: str = Field(description="complete and compilable langgraph python code")
@@ -195,32 +188,35 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
         emit_messages=False
     )
 
-    json_schema_final = state["json_schema"].model_dump_json(indent=2)
+    tools_info = ""
+    for tool in state["json_schema"].tools:
+        tools_info += f"tool_name: {tool.name}, tool_description: {tool.description}, is_composio_tool: {tool.is_composio_tool}, node_ids:[{", ".join(tool.node_ids)}]\n"
+    
+    json_schema_without_tools: JSONSchema = state["json_schema"] # Create a copy of json_schema_final
+    json_schema_without_tools.tools = [] # Clear the tools field in the copy
+    json_schema_final = json_schema_without_tools.model_dump_json(indent=2)
+
     #json_schema_final = json_schema_nutrition
     state["current_tab"] = "python"
     state["current_status"] = {"inProcess":True ,"status": "Generating Python code.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
-    response  = generate_python_code(modifiedConfig, json_schema_final)
+    response  = generate_python_code(modifiedConfig, json_schema_final, state["tools_code"], tools_info)
     state["current_status"] = {"inProcess":False ,"status": "Python code generated successfully."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     # Return the generated Python code and an AI message
     return {
         "python_code": response,
         "current_tab": "python"
-    }
+    } 
 
-def generate_python_code(modifiedConfig, json_schema_final):
+def generate_python_code(modifiedConfig, json_schema_final, tools_code, tools_info):
+    llm = get_model()
     response = llm.invoke([
-        SystemMessage(content=CODE_GEN_PROMPT.format(
-            graph_state=graph_state,
-            node_structure=node_structure,
-            tool_calling=tool_calling,
-            struct_output=struct_output,
-            interrupt_info=interrupt_info,
-            multi_pattern=multi_pattern,
-            edge_info=edge_info)),
+        SystemMessage(content=generate_code_gen_prompt()),
         HumanMessage(content=JSON_WRAPPER.format(
-            json_schema=json_schema_final))],
+            json_schema=json_schema_final,
+            tools_info=tools_info,
+            tools_code=tools_code))],
         config=modifiedConfig)
                                                                       
     return response.content

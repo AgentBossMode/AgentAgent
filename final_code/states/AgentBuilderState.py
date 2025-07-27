@@ -23,8 +23,9 @@ class AgentBuilderState(CopilotKitState):
     react_flow_created: bool = Field(default=False, description="Flag to indicate if the ReactFlow graph has been created")
     justification: str = Field(description="Justification for the agent_architecture")
     python_code: str = Field(description="The Python code generated for the agent")
+    tools_code: str = Field(description="The tools code generated for the agent")
+    mock_tools_code: str = Field(description="The mock tools code generated for the agent")
     use_cases: List[UseCaseAnalysis] = Field(default_factory=list,description="List of use cases with their names, descriptions, and dry runs.")
-    # the below are needed for the old flow
     arch_evaluation_reports: Annotated[list[ArchEvaluationWithUrl], operator.add]
     best_agent_architecture: ArchEvaluationWithUrl = Field(description="the best architecture selected")
     json_code: str = Field(description="Json of the code")
