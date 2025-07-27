@@ -49,10 +49,10 @@ combined = llm.invoke(f"Combine: {{aspect_x}} and {{aspect_y}}").content
 *Examples:* Translation refinement (translate → check accuracy → improve), customer service responses (draft → tone check → personalize), mathematical proofs (solve → verify logic → correct errors)
 ```python
 # Generate then validate/improve
-output = llm.invoke(f"Generate: {{input}}").content
-check = llm.invoke(f"Validate: {{output}}").content
-if "improve" in check.lower():
-    output = llm.invoke(f"Improve: {{output}} based on: {{check}}").content
+output = llm.with_structured_output(OutputSchema).invoke(f"Generate: {{input}}")
+validation = llm.with_structured_output(ValidationSchema).invoke(f"Validate: {{output}}")
+if validation.needs_improvement:
+    output = llm.with_structured_output(OutputSchema).invoke(f"Improve: {{output}} based on: {{validation}}")
 ```
 
 **Key Guidelines:**

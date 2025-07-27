@@ -1,5 +1,5 @@
 struct_output= """
-## When to use: Node needs to make decisions, classify inputs, or extract structured data
+**When to use:** Node needs to make decisions, classify inputs, or extract structured data.
 
 Use structured output **when the node must make a decision**, **classify inputs**, or **extract structured data** that will be used downstream in a type-safe way. This is particularly useful for tasks like:
 

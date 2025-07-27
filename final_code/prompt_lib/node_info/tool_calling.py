@@ -14,38 +14,7 @@ def node_name(state: GraphState) -> GraphState:
 
 ## Implementation Patterns
 
-### Pattern 1: Manual Tool Binding with ToolNode. To be used when not using create_react_agent in a node and we want tool calling capabilities
-```python
-# ❌ Incorrect - improper tool definition
-def analysis_node(state):
-    tool_call = some_tool(state["data"])  # Direct tool call without binding
-    
-# ✅ Correct - proper tool binding and invocation using toolNode
-from langgraph.graph import START, END, StateGraph, MessagesState
-from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_core.tools import tool
-
-@tool
-def some_tool(x: str) -> str:
-    '''doc string for the tool'''
-    ## this part will have the tool implementation
-
-def analysis_node(state: MessagesState):
-    model_with_tools = model.bind_tools([some_tool])
-    result = model_with_tools.invoke(state["messages"])
-    return {{"messages": [result]}}
-
-workflow = StateGraph(MessagesState)
-workflow.add_node("analysis_node", analysis_node)
-workflow.add_node("tools", ToolNode([some_tool]))
-
-workflow.add_edge(START, "analysis_node")
-workflow.add_conditional_edges("analysis_node", tools_condition, ["tools", END])
-workflow.add_edge("tools", "analysis_node")
-graph = workflow.compile()
-```
-
-### Pattern 2: Using create_react_agent (Simplified Approach)
+### Pattern: Using create_react_agent (Simplified Approach)
 ```python
 # ✅ Correct - using create_react_agent for automatic tool handling
 from langgraph.prebuilt import create_react_agent
@@ -103,5 +72,38 @@ def analysis_node(state):
     model_with_tools = model.bind_tools([analysis_tool])
     result = model_with_tools.invoke(state["messages"])
     return {{"messages": [result]}}
+```
+"""
+
+tool_node_pattern = """
+### Pattern 1: Manual Tool Binding with ToolNode. To be used when not using create_react_agent in a node and we want tool calling capabilities
+```python
+# ❌ Incorrect - improper tool definition
+def analysis_node(state):
+    tool_call = some_tool(state["data"])  # Direct tool call without binding
+    
+# ✅ Correct - proper tool binding and invocation using toolNode
+from langgraph.graph import START, END, StateGraph, MessagesState
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_core.tools import tool
+
+@tool
+def some_tool(x: str) -> str:
+    '''doc string for the tool'''
+    ## this part will have the tool implementation
+
+def analysis_node(state: MessagesState):
+    model_with_tools = model.bind_tools([some_tool])
+    result = model_with_tools.invoke(state["messages"])
+    return {{"messages": [result]}}
+
+workflow = StateGraph(MessagesState)
+workflow.add_node("analysis_node", analysis_node)
+workflow.add_node("tools", ToolNode([some_tool]))
+
+workflow.add_edge(START, "analysis_node")
+workflow.add_conditional_edges("analysis_node", tools_condition, ["tools", END])
+workflow.add_edge("tools", "analysis_node")
+graph = workflow.compile()
 ```
 """
