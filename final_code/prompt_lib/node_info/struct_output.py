@@ -1,6 +1,15 @@
 struct_output= """
 **When to use:** Node needs to make decisions, classify inputs, or extract structured data.
 
+Use structured output **when the node must make a decision**, **classify inputs**, or **extract structured data** that will be used downstream in a type-safe way. This is particularly useful for tasks like:
+
+- Routing logic (e.g., intent classification)
+- Validated data extraction (e.g., extracting fields from unstructured text)
+- Consistent schema enforcement for generation (e.g., generating JSON-compatible content)
+- Multi-part outputs (e.g., when an LLM needs to output multiple fields at once)
+
+Structured output should be **based on necessity**, not convenience. Use it **only when the structure will be explicitly used or validated by other components** in the graph. If the output will simply be displayed or passed along as text, structured output is often unnecessary.
+
 **Example Implementation:**
 <Example1>
 ```python
@@ -55,4 +64,96 @@ def GenerateJoke(state: JokeBuilderState):
     "messages": [AIMessage(content= "Joke generated")]}}
 ```
 </Example2>
+
+<Example3>
+Here is an example of how to use structured output with composite classes. In this example, we want the LLM to generate and fill up the pydantic class QnAOutput which has pydantic class answer as an attribute, based on user query. 
+``` python
+from typing import List
+from pydantic import BaseModel, Field
+
+class Answer(BaseModel):
+    text: str = Field(description="The body of the answer")
+    sources: List[str] = Field(description="URLs or citations supporting the answer")
+
+class QnAOutput(BaseModel):
+    question: str = Field(description="The original user question")
+    answer: Answer = Field(description="Structured answer and sources")
+    confidence: float = Field(description="Model confidence from 0 to 1")
+
+def answer_question_node(state: GraphState) -> GraphState:
+    # Justification: This output involves nested structure and will be consumed by a downstream renderer and filter.
+    structured_llm = llm.with_structured_output(QnAOutput)
+
+    question = state["messages"][-1].content
+    result = structured_llm.invoke(f"Answer the question: {{question}}")
+
+    return {{
+        "messages": [AIMessage(content=f"Answer: {{result.answer.text}}")],
+        "answer": result.answer.text,
+        "confidence": result.confidence
+    }}
+```
+</Example3>
+
+<Example4>
+Here is an example of how to use structured output with create_react_agent. In this example, we use a react agent to perform research about a competitor company and then extract structured insights from the agent's findings.
+```python
+from langchain_core.prompts import PromptTemplate
+from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from langchain_tavily import TavilySearch
+
+COMPETITOR_ANALYSIS_PROMPT = PromptTemplate.from_template('''
+## Task: Competitor Analysis Research
+You are tasked with researching a competitor company to gather business intelligence.
+
+### Instructions:
+1. **Company Overview**: Search for basic information about {{company_name}}
+2. **Recent News**: Find recent news or press releases about the company
+3. **Product/Service Analysis**: Identify their main products or services
+4. **Market Position**: Research their market position and key strengths
+5. **Financial Information**: Look for any publicly available financial data or funding news
+
+Provide a comprehensive analysis based on your research findings.
+''')
+
+class CompetitorInsightsReport(BaseModel):
+    company_name: str = Field(description="Name of the analyzed company")
+    industry: str = Field(description="Primary industry/sector the company operates in")
+    key_products: List[str] = Field(description="List of main products or services")
+    market_position: str = Field(description="Brief description of market position")
+    recent_developments: List[str] = Field(description="Recent news, funding, or developments")
+    estimated_revenue: Optional[str] = Field(description="Revenue information if available", default=None)
+    key_strengths: List[str] = Field(description="Identified competitive strengths")
+
+class CompetitorInsights(MessageState):
+    competitor_insights: CompetitorInsightsReport = Field(description="Competitor analysis report")
+
+def competitor_research_node(state: CompetitorInsights):
+    # Step 1: Use create_react_agent for comprehensive research
+    company_name = state["target_company"]
+    research_tools = [TavilySearch(max_results=5, search_depth="advanced")]
+    research_agent = create_react_agent(llm, tools=research_tools, name="competitor_researcher")
+    
+    research_response = research_agent.invoke({{
+        "messages": [HumanMessage(content=COMPETITOR_ANALYSIS_PROMPT.format(company_name=company_name))]
+    }})
+    
+    # Step 2: Use structured output to extract validated business insights
+    # Justification: Structured output ensures consistent data format for downstream business analysis and reporting
+    extraction_prompt = "Extract structured business insights from the research findings. Focus on actionable competitive intelligence."
+    insights_llm = llm.with_structured_output(CompetitorInsightsReport)
+    structured_insights = insights_llm.invoke([
+        SystemMessage(content=extraction_prompt),
+        HumanMessage(content=research_response["messages"][-1].content)
+    ])
+    
+    return {{
+        "messages": [AIMessage(content=f"Completed analysis of {{structured_insights.company_name}}")],
+        "competitor_insights": structured_insights,
+    }}
+```
+</Example4>
 """

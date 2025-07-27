@@ -10,6 +10,31 @@ class GraphState(MessagesState):
     \"\"\" 
     # Add domain-specific fields based on your analysis
     # Add other fields as required by your architecture
+```
+
+Please ensure that graph is compliant with the following:
+1. **Message state**: The graphState schema does not need to explicitly define "messags" when it is a subclass of MessageState
+
+Examples of incorrect vs correct ways of defining graph schema:
+# ❌ Incorrect - poorly defined state schema
+class GraphState(MessageState):
+    data: any  # Vague type definition
+
+# ❌ Incorrect - explicitly defines "messages" as part of state schema, when it already inherits "messages" attribute it's parent class: MessageState
+class GraphState(MessageState):
+    messages: str
+    results: Optional[List[dict]] = None
+    status: str = "initialized"
+
+# ✅ Correct - well-defined state schema
+```python
+from typing import List, Optional
+rom langgraph.graph import MessagesState
+
+class GraphState(MessageState):
+    query: str
+    results: Optional[List[dict]] = None
+    status: str = "initialized"
 """
 
 
@@ -20,14 +45,17 @@ node_state_management= """
 - [ ] **Required Fields**: Node handles missing or optional state fields appropriately
 
 **Example Fix:**
-```python
 # ❌ Incorrect - accessing undefined state property
+```python
 def research_node(state):
     query = state["search_query"]  # Property doesn't exist in state schema
+```
     
 # ✅ Correct - accessing properly defined state property
+```python
 def research_node(state):
     query = state["query"]  # Matches state schema definition
+```
 """
 
 graph_state_checklist = """
@@ -35,6 +63,7 @@ graph_state_checklist = """
 - [ ] **Entry Point**: Proper graph entry point definition
 - [ ] **Exit Conditions**: Clear termination conditions and END nodes
 - [ ] **Compilation**: Graph compiles without errors
+- [ ] **Message state**: The graphState schema does not need to explicitly define "messags" when it is a subclass of MessageState
 
 **Example Fix:**
 ```python
@@ -42,7 +71,14 @@ graph_state_checklist = """
 class GraphState(MessageState):
     data: any  # Vague type definition
 
+# ❌ Incorrect - explicitly defines "messages" as part of state schema, when it already inherits "messages" attribute it's parent class: MessageState
+class GraphState(MessageState):
+    messages: str
+    results: Optional[List[dict]] = None
+    status: str = "initialized"
+
 # ✅ Correct - well-defined state schema
+```python
 from typing import List, Optional
 rom langgraph.graph import MessagesState
 

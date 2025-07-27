@@ -10,7 +10,6 @@ from final_code.prompt_lib.edge_info.edge_info import edge_checklist, edge_fix_e
 from final_code.prompt_lib.node_info.graph_state import node_state_management, graph_state_checklist
 from final_code.prompt_lib.node_info.node_structure import function_structure
 from final_code.prompt_lib.node_info.tool_calling import tool_calling_checklist
-from final_code.prompt_lib.faulty_info.faulty_info import incorrect_example_needing_fixes
 
 ANALYSIS_COMPILE_PROMPT = """
 You are an expert LangGraph code refactoring AI. Your task is to analyze the provided Python code for a LangGraph implementation and automatically correct it using comprehensive checklists to ensure adherence to best practices.
@@ -64,8 +63,6 @@ For the overall graph structure, verify and correct:
 </input_code>
 ```
 
-## Output Format
-{incorrect_example_needing_fixes}
 ```
 
 Now analyze the provided code and apply all necessary corrections based on these checklists.

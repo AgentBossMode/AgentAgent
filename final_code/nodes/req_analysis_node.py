@@ -1,6 +1,6 @@
 from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
-from langchain_core.messages import SystemMessage
-from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
+from langchain_core.messages import SystemMessage, HumanMessage
+from langgraph.types import Command, interrupt
 from typing import Literal
 from final_code.llms.model_factory import get_model
 from langgraph.types import Command
@@ -41,8 +41,10 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     response = llm_with_tool.invoke([SystemMessage(content=REQ_ANALYSIS_PROMPT)] + state["messages"])
     
     if not response.tool_calls:
-        answer, new_messages = copilotkit_interrupt(message=response.content)
-        return Command(goto="requirement_analysis_node", update={"messages": new_messages})
+        answer = interrupt(response.content)
+        print(answer)
+        for key in answer.keys():
+            return Command(goto="requirement_analysis_node", update={"messages": [HumanMessage(content=answer[key])]}) 
         
     agent_instructions_args = response.tool_calls[0]["args"]
     agent_instructions = AgentInstructions(**agent_instructions_args)
