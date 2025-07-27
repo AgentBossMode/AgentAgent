@@ -11,8 +11,11 @@ from langchain_openai import ChatOpenAI
 from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from final_code.states.ReactCopilotKitState import ReactCopilotState
 from langchain_core.runnables import RunnableConfig
-from copilotkit.langgraph import copilotkit_customize_config
+from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_state
 from final_code.utils.create_react_agent_temp import create_react_agent
+from typing import List
+from final_code.states.NodesAndEdgesSchemas import Tool
+from pydantic import BaseModel, Field
 # from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 
@@ -100,26 +103,39 @@ def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig
         return Command(goto="human_review")
 
 def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent"]]:
-    answer: dict = interrupt(state["messages"][-1].content)
+    if config.__contains__("studio_mode"):
+        answer = interrupt(state["messages"][-1].content)
+    else:
+        answer, new_messages = copilotkit_interrupt(state["messages"][-1].content)
     print(answer)
     if isinstance(answer, str):
         return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer)]})
     for key in answer.keys():
         return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer[key])]}) 
 
+class ToolList(BaseModel):
+    tools: List[Tool] = Field(description="Updated list of tools")
 
-
-def compile_final_tool(state: AgentBuilderState, config: RunnableConfig):
+async def compile_final_tool(state: AgentBuilderState, config: RunnableConfig):
     modifiedConfig = copilotkit_customize_config(
         config,
         emit_messages=False, # if you want to disable message streaming 
         emit_tool_calls=False # if you want to disable tool call streaming 
     )
+
+    state["current_status"] = {"inProcess":True ,"status": "Saving the tools into the JSON schema"} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
     json_schema = state["json_schema"]
-    llm_with_struct = llm.with_structured_output(JSONSchema)
-    prompt= "User will provide the representation of the JSONSchema object, and also provide a list of functions, along with the python code that corresponds to the function. You are to generate a JSONSchema object with the updated information. "
-    updated_json_schema: JSONSchema = llm_with_struct.invoke([SystemMessage(content=prompt)] + [HumanMessage(content=json_schema.model_dump_json())] + [state["messages"][-1]], config = modifiedConfig)
-    return {"json_schema": updated_json_schema}
+    llm_with_struct = llm.with_structured_output(ToolList)
+    prompt= "User will provide the the existing list of tools, and also provide a list of functions, along with the python code that corresponds to the function. You are to generate a list of tools with the updated information. You will update the py_code field for tools identified, rest information remains the same."
+    tool_message = ""
+    for tool in json_schema.tools:
+        tool_message += f"{tool.model_dump_json()}"
+    updated_json_schema: ToolList = await  llm_with_struct.ainvoke([SystemMessage(content=prompt)] + [HumanMessage(content=tool_message)] + [state["messages"][-1]], config = modifiedConfig)
+    state["current_status"] = {"inProcess":True ,"status": "JSON schema updated"} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
+    json_schema.tools = updated_json_schema.tools
+    return {"json_schema": json_schema}
 
 
 

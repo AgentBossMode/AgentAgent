@@ -11,6 +11,7 @@ def add_toolset(state: AgentBuilderState):
     return {"tool_set": tool_set}
 
 def tool_interrupt(state: AgentBuilderState, config: RunnableConfig):
-    confirmation = interrupt({"type": "toolset_integration", "tool_list" : state["tool_set"]})
-    return
+    confirmation = interrupt({
+        "type": "toolset_integration",
+        "tool_list" : state["tool_set"]})
         

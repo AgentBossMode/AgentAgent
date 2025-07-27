@@ -6,7 +6,9 @@ from final_code.llms.model_factory import get_model
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from final_code.states.DryRunState import DryRunResults
 from langchain_core.prompts import ChatPromptTemplate
-
+from copilotkit.langgraph import copilotkit_emit_state 
+from copilotkit.langgraph import copilotkit_customize_config
+from langchain_core.runnables import RunnableConfig
 
 llm = get_model()
 
@@ -45,28 +47,40 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
     """)
 
 
-def json_node(state: AgentBuilderState):
+async def  json_node(state: AgentBuilderState, config: RunnableConfig):
     instructions: AgentInstructions = state["agent_instructions"]
     
     # Invoke LLM to generate code based on the detailed prompt and instructions
-
+    modifiedConfig = copilotkit_customize_config(
+        config,
+    )
+    state["current_status"] = {"inProcess":True ,"status": "Generating JSON schema.."} 
+    state["current_tab"] = "json"
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
     json_extraction_llm = llm.with_structured_output(JSONSchema)
     json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
         objective=instructions.objective,
         usecases=instructions.usecases,
         examples=instructions.examples
     ))])
+    state["current_status"] = {"inProcess":False ,"status": "JSON schema generated successfully"} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
     reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
     # Return the generated Python code and an AI message
     return {
         "json_schema": json_extracted_output,
         "json_dict": reactflow_json,
         "justification": json_extracted_output.justification,
-        "reactflow_json": reactflow_json
+        "reactflow_json": reactflow_json,
+        "react_flow_created": True,
+        "current_tab": "json"
     }
 
 
-def dry_run_node(state: AgentBuilderState):
+async def dry_run_node(state: AgentBuilderState, config: RunnableConfig):
+    modifiedConfig = copilotkit_customize_config(
+        config,
+    )
     json_schema: JSONSchema = state["json_schema"]
     SYS_PROMPT= ChatPromptTemplate.from_template("""
 Your job is to verify if the given langgraph workflow meets the specificied agent requirements.
@@ -93,14 +107,22 @@ If you find that the dry run fails in any of the cases, you should return the up
                                                  
 A dry run should be a step by step flow of the langgraph workflow, explaining how the nodes and edges interact to achieve the objectives, usecases and examples.
 """)
+    state["current_status"] = {"inProcess":True ,"status": "Analyzing the generated JSON schema against the functional requirements.."} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
+
     llm_with_struct = get_model().with_structured_output(DryRunResults)
 
     dry_run_analysis:DryRunResults = llm_with_struct.invoke([HumanMessage(content=SYS_PROMPT.format(json_schema=json_schema.model_dump_json(indent=2), agent_instructions=state["agent_instructions"].model_dump_json(indent=2)))])
+    state["current_status"] = {"inProcess":False ,"status": "Analysis completed, updating the JSON schema"} 
+    await copilotkit_emit_state(config=modifiedConfig, state=state)
+    
     if dry_run_analysis.updated_json_schema is not None:
         updated_json_schema: JSONSchema = dry_run_analysis.updated_json_schema
+        reactflow_json = dict_to_tree_positions(updated_json_schema.nodes, updated_json_schema.edges)
         return {
             "json_schema": updated_json_schema,
-            "use_cases": dry_run_analysis.use_cases
+            "use_cases": dry_run_analysis.use_cases,
+            "reactflow_json": reactflow_json,
             }
     else:
         return {"use_cases": dry_run_analysis.use_cases}
