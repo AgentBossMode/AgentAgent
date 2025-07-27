@@ -14,7 +14,6 @@ class GraphState(MessagesState):
 
 Please ensure that graph is compliant with the following:
 1. **Message state**: The graphState schema does not need to explicitly define "messags" when it is a subclass of MessageState
-2. **Exit Conditions**: Clear termination conditions and END nodes
 
 Examples of incorrect vs correct ways of defining graph schema:
 # ❌ Incorrect - poorly defined state schema

@@ -156,6 +156,7 @@ Before finalizing your code, verify:
 - [ ] Assume any API keys(e.g., OPENAI_API_KEY, GOOGLE_API_KEY) are part of the environment variables and all environment variables are to be defined using the os.environs notation
 - [ ] **Every node's return dictionary includes a "messages" key.**
 - [ ] **The first LLM call/node appropriately utilizes `state["messages"]` as part of its input.**
+- [ ] **Exit Conditions**: Clear termination conditions and END nodes
 </QUALITY_CHECKLIST>
 
 <KEY_EXTRACTION_INSTRUCTIONS>

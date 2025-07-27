@@ -181,7 +181,6 @@ else if : according to 'CommandOrConditionalEdge' conditional_edge should be use
 
 Ensure that all the generated nodes follow the checklist below:
 - [ ] **Node Dependencies**: Proper sequencing of nodes based on data dependencies
-- [ ] **Cycle Prevention**: No infinite loops in graph execution
 - [ ] **Error Recovery**: Graceful handling of node failures
 - [ ] **Memory Management**: Efficient state updates without unnecessary data retention
 """
