@@ -6,6 +6,10 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import interrupt
 from final_code.llms.model_factory import get_model
+from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableConfig
+from copilotkit.langgraph import copilotkit_customize_config
+
 workflow = StateGraph(AgentBuilderState)
 def get_composio_tools_node(state: AgentBuilderState):
     json_schema: JSONSchema = state["json_schema"]
@@ -37,8 +41,7 @@ def get_composio_tools_node(state: AgentBuilderState):
 
 
     json_schema.tools = tools_to_update
-    print(json_schema.tools)
-    return {"tool_set": tool_set, "json_schema": json_schema, "messages": "Composio tools selected successfully"}
+    return {"tool_set": tool_set, "json_schema": json_schema, "messages":[AIMessage(content="Composio tools selected successfully")] }
 
 
 async def process_non_composio_tools(state: AgentBuilderState):
@@ -50,10 +53,13 @@ async def process_non_composio_tools(state: AgentBuilderState):
             tool_list += f"tool_name: {tool.name}, tool_description: {tool.description}\n" 
     if tool_list == "":
         return 
-    updated_json_schema = await native_tool_builder.ainvoke({"messages": [HumanMessage(content=tool_list)], "json_schema": json_schema})
+    new_state = state
+    new_state["messages"] = [HumanMessage(content=tool_list)]
+    updated_json_schema = await native_tool_builder.ainvoke(new_state)
     return {"json_schema": updated_json_schema["json_schema"], "messages": updated_json_schema["messages"]}
 
-async def generate_tools_code(state: AgentBuilderState):
+async def generate_tools_code(state: AgentBuilderState, config: RunnableConfig):
+    customized_config = copilotkit_customize_config(config, emit_messages=False)
     TOOL_FILE_GENERATION_PROMPT = """
 Follow the tool_binding instructions, for the given json provided by the user.
 <TOOL_BINDING_INSTRUCTIONS>
@@ -115,8 +121,8 @@ def search_customer_database(customer_id: str) -> str:
     tools: List[Tool] = json_schema.tools
     tools_info_list = "\n".join(tool.model_dump_json() for tool in tools)
     llm = get_model()
-    tools_code = llm.invoke([SystemMessage(TOOL_FILE_GENERATION_PROMPT), HumanMessage(content=tools_info_list)])
-    return {"tools_code": tools_code.content}
+    tools_code = await llm.ainvoke([SystemMessage(TOOL_FILE_GENERATION_PROMPT), HumanMessage(content=tools_info_list)], config = customized_config)
+    return {"tools_code": tools_code.content, "messages": [AIMessage(content="Tools have been generated! Check tools.py for more info.")]}
 
 workflow.add_node("get_composio_tools", get_composio_tools_node)
 workflow.add_node("process_non_composio_tools", process_non_composio_tools)

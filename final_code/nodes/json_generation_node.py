@@ -43,9 +43,12 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
         a. If any node need real-time/external data
         b. if the node requires data from web or has something in it's functionality that can be made achieved through an API call
     2. If you see any nodes meeting these requirements: fill the tools field.
-    3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ are separate tools.
+    3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ SEARCH are separate tools.
 4. **Important Notes**
     1. **Always** specify how the initial user input enters the workflow (typically through the messages field). In doing so ensure that the user input is part of the 'message' state of the node in the graph that comes directly after 'START' node
+    2.  in the final graph there should be a 'start' node and an 'end' node
+    3. Remember to not start conditional routing from the 'start' node, the 'start' node should connect to xyz node from which then conditional routing will happen.                                                 
+    4. Check the tools, check if any tool is trying to do more than 1 activity, if yes you should try breaking it into unitary tools.    
     """)
 
 
@@ -55,16 +58,17 @@ async def  json_node(state: AgentBuilderState, config: RunnableConfig):
     # Invoke LLM to generate code based on the detailed prompt and instructions
     modifiedConfig = copilotkit_customize_config(
         config,
+        emit_messages=False
     )
     state["current_status"] = {"inProcess":True ,"status": "Generating JSON schema.."} 
-    state["current_tab"] = "json"
+    state["current_tab"] = "graph"
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     json_extraction_llm = llm.with_structured_output(JSONSchema)
     json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
         objective=instructions.objective,
         usecases=instructions.usecases,
         examples=instructions.examples
-    ))])
+    ))], config=modifiedConfig)
     state["current_status"] = {"inProcess":False ,"status": "JSON schema generated successfully"} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
@@ -74,14 +78,15 @@ async def  json_node(state: AgentBuilderState, config: RunnableConfig):
         "json_dict": reactflow_json,
         "justification": json_extracted_output.justification,
         "reactflow_json": reactflow_json,
-        "react_flow_created": True,
-        "current_tab": "json"
+        "current_tab": "graph",
+        "messages": [AIMessage(content="Workflow schema has been successfully generated!")]
     }
 
 
 async def dry_run_node(state: AgentBuilderState, config: RunnableConfig):
     modifiedConfig = copilotkit_customize_config(
         config,
+        emit_messages=False
     )
     json_schema: JSONSchema = state["json_schema"]
     SYS_PROMPT= ChatPromptTemplate.from_template("""
@@ -108,13 +113,18 @@ keys:
 If you find that the dry run fails in any of the cases, you should return the updated json_schema.
                                                  
 A dry run should be a step by step flow of the langgraph workflow, explaining how the nodes and edges interact to achieve the objectives, usecases and examples.
+                                                 
+Some important information:
+in the final response add a 'start' node and an 'end' node
+Remember to not start conditional routing from the 'start' node, the 'start' node should connect to xyz node from which then conditional routing will happen.                                                 
+Check the tools, check if any tool is trying to do more than 1 activity, if yes you should try breaking it into unitary tools.    
 """)
     state["current_status"] = {"inProcess":True ,"status": "Analyzing the generated JSON schema against the functional requirements.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
 
     llm_with_struct = get_model().with_structured_output(DryRunResults)
 
-    dry_run_analysis:DryRunResults = llm_with_struct.invoke([HumanMessage(content=SYS_PROMPT.format(json_schema=json_schema.model_dump_json(indent=2), agent_instructions=state["agent_instructions"].model_dump_json(indent=2)))])
+    dry_run_analysis:DryRunResults = llm_with_struct.invoke([HumanMessage(content=SYS_PROMPT.format(json_schema=json_schema.model_dump_json(indent=2), agent_instructions=state["agent_instructions"].model_dump_json(indent=2)))], config=modifiedConfig)
     state["current_status"] = {"inProcess":False ,"status": "Analysis completed, updating the JSON schema"} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     
@@ -125,6 +135,7 @@ A dry run should be a step by step flow of the langgraph workflow, explaining ho
             "json_schema": updated_json_schema,
             "use_cases": dry_run_analysis.use_cases,
             "reactflow_json": reactflow_json,
+            "messages": [AIMessage(content="Re-evaluated the workflow against the user requirements and modified the workflow accordingly.")]
             }
     else:
         return {"use_cases": dry_run_analysis.use_cases}

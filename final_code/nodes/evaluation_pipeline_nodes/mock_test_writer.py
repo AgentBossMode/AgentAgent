@@ -1,9 +1,12 @@
-from final_code.states.CodeEvalState import CodeEvalState
+from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.utils.create_react_agent_temp import create_react_agent
 from final_code.llms.model_factory import get_model, ModelName
 from final_code.nodes.tools.composio_info_tools import get_raw_tool_schema
-from langchain_core.messages import HumanMessage
-def mock_test_writer(state: CodeEvalState):
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.runnables import RunnableConfig
+from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_state
+from final_code.states.ReactCopilotKitState import ReactCopilotState
+async def mock_test_writer(state: AgentBuilderState, config: RunnableConfig):
     MOCK_TEST_WRITER = """
 You are provided the tools_code.py file
 <tools_code.py>
@@ -24,6 +27,7 @@ You are provided the tools_code.py file
             def tool_name(required input parameters as per the schema output from step 1)
                 \"\"\"Docstring including what the tool does, as per the get_raw_tool_schema output \"\"\"
                 logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
+        3. Add the @tool decorator.
     </COMPOSIOMOCKINSTRUCTION>
     b. In case of any method with @tool decorator --> Follow 'METHODMOCKINSTRUCTIONS' below:
     <METHODMOCKINSTRUCTIONS>
@@ -62,7 +66,7 @@ def SimulationEngineTool(N: int, width: int, height: int) -> dict:
     return {{"metrics": {{"equity": 0.7, "sustainability": 0.6, "economic_growth": 0.8}}, "intervention_needed": True}}
 </METHODMOCKINSTRUCTIONS>
 
-2. Remove any reference of Composio, related imports etc.
+2. Only relevant imports should remain, remove comosio imports, langchain import like tools are fine.
 </INSTRUCTIONS>
 
 <OUTPUT>
@@ -75,12 +79,20 @@ You are supposed to generate a compilable python file with the mock code.
     </OUTPUT_FORMAT>
 </OUTPUT>
 """
+    
+    customized_config= copilotkit_customize_config(config, emit_messages=False)
     app = create_react_agent(model= get_model(ModelName.GEMINI25FLASH),
     tools=[get_raw_tool_schema],
-    name="mock_test_writer")
-
+    name="mock_test_writer",
+    config_schema=customized_config,
+    state_schema=ReactCopilotState)
+    state["current_status"] = {"inProcess":True ,"status": "Writing a mock tools file.."}
+    await copilotkit_emit_state(state=state, config=customized_config)
     
-    final_response = app.invoke(
-        {"messages": [HumanMessage(content=MOCK_TEST_WRITER.format(tools_code=state["tools_code"]))]})
-    return {"mock_tools_code": final_response["messages"][-1].content}
+    new_state = state
+    new_state["messages"] = [HumanMessage(content=MOCK_TEST_WRITER.format(tools_code=state["tools_code"]))]
+    final_response = await app.ainvoke(input=new_state)
+    state["current_status"] = {"inProcess":False ,"status": "Mock tools generated."}
+    await copilotkit_emit_state(state=state, config=customized_config)
+    return {"mock_tools_code": final_response["messages"][-1].content, "messages": [AIMessage(content="Mock tools have been generated (mocked_tools.py)")]}
 

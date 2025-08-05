@@ -1,7 +1,7 @@
-from final_code.states.AgentBuilderState import AgentBuilderState, JSONSchema
+from final_code.states.AgentBuilderState import AgentBuilderState
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import interrupt
-
+from langchain_core.messages import AIMessage
 def add_toolset(state: AgentBuilderState):
         
     tool_set = set()
@@ -14,4 +14,6 @@ def tool_interrupt(state: AgentBuilderState, config: RunnableConfig):
     confirmation = interrupt({
         "type": "toolset_integration",
         "tool_list" : state["tool_set"]})
+    return {"messages": [AIMessage(content="Tools have been successfully authenticated.")]}
+    
         

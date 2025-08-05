@@ -15,7 +15,8 @@ from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_st
 from final_code.utils.create_react_agent_temp import create_react_agent
 from typing import List
 from final_code.states.NodesAndEdgesSchemas import Tool
-from pydantic import BaseModel, Field
+from final_code.states.ToolOptions import ToolOptions
+from pydantic import Field, BaseModel
 # from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 
@@ -40,113 +41,52 @@ tavily_search_tool = TavilySearch(
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
 
-TOOL_PROMPT = """
-You are a helpful assistant, user will provide you with a list of tool names along with their descriptions
-<RESPONSEFORMAT>
-For suggestions/final response follow this format:
+TOOL_PROMPT_2 = """
+You are a helpful assistant, user will provide you with a list of tool_name along with their tool_description
 
-tool_name_1:
-TOOL_LIBRARY_IDENTIFIED: tool_lib_1
-
-FUNCTION IMPLEMENTATION:
-
-```python
-def tool_name_1():
-    # Python code snippet based on the search results for tool_name_1, using tool_lib_1
-```
-
-URL: https://example.com/tool_lib_1 (this is the url from where you got the python code snippet for tool_name_1)
-JUSTIFICATION: Justification for choosing tool_lib_1 for tool_name_1
-
-tool_name_2:
-TOOL_LIBRARY_IDENTIFIED: tool_lib_2
-
-FUNCTION IMPLEMENTATION:
-
-```python
-def tool_name_2():
-    # Python code snippet based on the search results for tool_name_1, using tool_lib_2
-```
-
-URL: https://example.com/tool_lib_2 (this is the url from where you got the python code snippet for tool_name_2)
-JUSTIFICATION: Justification for choosing tool_lib_2 for tool_name_2
-
-</RESPONSEFORMAT>
-
-Follow the following instructions:
-1. Respond to the user with suggestions of a TOOL_LIBRARY_IDENTIFIED for each tool_name provided by the user. Refer to RESPONSEFORMAT section
-2. Based on response of human, Use TavilySearch to find the websites which would provide the python code sdk or code samples for the given tools, this should be called only if the user has provided the name of a proper tool/service/library.
-3. Use TavilyExtract with extract_depth advanced to extract the python code snippets from the search results.
-4. Donot respond with your own knowledge, if you were not able to find anything from TavilySearch or TavilyExtract, just respond with "No tools found for the task at hand, please proceed with the next step." for that particular tool_name.
-5. Get confirmation from the user about the tools you are going ahead with, use the RESPONSEFORMAT as reference.
-6. Now output the final user approved response, mentioning that the user has approved the response
+Instructions:
+1. For each tool_description, call the TavilySearch tool to find "API" or "python sdk" which would achieve the tool objective based on the description
+2. Once you identify some toolings, then use the TavilyExtract tool to find the python code snippets for those tooling which would help in implementation.
+3. Try to return more than 1 tooling for tool_name, if you dont find any, just write a custom implementation.
 """
 
-native_react_agent = create_react_agent(
+native_react_agent_2 = create_react_agent(
     model=llm,
-    prompt=TOOL_PROMPT,tools=[tavily_search_tool, tavily_extract_tool],
-    state_schema=ReactCopilotState)
-
-def select_tool_or_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["compile_final_tool", "human_review"]]:
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False, # if you want to disable message streaming 
-        emit_tool_calls=False # if you want to disable tool call streaming 
-    )
-    llm_with_struct = llm.with_structured_output(EndOrContinue)
-    should_continue: EndOrContinue = llm_with_struct.invoke(
-        [SystemMessage(content="You are supposed to analyze if the given AI message is asking user for any inputs or approvals, if yes then mark should_end_conversation as false, else if AI message says that the user has approved the suggestions, mark should_end_conversation as true"), state["messages"][-1]]
-        , config=modifiedConfig)
-    if should_continue.should_end_conversation:
-        return Command(goto="compile_final_tool")
-    else:
-        return Command(goto="human_review")
-
-def get_human_review(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["native_react_agent"]]:
-    if config.__contains__("studio_mode"):
-        answer = interrupt(state["messages"][-1].content)
-    else:
-        answer, new_messages = copilotkit_interrupt(state["messages"][-1].content)
-    print(answer)
-    if isinstance(answer, str):
-        return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer)]})
-    for key in answer.keys():
-        return Command(goto="native_react_agent", update={"messages": [HumanMessage(content=answer[key])]}) 
+    prompt = TOOL_PROMPT_2,
+    tools=[tavily_search_tool, tavily_extract_tool],
+    state_schema=ReactCopilotState,
+    response_format=ToolOptions)
 
 class ToolList(BaseModel):
     tools: List[Tool] = Field(description="Updated list of tools")
 
-async def compile_final_tool(state: AgentBuilderState, config: RunnableConfig):
+async def call_native_agents_to_get_tools(state: AgentBuilderState, config: RunnableConfig):
     modifiedConfig = copilotkit_customize_config(
         config,
-        emit_messages=False, # if you want to disable message streaming 
-        emit_tool_calls=False # if you want to disable tool call streaming 
-    )
+        emit_messages=False,
+          emit_tool_calls=True)
+    answer = await native_react_agent_2.ainvoke(input={"messages":state["messages"]}, config=modifiedConfig)
+    return {"tool_options": answer["structured_response"]}
 
-    state["current_status"] = {"inProcess":True ,"status": "Saving the tools into the JSON schema"} 
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
-    json_schema = state["json_schema"]
-    llm_with_struct = llm.with_structured_output(ToolList)
-    prompt= "User will provide the the existing list of tools, and also provide a list of functions, along with the python code that corresponds to the function. You are to generate a list of tools with the updated information. You will update the py_code field for tools identified, rest information remains the same."
-    tool_message = ""
-    for tool in json_schema.tools:
-        tool_message += f"{tool.model_dump_json()}"
-    updated_json_schema: ToolList = await  llm_with_struct.ainvoke([SystemMessage(content=prompt)] + [HumanMessage(content=tool_message)] + [state["messages"][-1]], config = modifiedConfig)
-    state["current_status"] = {"inProcess":True ,"status": "JSON schema updated"} 
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
-    json_schema.tools = updated_json_schema.tools
-    return {"json_schema": json_schema}
-
-
+async def get_user_input(state: AgentBuilderState, config: RunnableConfig):
+    answer:dict = interrupt({"type": "select_non_composio_tools", "payload": state["tool_options"]})
+    # {'Automated_FollowUp_Sender': 'Custom Python script using Gmail API, OpenAI API, AWS Lambda', 'Email_Engagement_Monitor': 'pytracking'}
+    for tool in state["json_schema"].tools:
+        if tool.name in answer.keys():
+            sdk_name = answer[tool.name]
+            for native_tool in state["tool_options"].native_tools:
+                if tool.name == native_tool.tool_name:
+                    for sdk in native_tool.tools_dentified:
+                        if sdk.tool_sdk == sdk_name:
+                                tool.py_code = sdk.code_implementation
+                                break
 
 native_tool_workflow = StateGraph(AgentBuilderState)
-native_tool_workflow.add_node("human_review", get_human_review)
-native_tool_workflow.add_node("native_react_agent", native_react_agent)
-native_tool_workflow.add_node("compile_final_tool", compile_final_tool)
-native_tool_workflow.add_node("select_tool_or_human_review", select_tool_or_human_review)
+native_tool_workflow.add_node("call_native_agents_to_get_tools", call_native_agents_to_get_tools)
+native_tool_workflow.add_node("get_user_input", get_user_input)
 
-native_tool_workflow.add_edge(START, "native_react_agent")
-native_tool_workflow.add_edge("native_react_agent", "select_tool_or_human_review")
-native_tool_workflow.add_edge("compile_final_tool", END)
+native_tool_workflow.add_edge(START, "call_native_agents_to_get_tools")
+native_tool_workflow.add_edge("call_native_agents_to_get_tools", "get_user_input")
+native_tool_workflow.add_edge("get_user_input", END)
 
 native_tool_builder = native_tool_workflow.compile()
