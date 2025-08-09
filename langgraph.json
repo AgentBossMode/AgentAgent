@@ -1,8 +1,6 @@
 {
     "graphs": {
-      "graph1" : "./app_one_prompt.py:app",
-      "graph3": "./final_code/nodes/native_tool_builder.py:native_tool_builder"
-      
+      "graph1" : "./app_one_prompt.py:app"      
     },
     "python_version": "3.13",
     "dependencies": [
