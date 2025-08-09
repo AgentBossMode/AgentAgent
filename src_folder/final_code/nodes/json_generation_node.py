@@ -1,6 +1,7 @@
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
-from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
+from final_code.states.AgentBuilderState import AgentBuilderState
+from final_code.states.ReqAnalysis import ReqAnalysis
 from final_code.utils.dict_to_reactflow import dict_to_tree_positions
 from final_code.llms.model_factory import get_model
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
@@ -16,15 +17,7 @@ JSON_GEN_PROMPT = PromptTemplate.from_template("""
 You are tasked with generating a JSONSchema object which represents a langgraph workflow, you've been given the below input:
 
 <INPUT>
-<OBJECTIVE>
-{objective}
-</OBJECTIVE>
-<USECASES>
-{usecases}
-</USECASES>
-<EXAMPLES>
-{examples}
-</EXAMPLES>
+{req_analysis}
 </INPUT>
 
 ---
@@ -53,7 +46,7 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
 
 
 async def  json_node(state: AgentBuilderState, config: RunnableConfig):
-    instructions: AgentInstructions = state["agent_instructions"]
+    req_analysis: ReqAnalysis = state["req_analysis"]
     
     # Invoke LLM to generate code based on the detailed prompt and instructions
     modifiedConfig = copilotkit_customize_config(
@@ -65,9 +58,7 @@ async def  json_node(state: AgentBuilderState, config: RunnableConfig):
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     json_extraction_llm = llm.with_structured_output(JSONSchema)
     json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
-        objective=instructions.objective,
-        usecases=instructions.usecases,
-        examples=instructions.examples
+        req_analysis=req_analysis
     ))], config=modifiedConfig)
     state["current_status"] = {"inProcess":False ,"status": "JSON schema generated successfully"} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
@@ -96,7 +87,7 @@ You are given the json of a workflow graph below.
 
 You are also provided with the the functional requirements of the agent, which includes the objectives, usecases and examples.
 <FUNCTIONAL_REQUIREMENTS>
-{agent_instructions}
+{req_analysis}
 </FUNCTIONAL_REQUIREMENTS>
                                                  
 1. Analyze the FUNCTIONAL_REQUIREMENTS and the JSON schema of the langgraph workflow.
@@ -124,7 +115,7 @@ Check the tools, check if any tool is trying to do more than 1 activity, if yes 
 
     llm_with_struct = get_model().with_structured_output(DryRunResults)
 
-    dry_run_analysis:DryRunResults = llm_with_struct.invoke([HumanMessage(content=SYS_PROMPT.format(json_schema=json_schema.model_dump_json(indent=2), agent_instructions=state["agent_instructions"].model_dump_json(indent=2)))], config=modifiedConfig)
+    dry_run_analysis:DryRunResults = llm_with_struct.invoke([HumanMessage(content=SYS_PROMPT.format(json_schema=json_schema.model_dump_json(indent=2), req_analysis= state["req_analysis"]))], config=modifiedConfig)
     state["current_status"] = {"inProcess":False ,"status": "Analysis completed, updating the JSON schema"} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     
