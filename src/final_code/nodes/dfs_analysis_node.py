@@ -1,15 +1,15 @@
 from langchain_core.messages import AIMessage, HumanMessage
-from src.final_code.llms.model_factory import get_model
-from src.final_code.states.AgentBuilderState import AgentBuilderState
+from final_code.llms.model_factory import get_model
+from final_code.states.AgentBuilderState import AgentBuilderState
 from pydantic import BaseModel, Field
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 llm = get_model()
 
-from src.final_code.prompt_lib.edge_info.edge_info import edge_checklist, edge_fix_example
-from src.final_code.prompt_lib.node_info.graph_state import node_state_management, graph_state_checklist
-from src.final_code.prompt_lib.node_info.node_structure import function_structure
-from src.final_code.prompt_lib.node_info.tool_calling import tool_calling_checklist
+from final_code.prompt_lib.edge_info.edge_info import edge_checklist, edge_fix_example
+from final_code.prompt_lib.node_info.graph_state import node_state_management, graph_state_checklist
+from final_code.prompt_lib.node_info.node_structure import function_structure
+from final_code.prompt_lib.node_info.tool_calling import tool_calling_checklist
 
 ANALYSIS_COMPILE_PROMPT = """
 You are an expert LangGraph code refactoring AI. Your task is to analyze the provided Python code for a LangGraph implementation and automatically correct it using comprehensive checklists to ensure adherence to best practices.

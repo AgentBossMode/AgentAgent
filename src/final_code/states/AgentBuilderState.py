@@ -1,9 +1,9 @@
 from typing import Annotated, List
 from pydantic import Field
-from src.final_code.states.AgentInstructions import AgentInstructions
-from src.final_code.states.ArchEvaluations import ArchEvaluationWithUrl
-from src.final_code.states.NodesAndEdgesSchemas import JSONSchema
-from src.final_code.states.DryRunState import UseCaseAnalysis
+from final_code.states.AgentInstructions import AgentInstructions
+from final_code.states.ArchEvaluations import ArchEvaluationWithUrl
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.DryRunState import UseCaseAnalysis
 from typing import List
 import operator
 from copilotkit import CopilotKitState

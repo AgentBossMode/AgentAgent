@@ -1,8 +1,8 @@
 import pytest
 from tests.test_utils.trading.py_code import py_code
 from tests.test_utils.trading.use_cases import use_cases
-from src.final_code.pydantic_models.UtGen import UtGeneration, TrajectoryUt, ResponseUt
-from src.final_code.nodes.evaluation_node import generate_ut_llm_call
+from final_code.pydantic_models.UtGen import UtGeneration, TrajectoryUt, ResponseUt
+from final_code.nodes.evaluation_node import generate_ut_llm_call
 from typing import List
 
 def test_pytest_writer():

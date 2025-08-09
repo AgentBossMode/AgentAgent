@@ -9,7 +9,7 @@ from openevals.code.base import (
     _create_base_code_evaluator,
 )
 from openevals.types import SimpleEvaluator, SimpleAsyncEvaluator
-from src.final_code.utils.create_e2b_exe_cmd import EXTRACT_IMPORT_NAMES
+from final_code.utils.create_e2b_exe_cmd import EXTRACT_IMPORT_NAMES
 from openevals.code.e2b.sandbox.files import (
     PYTHON_EVALUATOR_SEPARATOR,
 )

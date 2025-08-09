@@ -1,11 +1,11 @@
 from typing import List
-from src.final_code.states.AgentBuilderState import AgentBuilderState
-from src.final_code.states.NodesAndEdgesSchemas import JSONSchema, Tool
-from src.final_code.nodes.native_tool_builder import native_tool_builder
+from final_code.states.AgentBuilderState import AgentBuilderState
+from final_code.states.NodesAndEdgesSchemas import JSONSchema, Tool
+from final_code.nodes.native_tool_builder import native_tool_builder
 from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import interrupt
-from src.final_code.llms.model_factory import get_model
+from final_code.llms.model_factory import get_model
 workflow = StateGraph(AgentBuilderState)
 def get_composio_tools_node(state: AgentBuilderState):
     json_schema: JSONSchema = state["json_schema"]

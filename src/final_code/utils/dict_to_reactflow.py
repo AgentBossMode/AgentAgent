@@ -1,5 +1,5 @@
 import json
-from src.final_code.states.NodesAndEdgesSchemas import NodeSchema, EdgeSchema
+from final_code.states.NodesAndEdgesSchemas import NodeSchema, EdgeSchema
 from typing import List
 def dict_to_tree_positions(nodes: List[NodeSchema], edges: List[EdgeSchema]) -> str:
     reactflow = {"nodes": [], "edges": []}

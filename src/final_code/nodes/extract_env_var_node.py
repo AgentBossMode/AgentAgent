@@ -1,8 +1,8 @@
 from langchain_core.prompts import PromptTemplate
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from src.final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
-from src.final_code.llms.model_factory import get_model
+from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
+from final_code.llms.model_factory import get_model
 from langchain_tavily import TavilySearch, TavilyExtract
 from pydantic import BaseModel, Field
 from typing import List 

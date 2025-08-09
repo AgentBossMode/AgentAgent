@@ -1,4 +1,4 @@
-from src.final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from langgraph.graph import MessagesState
 from pydantic import Field
 from copilotkit import CopilotKitState

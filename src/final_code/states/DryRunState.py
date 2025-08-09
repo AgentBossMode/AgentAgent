@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List
-from src.final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
 
 class UseCaseAnalysis(BaseModel):
     name: str = Field(description="Name of the use case")

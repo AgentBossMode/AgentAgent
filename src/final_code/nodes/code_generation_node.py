@@ -1,20 +1,20 @@
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
-from src.final_code.states.AgentBuilderState import AgentBuilderState
-from src.final_code.llms.model_factory import get_model
+from final_code.states.AgentBuilderState import AgentBuilderState
+from final_code.llms.model_factory import get_model
 # from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 import uuid
 from pydantic import BaseModel, Field
-from src.final_code.states.NodesAndEdgesSchemas import JSONSchema
-from src.final_code.prompt_lib.node_info.graph_state import graph_state
-from src.final_code.prompt_lib.node_info.node_structure import node_structure
-from src.final_code.prompt_lib.node_info.tool_calling import tool_calling
-from src.final_code.prompt_lib.node_info.struct_output import struct_output
-from src.final_code.prompt_lib.node_info.interrupt_info import interrupt_info
-from src.final_code.prompt_lib.node_info.multi_pattern import multi_pattern
-from src.final_code.prompt_lib.edge_info.edge_info import edge_info
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.prompt_lib.node_info.graph_state import graph_state
+from final_code.prompt_lib.node_info.node_structure import node_structure
+from final_code.prompt_lib.node_info.tool_calling import tool_calling
+from final_code.prompt_lib.node_info.struct_output import struct_output
+from final_code.prompt_lib.node_info.interrupt_info import interrupt_info
+from final_code.prompt_lib.node_info.multi_pattern import multi_pattern
+from final_code.prompt_lib.edge_info.edge_info import edge_info
 from copilotkit.langgraph import copilotkit_emit_state 
 llm = get_model()
 

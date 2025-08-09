@@ -3,10 +3,10 @@ from typing import List
 from langchain_core.messages import HumanMessage, AIMessage
 from pydantic import BaseModel, Field 
 from langgraph.graph import MessagesState,StateGraph, START, END
-from src.final_code.utils.fetch_docs import fetch_documents
-from src.final_code.llms.model_factory import get_model
+from final_code.utils.fetch_docs import fetch_documents
+from final_code.llms.model_factory import get_model
 from langgraph.types import interrupt
-from src.final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from copilotkit import CopilotKitState
 
 # --- LLM Initialization ---

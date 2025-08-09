@@ -1,14 +1,14 @@
-from src.final_code.states.CodeEvalState import CodeEvalState
-from src.final_code.utils.create_e2b_exe_cmd import create_e2b_execution_command
+from final_code.states.CodeEvalState import CodeEvalState
+from final_code.utils.create_e2b_exe_cmd import create_e2b_execution_command
 import os 
 from e2b_code_interpreter import Sandbox
 from pydantic import BaseModel, Field
 from langgraph.types import Command
 from typing import Literal
-from src.final_code.llms.model_factory import get_model
+from final_code.llms.model_factory import get_model
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END
-from src.final_code.nodes.code_generation_node import generate_code_gen_prompt
+from final_code.nodes.code_generation_node import generate_code_gen_prompt
 
 
 def get_file_info_prompt(state: CodeEvalState):

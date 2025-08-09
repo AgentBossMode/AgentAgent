@@ -1,5 +1,5 @@
-from src.final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
-from src.final_code.llms.model_factory import get_model
+from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
+from final_code.llms.model_factory import get_model
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.types import Command, interrupt

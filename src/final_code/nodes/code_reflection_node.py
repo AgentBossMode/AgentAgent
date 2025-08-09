@@ -4,7 +4,7 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.types import Command
 from typing import Literal
-from src.final_code.llms.model_factory import get_model, ModelName
+from final_code.llms.model_factory import get_model, ModelName
 from pydantic import Field
 import os
 

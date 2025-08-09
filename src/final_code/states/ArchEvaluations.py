@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import NamedTuple
-from src.final_code.states.AgentBuilderState import AgentInstructions
+from final_code.states.AgentBuilderState import AgentInstructions
 from langgraph.graph import MessagesState
 from copilotkit import CopilotKitState
 class ArchEvaluationReport(BaseModel):

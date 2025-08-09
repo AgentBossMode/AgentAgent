@@ -1,6 +1,6 @@
 from copilotkit import CopilotKitState
 from typing import List
-from src.final_code.states.DryRunState import UseCaseAnalysis
+from final_code.states.DryRunState import UseCaseAnalysis
 from pydantic import Field
 from typing import Literal
 

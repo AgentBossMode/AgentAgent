@@ -1,8 +1,8 @@
 import pytest
-from src.final_code.nodes.code_generation_node import generate_python_code
+from final_code.nodes.code_generation_node import generate_python_code
 from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
 from tests.test_utils.trading.json_schema_trading import json_schema_trading
-from src.final_code.nodes.code_generation_node import PythonCode
+from final_code.nodes.code_generation_node import PythonCode
 import ast
 
 class ClassVisitor(ast.NodeVisitor):
