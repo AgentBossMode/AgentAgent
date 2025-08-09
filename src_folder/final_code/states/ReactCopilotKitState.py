@@ -1,4 +1,4 @@
-from copilotkit import CopilotKitState
-
-class ReactCopilotState(CopilotKitState):
+from final_code.states.BaseCopilotRenderingState import BaseCopilotRenderingState
+class ReactCopilotState(BaseCopilotRenderingState):
     remaining_steps: int
+    structured_response: any

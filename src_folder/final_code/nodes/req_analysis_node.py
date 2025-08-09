@@ -8,7 +8,7 @@ from langgraph.types import Command
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
-
+from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 llm = get_model()
 
 REQ_ANALYSIS_PROMPT = """Your job is to get information from a user about what kind of agent they wish to build.
@@ -32,6 +32,7 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     """
     modifiedConfig = copilotkit_customize_config(
         config,
+        emit_messages=False
     )
     state["current_status"] = {"inProcess":True ,"status": "Analyzing user requirements for agent building.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
@@ -39,13 +40,11 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     llm_with_tool = llm.bind_tools([AgentInstructions]) # Bind the AgentInstructions Pydantic model as a tool
     
     # Invoke the LLM with the system prompt and current message history
-    response = llm_with_tool.invoke([SystemMessage(content=REQ_ANALYSIS_PROMPT)] + state["messages"])
+    response = llm_with_tool.invoke([SystemMessage(content=REQ_ANALYSIS_PROMPT)] + state["messages"],config=modifiedConfig)
     
     if not response.tool_calls:
-        answer = interrupt(response.content)
-        print(answer)
-        for key in answer.keys():
-            return Command(goto="requirement_analysis_node", update={"messages": [HumanMessage(content=answer[key])]}) 
+        answer, responses = copilotkit_interrupt(response.content)        
+        return Command(goto="requirement_analysis_node", update={"messages": [HumanMessage(content=answer)]}) 
         
     agent_instructions_args = response.tool_calls[0]["args"]
     agent_instructions = AgentInstructions(**agent_instructions_args)

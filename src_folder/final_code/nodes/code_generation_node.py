@@ -1,5 +1,5 @@
 from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
 # from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
@@ -207,7 +207,7 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
     json_schema_final = json_schema_without_tools.model_dump_json(indent=2)
 
     #json_schema_final = json_schema_nutrition
-    state["current_tab"] = "python"
+    state["current_tab"] = "code"
     state["current_status"] = {"inProcess":True ,"status": "Generating Python code.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     response  = generate_python_code(modifiedConfig, json_schema_final, state["tools_code"], tools_info)
@@ -216,7 +216,7 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
     # Return the generated Python code and an AI message
     return {
         "python_code": response,
-        "current_tab": "python"
+        "messages":[AIMessage(content="Generated the agent code, check main.py in the code editor.")]
     } 
 
 def generate_python_code(modifiedConfig, json_schema_final, tools_code, tools_info):
