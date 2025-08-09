@@ -1,8 +1,8 @@
 from e2b_code_interpreter import Sandbox, AsyncSandbox
 from  final_code.utils.custom_multifile_e2b_evaluator import custom_multi_file_e2b_evaluator
 from langgraph.graph import StateGraph, MessagesState, START, END
-from final_code.states.AgentBuilderState import AgentBuilderState
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from final_code.states.BaseCopilotRenderingState import BaseCopilotRenderingState
 from langgraph.types import Command
 from typing import Literal
 from final_code.llms.model_factory import get_model, ModelName
@@ -41,7 +41,7 @@ TOOLS_CODE_SNIPPET="""
 {tools_code}
 </tools_code.py>
 """
-async def code_rectification_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["run_reflection", "__end__"]]:
+async def code_rectification_node(state: BaseCopilotRenderingState, config: RunnableConfig) -> Command[Literal["run_reflection", "__end__"]]:
         modified_config = copilotkit_customize_config(config, emit_messages=False)
         llm = get_model(ModelName.GEMINI25FLASH)
         state["current_status"] = {"inProcess":True ,"status": "Analyzing errors and making fixes."} 
@@ -53,7 +53,7 @@ async def code_rectification_node(state: AgentBuilderState, config: RunnableConf
             "python_code": result.content
         }  )
         
-async def run_reflection(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["__end__", "code_rectification_node"]]:
+async def run_reflection(state: BaseCopilotRenderingState, config: RunnableConfig) -> Command[Literal["__end__", "code_rectification_node"]]:
         sandbox = await AsyncSandbox.create("OpenEvalsPython", timeout=60,envs={"OPENAI_API_KEY": os.environ["OPENAI_API_KEY"], "COMPOSIO_API_KEY" : os.environ["COMPOSIO_API_KEY"]})
         evaluator = custom_multi_file_e2b_evaluator(
             sandbox=sandbox,
@@ -88,7 +88,7 @@ async def run_reflection(state: AgentBuilderState, config: RunnableConfig) -> Co
                         "Try to fix it. Make sure to regenerate the entire code snippet. "
             })
 
-workflow = StateGraph(AgentBuilderState)
+workflow = StateGraph(BaseCopilotRenderingState)
 workflow.add_node("code_rectification_node", code_rectification_node)
 workflow.add_node("run_reflection", run_reflection)
 
