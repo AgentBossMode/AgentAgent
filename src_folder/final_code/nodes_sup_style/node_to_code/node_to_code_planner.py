@@ -2,8 +2,8 @@ from typing import List
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 
-from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
-from final_code.llms.model_factory import get_model
+from src_folder.final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+from src_folder.final_code.llms.model_factory import get_model
 
 llm = get_model()
 
