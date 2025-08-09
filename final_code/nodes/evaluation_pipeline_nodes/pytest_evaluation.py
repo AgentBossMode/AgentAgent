@@ -53,7 +53,7 @@ def get_context_info_prompt(state: AgentBuilderState):
 """
     return CONTEXT_WINDOW.format(issue_type=state["issue_type"], file_that_needs_fixes=state["file_that_needs_fixes"], fix_needed=state["fix_needed"])
 
-async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["__end__"]]:
+async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["evaluation_supervisor"]]:
     pytest_out = []
     modified_config = copilotkit_customize_config(config, emit_messages=False)
 
@@ -92,7 +92,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
     except Exception as e:
         print(e)
 
-    return Command(update={"current_tab": "console", "console_logs": pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "__end__")
+    return Command(update={"current_tab": "console", "console_logs": pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "evaluation_supervisor")
 
 
 async def syntax_and_runtime_issues_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner"]]:
