@@ -54,5 +54,5 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["src"]          # only look inside src/
+where = ["src_folder"]          # only look inside src/
 include = ["final_code*"] # only include final_code package and subpackages

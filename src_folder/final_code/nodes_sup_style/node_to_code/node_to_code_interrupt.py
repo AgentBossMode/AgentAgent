@@ -1,8 +1,8 @@
 from langgraph.types import Command
 from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage
-from src.final_code.llms.model_factory import get_model
-from src.final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+from final_code.llms.model_factory import get_model
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
 
 
 llm = get_model()

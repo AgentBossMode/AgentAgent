@@ -5,9 +5,9 @@ from langgraph.types import Send
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from src.final_code.llms.model_factory import get_model
-from src.final_code.nodes_sup_style.edge_to_code.edge_to_code import edge_builder_agent
-from src.final_code.nodes_sup_style.node_to_code.node_to_code import node_to_code_app
+from final_code.llms.model_factory import get_model
+from final_code.nodes_sup_style.edge_to_code.edge_to_code import edge_builder_agent
+from final_code.nodes_sup_style.node_to_code.node_to_code import node_to_code_app
 import uuid
 import json
 

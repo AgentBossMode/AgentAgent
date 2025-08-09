@@ -1,9 +1,9 @@
 from pydantic import Field, BaseModel
 from typing import List, Tuple, Union
 from langchain_core.prompts import ChatPromptTemplate
-from src.final_code.llms.model_factory import get_model
-from src.final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
-from src.final_code.nodes_sup_style.node_to_code.node_to_code_planner import node_building_strategies, Plan
+from final_code.llms.model_factory import get_model
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+from final_code.nodes_sup_style.node_to_code.node_to_code_planner import node_building_strategies, Plan
 
 llm = get_model()
 

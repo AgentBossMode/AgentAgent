@@ -1,10 +1,10 @@
 {
     "graphs": {
-      "graph1" : "./src/app_one_prompt.py:app"      
+      "graph1" : "./src_folder/app_one_prompt.py:app"      
     },
     "python_version": "3.13",
     "dependencies": [
-      "./src"
+      "./src_folder"
     ],
     "env": ".env"
   }

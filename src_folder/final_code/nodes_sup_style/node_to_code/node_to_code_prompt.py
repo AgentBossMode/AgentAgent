@@ -4,9 +4,9 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.types import Command
 from typing import Literal
-from src.final_code.llms.model_factory import get_model
-from src.final_code.utils.dependency_setup import get_embeddings, get_vector_store
-from src.final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
+from final_code.llms.model_factory import get_model
+from final_code.utils.dependency_setup import get_embeddings, get_vector_store
+from final_code.nodes_sup_style.node_to_code.node_to_code_base import NodeBuilderState
 
 embeddings = get_embeddings()
 vector_store = get_vector_store(embeddings, "langstuffindex")
