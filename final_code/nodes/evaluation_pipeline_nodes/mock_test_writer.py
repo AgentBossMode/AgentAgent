@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_state
 from final_code.states.ReactCopilotKitState import ReactCopilotState
+from final_code.prompt_lib.node_info.struct_output import struct_output
 async def mock_test_writer(state: AgentBuilderState, config: RunnableConfig):
     MOCK_TEST_WRITER = """
 You are provided the tools_code.py file
@@ -15,6 +16,7 @@ You are provided the tools_code.py file
 
 <INSTRUCTIONS>
 1. You will first write mock code stubs for composio tools and any method with the @tool decorator in <tools_code.py> section.
+2. Identify the type of tool --> and identify docstring accordingly:
     a. In case of a composio tool --> Follow 'COMPOSIOMOCKINSTRUCTIONS' below:
     <COMPOSIOMOCKINSTRUCTION>
         Let's say you see the following composio tool being initialized
@@ -23,50 +25,22 @@ You are provided the tools_code.py file
     
         Instruction:
         1. call 'get_raw_tool_schema' tool, this will fetch information about the TOOL_NAME_ABC
-        2. Now using this schema write a python function as follows:
+        2. Now using this schema write a python function declaration as follows:
             def tool_name(required input parameters as per the schema output from step 1)
                 \"\"\"Docstring including what the tool does, as per the get_raw_tool_schema output \"\"\"
-                logic that mocks the tasks of the tool and returns output as per the schema output from step 1 ...
-        3. Add the @tool decorator.
     </COMPOSIOMOCKINSTRUCTION>
     b. In case of any method with @tool decorator --> Follow 'METHODMOCKINSTRUCTIONS' below:
     <METHODMOCKINSTRUCTIONS>
         Read the method docstring, analyze the code, and generate the code again but with mock implementation.
         Remove any related imports, any initializations done to support the tool etc.
-
-Example:
-Lets say tool looks like this:    
-from import1 import module1
-
-@tool
-def SimulationEngineTool(N: int, width: int, height: int) -> dict:
-    class RandomClass(Agent):
-        def __init__(self, unique_id, model):
-            super().__init__(unique_id, model)
-
-        def step(self):
-            pass  # Define agent behavior here
-
-    class RandomModel(module1):
-        # some model implementation
-
-        def step(self):
-            self.datacollector.collect(self)
-            self.schedule.step()
-    
-    # Simulate a basic run and return dummy results for demonstration
-    model = RandomModel(N, width, height)
-    # some invocation to this model and returning the results
-    
-    
-Mocked output:
-@tool
-def SimulationEngineTool(N: int, width: int, height: int) -> dict:
-    # In a real scenario, this would return actual simulation data
-    return {{"metrics": {{"equity": 0.7, "sustainability": 0.6, "economic_growth": 0.8}}, "intervention_needed": True}}
-</METHODMOCKINSTRUCTIONS>
-
-2. Only relevant imports should remain, remove comosio imports, langchain import like tools are fine.
+    </METHODMOCKINSTRUCTIONS>
+3. now use llm.with_structured_output to return mock data, refer to STRUCT_OUTPUT section.
+4. Only relevant imports should remain, remove comosio imports, langchain import like tools are fine.
+5. Top of file add 
+```python 
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+```
 </INSTRUCTIONS>
 
 <OUTPUT>
@@ -78,8 +52,62 @@ You are supposed to generate a compilable python file with the mock code.
         - No unnecessary imports, if they are not used in the code
     </OUTPUT_FORMAT>
 </OUTPUT>
-"""
+
+<EXAMPLE>
+MOCK_TOOL_PROMPT = \"\"\"
+You are a helpful assistant that generates mock data for tool outputs.
+Given the tool's purpose and expected output, generate a realistic mock response.
+\"\"\"
+
+INPUT_PROMPT = \"\"\"
+Tool Docstring: {{description}}
+Input: {{input}}
+Generate a mock output for this tool.
+\"\"\"
+
+@tool
+def Web_Scraper_Read(url: str):
+    \"\"\"
+    Extracts specific data points like company name, salary, skills, and job type from various job posting websites.
+
+    Args:
+        url (str): The URL of the job posting to scrape.
+
+    Returns:
+        dict: A dictionary containing extracted job details such as job_title, company, location, salary_range, required_skills, and posting_date.
+    \"\"\"
+    class JobDetails(BaseModel):
+        job_title: str = Field(description="The full title of the job position")
+        company: str = Field(description="Name of the hiring company")
+        location: str = Field(description="Job location, including remote options")
+        salary_range: Optional[str] = Field(description="Salary range if provided")
+        required_skills: List[str] = Field(description="List of required skills and technologies")
+        posting_date: str = Field(description="When the job was posted")
+
+    input_str = f"url: {{url}}"
+    description = \"\"\"
+    Extracts specific data points like company name, salary, skills, and job type from various job posting websites.
+
+     Args:
+        url (str): The URL of the job posting to scrape.
+
+    Returns:
+    Job details such as job_title, company, location, salary_range, required_skills, and posting_date.
+    \"\"\"
     
+    result = llm.with_structured_output(JobDetails).invoke(
+        [
+            SystemMessage(content=MOCK_TOOL_PROMPT),
+            HumanMessage(content=INPUT_PROMPT.format(input=input_str, description=description))
+        ]
+    )
+    return result.model_dump_json(indent=2)
+</EXAMPLE
+""" + f"""
+<STRUCT_OUTPUT>
+{struct_output}
+</STRUCT_OUTPUT>
+"""
     customized_config= copilotkit_customize_config(config, emit_messages=False)
     app = create_react_agent(model= get_model(ModelName.GEMINI25FLASH),
     tools=[get_raw_tool_schema],
@@ -88,7 +116,6 @@ You are supposed to generate a compilable python file with the mock code.
     state_schema=ReactCopilotState)
     state["current_status"] = {"inProcess":True ,"status": "Writing a mock tools file.."}
     await copilotkit_emit_state(state=state, config=customized_config)
-    
     new_state = state
     new_state["messages"] = [HumanMessage(content=MOCK_TEST_WRITER.format(tools_code=state["tools_code"]))]
     final_response = await app.ainvoke(input=new_state)

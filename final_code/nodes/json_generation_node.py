@@ -37,6 +37,7 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
         b. if the node requires data from web or has something in it's functionality that can be made achieved through an API call
     2. If you see any nodes meeting these requirements: fill the tools field.
     3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ SEARCH are separate tools.
+    4. If your tool name is DoXAndDoY, you are wrong, DoX is 1 tool and DoY is another tool, donot make tool on the literal definitions, be wise
 4. **Important Notes**
     1. **Always** specify how the initial user input enters the workflow (typically through the messages field). In doing so ensure that the user input is part of the 'message' state of the node in the graph that comes directly after 'START' node
     2.  in the final graph there should be a 'start' node and an 'end' node
@@ -51,8 +52,7 @@ async def  json_node(state: AgentBuilderState, config: RunnableConfig):
     # Invoke LLM to generate code based on the detailed prompt and instructions
     modifiedConfig = copilotkit_customize_config(
         config,
-        emit_messages=False
-    )
+        emit_messages=False)
     state["current_status"] = {"inProcess":True ,"status": "Generating JSON schema.."} 
     state["current_tab"] = "graph"
     await copilotkit_emit_state(config=modifiedConfig, state=state)
