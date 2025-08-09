@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "agentagent"
 version = "0.1.0"
@@ -39,6 +43,7 @@ dependencies = [
     "pytest>=8.3.5",
     "pytest-xdist>=3.8.0",
     "requests>=2.32.3",
+    "setuptools>=80.9.0",
     "unidiff>=0.7.5",
 ]
 
@@ -47,3 +52,7 @@ dependencies = [
 dev = [
     "langgraph-cli[inmem]>=0.1.81",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]          # only look inside src/
+include = ["final_code*"] # only include final_code package and subpackages
