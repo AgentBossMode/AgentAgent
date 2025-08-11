@@ -6,6 +6,7 @@ from final_code.states.DryRunState import UseCaseAnalysis
 from typing import List
 from final_code.states.BaseCopilotRenderingState import BaseCopilotRenderingState
 from final_code.states.ToolOptions import ToolOptions
+from final_code.pydantic_models.UtGen import UtGeneration
 
 
 class AgentBuilderState(BaseCopilotRenderingState):
@@ -26,3 +27,5 @@ class AgentBuilderState(BaseCopilotRenderingState):
     issue_type: Literal["syntax_error", "runtime_error", "assertion_fail"] = Field(description="identify the type of issue")
     file_that_needs_fixes: Literal["python_code", "mock_tools_code", "pytest_code"] = Field(description="identify the file to fix")
     fix_needed: str = Field(description="detailed explanation of fixes needed, in a diff format")
+    attempts: int = Field(default=5, description="Number of attempts made to fix the issue")
+    utGeneration: UtGeneration = Field(description="The unit test generation object containing final_response_uts and trajectory_uts")

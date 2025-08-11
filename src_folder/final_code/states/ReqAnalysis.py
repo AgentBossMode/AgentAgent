@@ -58,11 +58,11 @@ class DryRun(BaseModel):
 
 
 class ReqAnalysis(BaseModel):
-    purposes:  List[Purpose]= Field(description="Provide 5 suggestions")
-    capabilities: List[Capabiity] = Field(description="Provide 5 suggestions")
-    knowledge_sources: List[KnowledgeAndDataRequirements] = Field(description="Provide 5 suggestions")
-    targetted_users: List[TargettedUser] = Field(description="Provide 5 suggestions")
-    toolings: List[Tool] = Field(description="Provide 5 suggestions")
+    purposes:  List[Purpose]= Field(description="Provide upto 5 distinct suggestions")
+    capabilities: List[Capabiity] = Field(description="Provide upto 5 distinct suggestions")
+    knowledge_sources: List[KnowledgeAndDataRequirements] = Field(description="Provide upto 5 distinct suggestions")
+    targetted_users: List[TargettedUser] = Field(description="Provide upto 5 distinct suggestions")
+    toolings: List[Tool] = Field(description="Provide upto 5 distinct suggestions")
     additional_information: str = Field(description="Any additional information in user input not categorizable in above categories")
-    dry_runs: List[DryRun] = Field(description="Provide 5 suggestions, Different dry runs, to help visualize how the agent should work")
+    dry_runs: List[DryRun] = Field(description="Provide upto 5 distinct suggestions, Different dry runs, to help visualize how the agent should work")
     user_selections:dict = Field(default=None)
