@@ -10,6 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from copilotkit.langgraph import copilotkit_emit_state 
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
+from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 
 llm = get_model()
 
@@ -32,11 +33,9 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
     * If you determine that one or more of these architectures are strongly applicable to the INPUT, choose to implement it.
     * If no specific advanced architecture seems directly applicable for the given INPUT, proceed with a standard stateful graph construction based on the explicit langgraph nodes and edges.
 3.  **Populating the tools field":
-    1. Tools are helpful for the nodes if:
-        a. If any node need real-time/external data
-        b. if the node requires data from web or has something in it's functionality that can be made achieved through an API call
-    2. If you see any nodes meeting these requirements: fill the tools field.
-    3. Each tool in the list of tools should do a unit of a job, for example, CREATE DELETE UPDATE READ SEARCH are separate tools.
+<tooling_instructions>
+    {tooling_instructions}
+</tooling_instructions>
 4. **Important Notes**
     1. **Always** specify how the initial user input enters the workflow (typically through the messages field). In doing so ensure that the user input is part of the 'message' state of the node in the graph that comes directly after 'START' node
     2.  in the final graph there should be a 'start' node and an 'end' node
@@ -58,7 +57,8 @@ async def  json_node(state: AgentBuilderState, config: RunnableConfig):
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     json_extraction_llm = llm.with_structured_output(JSONSchema)
     json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
-        req_analysis=req_analysis
+        req_analysis=req_analysis,
+        tooling_instructions=tooling_instructions
     ))], config=modifiedConfig)
     state["current_status"] = {"inProcess":False ,"status": "JSON schema generated successfully"} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)

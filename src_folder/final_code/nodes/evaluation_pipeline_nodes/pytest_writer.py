@@ -43,7 +43,7 @@ async def pytest_writer(state: AgentBuilderState, config: RunnableConfig):
     use_cases = "\n".join(use_case.model_dump_json(indent=2) for use_case in use_case_list)
     python_code = state["python_code"]
     mock_tools_code = state["mock_tools_code"]
-    utgenerated = await generate_ut_llm_call(use_cases, python_code, mock_tools_code)
+    utgenerated: UtGeneration = await generate_ut_llm_call(use_cases, python_code, mock_tools_code)
     
     inputs = []
     responses = []
@@ -74,9 +74,11 @@ from langchain_openai import ChatOpenAI
 """
     state["current_status"] = {"inProcess":False ,"status": "Pytest code generated"}
     await copilotkit_emit_state(state=state, config=modified_config)
-    return {"current_tab":"console",
-             "pytest_code": PYTEST.format(final_response_code=final_response_code, final_trajectory_code=final_trajectory_code),
-             "messages": [AIMessage(content="Unit tests have been generated")]}
+    return {
+        "utGeneration": utgenerated,
+        "current_tab":"console",
+            "pytest_code": PYTEST.format(final_response_code=final_response_code, final_trajectory_code=final_trajectory_code),
+            "messages": [AIMessage(content="Unit tests have been generated")]}
 
 async def generate_ut_llm_call(use_cases, python_code, mock_tools_code):
     pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)

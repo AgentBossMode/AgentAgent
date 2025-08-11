@@ -11,7 +11,7 @@ from final_code.nodes.code_generation_node import generate_code_gen_prompt
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 from final_code.states.AgentBuilderState import AgentBuilderState
-
+from final_code.pydantic_models.UtGen import UtGeneration
 def get_file_info_prompt(state: AgentBuilderState):
     FILE_INFO = """
 <python_code.py code>
@@ -56,6 +56,12 @@ def get_context_info_prompt(state: AgentBuilderState):
 async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["evaluation_supervisor"]]:
     pytest_out = []
     modified_config = copilotkit_customize_config(config, emit_messages=False)
+    if state["attempts"] is None:
+        state["attempts"] = 5
+    if state["attempts"] > 0:
+        state["attempts"] -= 1
+    else:
+        return Command(goto=END, update={"current_status":{"inProcess":False ,"status": "Max attempts reached, please try again."} })
 
     async def pytest_results_handler(x: str):
             pytest_out.append(x)
@@ -77,6 +83,23 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
         state["current_status"] = {"inProcess":True ,"status": "Running pytests..."}
         state["current_tab"] =  "console"
         state["console_logs_incoming"]= True
+        utGeneration: UtGeneration = state["utGeneration"]        
+        pytest_results_str = ""
+        for i, ut in enumerate(utGeneration.final_response_uts):
+            pytest_results_str += f"Final Response UT {i+1}:\n"
+            pytest_results_str += f"  Input: {ut.input}\n"
+            pytest_results_str += f"  Expected Response: {ut.expected_response}\n\n"
+
+        for i, ut in enumerate(utGeneration.trajectory_uts):
+            pytest_results_str += f"Trajectory UT {i+1}:\n"
+            pytest_results_str += f"  Input: {ut.input}\n"
+            # Join the list of strings for better readability in the logs.
+            trajectory_str = ", ".join(map(str, ut.expected_trajectory))
+            pytest_results_str += f"  Expected Trajectory: {trajectory_str}\n\n"
+        
+        state["console_logs"] = [pytest_results_str]
+
+
         state["console_logs"]= []
         await copilotkit_emit_state(state=state, config=modified_config)
         commandResult = await sandbox.commands.run("pytest -n 2 -rfEP ./test_app.py",

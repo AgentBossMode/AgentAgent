@@ -8,15 +8,17 @@ from langgraph.types import Command
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
-from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
-from final_code.utils.create_react_agent_temp import create_react_agent
 from final_code.states.ReqAnalysis import ReqAnalysis
+from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
+
 llm = get_model()
 
 
 
 
 REQ_ANALYSIS_PROMPT = """
+Follow 'INSTRUCTIONS' section to analyze the user input and generate a ReqAnalysis object.
+
 <CONTEXT>
 You are a sales executive, who is approached by a client. 
 Your product is and AI agents and agentic workflows builder.
@@ -34,12 +36,17 @@ You should get the following information from them:
     capabilities
     knowledge_sources
     targetted_users
-    toolings
+    toolings: Follow 'tooling_instructions' section for this.
     dry_run
 3. Based on user input, first see if any of the information provided falls into the above categories:
-   EX 1: user's input indicates 2 knowledge sources, in the 5 knowledge_sources suggestions two of them should be what user provided and marked as confident, rest 3 should be extrapolated based on the input. 
-   EX2 : If nothing from input falls in a category make 5 suggestion best to your knowledge
+   EX 1: user's input indicates 2 knowledge sources, in the 5 knowledge_sources suggestions two of them should be what user provided and marked as confident, rest 3 should be extrapolated based on the input, but donot make repetitive suggestions.
+   EX2 : If nothing from input falls in a category make 5 suggestion best to your knowledge, should not be repetitive.
 4. If any information provided by the user does not fall into categories defined in 1, add the information cleanly in the additional_information column.
+</INSTRUCTIONS>
+<tooling_instructions>
+    {tooling_instructions}
+</tooling_instructions>
+
 """
 
 async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["requirement_analysis_node"]]:
@@ -50,7 +57,7 @@ async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Comm
     state["current_status"] = {"inProcess":True ,"status": "Analyzing user requirements for agent building.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     llm_req = llm.with_structured_output(ReqAnalysis)
-    reqs_analysis: ReqAnalysis = await llm_req.ainvoke([SystemMessage(content=REQ_ANALYSIS_PROMPT)] +  state["messages"], config=modifiedConfig)
+    reqs_analysis: ReqAnalysis = await llm_req.ainvoke([SystemMessage(content=REQ_ANALYSIS_PROMPT.format(tooling_instructions=tooling_instructions))] +  state["messages"], config=modifiedConfig)
     return Command(goto="requirement_analysis_node", update={"req_analysis": reqs_analysis, "current_status": {"inProcess":False ,"status": "Requirements analysis completed"}})
 
 
