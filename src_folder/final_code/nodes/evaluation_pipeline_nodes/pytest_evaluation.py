@@ -98,9 +98,6 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
             pytest_results_str += f"  Expected Trajectory: {trajectory_str}\n\n"
         
         state["console_logs"] = [pytest_results_str]
-
-
-        state["console_logs"]= []
         await copilotkit_emit_state(state=state, config=modified_config)
         commandResult = await sandbox.commands.run("pytest -n 2 -rfEP ./test_app.py",
                                               background=False, 
@@ -115,7 +112,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
     except Exception as e:
         print(e)
 
-    return Command(update={"current_tab": "console", "console_logs": pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "evaluation_supervisor")
+    return Command(update={"current_tab": "console", "console_logs": pytest_results_str + pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "evaluation_supervisor")
 
 
 async def syntax_and_runtime_issues_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner"]]:
