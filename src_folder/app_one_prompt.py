@@ -43,8 +43,7 @@ main_workflow.add_node("env_var_node", env_var_node)
 
 # PROD workflow
 main_workflow.add_edge(START, "analyze_reqs")
-main_workflow.add_edge("json_node", "dry_run_node")  # Connect json_node to dry_run_node
-main_workflow.add_edge("dry_run_node", "tool_graph")  # Connect dry_run_node to tool_graph
+main_workflow.add_edge("json_node",  "tool_graph")  # Connect json_node to dry_run_node
 main_workflow.add_edge("tool_graph", "tool_interrupt")
 main_workflow.add_edge("tool_interrupt", "code_node")
 main_workflow.add_edge("code_node", "mock_test_writer")

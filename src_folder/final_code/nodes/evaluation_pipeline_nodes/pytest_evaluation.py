@@ -56,7 +56,7 @@ def get_context_info_prompt(state: AgentBuilderState):
 async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["evaluation_supervisor"]]:
     pytest_out = []
     modified_config = copilotkit_customize_config(config, emit_messages=False)
-    if state["attempts"] is None:
+    if "attempts" not in state:
         state["attempts"] = 5
     if state["attempts"] > 0:
         state["attempts"] -= 1
@@ -69,7 +69,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
             state["console_logs"] = state["console_logs"] + [x]
             await copilotkit_emit_state(state=state, config=modified_config)
     
-    sandbox = await AsyncSandbox.create(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2"], "LANGCHAIN_PROJECT": "inception_prompt"})
+    sandbox = await AsyncSandbox.create(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY_INCEPTION"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2_INCEPTION"], "LANGCHAIN_PROJECT": "inception_prompt"})
 
 
     await sandbox.files.write("./app.py", state["python_code"])
