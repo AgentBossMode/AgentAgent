@@ -8,15 +8,17 @@ from langgraph.types import Command
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
-from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
-from final_code.utils.create_react_agent_temp import create_react_agent
 from final_code.states.ReqAnalysis import ReqAnalysis
+from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
+from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
 llm = get_model()
 
 
 
 
 REQ_ANALYSIS_PROMPT = """
+Follow 'INSTRUCTIONS' section to analyze the user input and generate a ReqAnalysis object.
+
 <CONTEXT>
 You are a sales executive, who is approached by a client. 
 Your product is and AI agents and agentic workflows builder.
@@ -32,14 +34,23 @@ You should get the following information from them:
 1. Analyze the user input, understand what are they trying to do, now based on CONTEXT, make 5 suggestions for each of the following:
     purpose
     capabilities
-    knowledge_sources
+    knowledge_sources : Follow 'knowledge_instructiona' section for this.
     targetted_users
-    toolings
+    toolings: Follow 'tooling_instructions' section for this.
     dry_run
 3. Based on user input, first see if any of the information provided falls into the above categories:
-   EX 1: user's input indicates 2 knowledge sources, in the 5 knowledge_sources suggestions two of them should be what user provided and marked as confident, rest 3 should be extrapolated based on the input. 
-   EX2 : If nothing from input falls in a category make 5 suggestion best to your knowledge
+   EX 1: user's input indicates 2 knowledge sources, in the 5 knowledge_sources suggestions two of them should be what user provided and marked as confident, then you can make upto 3 suggestions which should be extrapolated based on the input and follows 'knowledge_instructions', but donot make repetitive suggestions.
+   EX2 : If nothing from input indicates a knowledge source, then you can make upto 5 suggestions based on the CONTEXT and user message, should not be repetitive and follows 'knowledge_instructions'.
 4. If any information provided by the user does not fall into categories defined in 1, add the information cleanly in the additional_information column.
+5. There should not be overlapping suggestions in toolings and knowledge_sources, categorize them properly.
+</INSTRUCTIONS>
+<tooling_instructions>
+    {tooling_instructions}
+</tooling_instructions>
+<knowledge_instructiona> 
+    {knowledge_instructiona}
+</knowledge_instructiona>
+
 """
 
 async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["requirement_analysis_node"]]:
@@ -50,7 +61,7 @@ async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Comm
     state["current_status"] = {"inProcess":True ,"status": "Analyzing user requirements for agent building.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     llm_req = llm.with_structured_output(ReqAnalysis)
-    reqs_analysis: ReqAnalysis = await llm_req.ainvoke([SystemMessage(content=REQ_ANALYSIS_PROMPT)] +  state["messages"], config=modifiedConfig)
+    reqs_analysis: ReqAnalysis = await llm_req.ainvoke([SystemMessage(content=REQ_ANALYSIS_PROMPT.format(tooling_instructions=tooling_instructions, knowledge_instructiona=knowledge_instructiona))] +  state["messages"], config=modifiedConfig)
     return Command(goto="requirement_analysis_node", update={"req_analysis": reqs_analysis, "current_status": {"inProcess":False ,"status": "Requirements analysis completed"}})
 
 

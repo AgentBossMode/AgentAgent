@@ -11,7 +11,7 @@ from final_code.nodes.code_generation_node import generate_code_gen_prompt
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 from final_code.states.AgentBuilderState import AgentBuilderState
-
+from final_code.pydantic_models.UtGen import UtGeneration
 def get_file_info_prompt(state: AgentBuilderState):
     FILE_INFO = """
 <python_code.py code>
@@ -56,6 +56,12 @@ def get_context_info_prompt(state: AgentBuilderState):
 async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["evaluation_supervisor"]]:
     pytest_out = []
     modified_config = copilotkit_customize_config(config, emit_messages=False)
+    if "attempts" not in state:
+        state["attempts"] = 5
+    if state["attempts"] > 0:
+        state["attempts"] -= 1
+    else:
+        return Command(goto=END, update={"current_status":{"inProcess":False ,"status": "Max attempts reached, please try again."} })
 
     async def pytest_results_handler(x: str):
             pytest_out.append(x)
@@ -63,7 +69,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
             state["console_logs"] = state["console_logs"] + [x]
             await copilotkit_emit_state(state=state, config=modified_config)
     
-    sandbox = await AsyncSandbox.create(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2"], "LANGCHAIN_PROJECT": "inception_prompt"})
+    sandbox = await AsyncSandbox.create(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY_INCEPTION"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2_INCEPTION"], "LANGCHAIN_PROJECT": "inception_prompt"})
 
 
     await sandbox.files.write("./app.py", state["python_code"])
@@ -77,7 +83,21 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
         state["current_status"] = {"inProcess":True ,"status": "Running pytests..."}
         state["current_tab"] =  "console"
         state["console_logs_incoming"]= True
-        state["console_logs"]= []
+        utGeneration: UtGeneration = state["utGeneration"]        
+        pytest_results_str = ""
+        for i, ut in enumerate(utGeneration.final_response_uts):
+            pytest_results_str += f"Final Response UT {i+1}:\n"
+            pytest_results_str += f"  Input: {ut.input}\n"
+            pytest_results_str += f"  Expected Response: {ut.expected_response}\n\n"
+
+        for i, ut in enumerate(utGeneration.trajectory_uts):
+            pytest_results_str += f"Trajectory UT {i+1}:\n"
+            pytest_results_str += f"  Input: {ut.input}\n"
+            # Join the list of strings for better readability in the logs.
+            trajectory_str = ", ".join(map(str, ut.expected_trajectory))
+            pytest_results_str += f"  Expected Trajectory: {trajectory_str}\n\n"
+        
+        state["console_logs"] = [pytest_results_str]
         await copilotkit_emit_state(state=state, config=modified_config)
         commandResult = await sandbox.commands.run("pytest -n 2 -rfEP ./test_app.py",
                                               background=False, 
@@ -92,7 +112,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
     except Exception as e:
         print(e)
 
-    return Command(update={"current_tab": "console", "console_logs": pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "evaluation_supervisor")
+    return Command(update={"current_tab": "console", "console_logs": [pytest_results_str] + pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "evaluation_supervisor")
 
 
 async def syntax_and_runtime_issues_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner"]]:
