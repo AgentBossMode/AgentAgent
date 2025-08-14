@@ -1,0 +1,39 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v1
+
+    - name: Configure uv cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Set up environment variables from secrets
+      if: secrets.DOTENV_FILE
+      run: echo "${{ secrets.DOTENV_FILE }}" > .env
+
+    - name: Run tests
+      run: pytest src_folder/tests
