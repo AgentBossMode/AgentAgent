@@ -30,7 +30,7 @@ dependencies = [
     { name = "setuptools" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "aws-cdk-lib" },
     { name = "boto3" },
@@ -48,19 +48,12 @@ dev = [
 ]
 github = [
     { name = "pytest" },
-    { name = "pytest-xdist" },
-]
-
-[package.dev-dependencies]
-github = [
     { name = "pytest-asyncio" },
+    { name = "pytest-xdist" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aws-cdk-lib", marker = "extra == 'dev'", specifier = ">=2.194.0" },
-    { name = "boto3", marker = "extra == 'dev'", specifier = ">=1.38.8" },
-    { name = "bs4", marker = "extra == 'dev'", specifier = ">=0.0.2" },
     { name = "composio", extras = ["langchain"], specifier = "==1.0.0rc5" },
     { name = "composio-langchain", specifier = "==1.0.0rc5" },
     { name = "copilotkit", specifier = "==0.1.53" },
@@ -70,35 +63,41 @@ requires-dist = [
     { name = "google-cloud-aiplatform", specifier = ">=1.94.0" },
     { name = "html2text", specifier = ">=2025.4.15" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "import-ipynb", marker = "extra == 'dev'", specifier = ">=0.2" },
-    { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29.5" },
     { name = "langchain", specifier = ">=0.3.24" },
     { name = "langchain-anthropic", specifier = ">=0.3.12" },
     { name = "langchain-community", specifier = ">=0.3.23" },
     { name = "langchain-google-genai", specifier = ">=2.1.4" },
     { name = "langchain-openai", specifier = ">=0.3.14" },
-    { name = "langchain-pinecone", marker = "extra == 'dev'", specifier = ">=0.2.5" },
     { name = "langchain-tavily", specifier = ">=0.2.3" },
     { name = "langgraph", specifier = ">=0.3.34" },
-    { name = "langgraph-checkpoint-postgres", marker = "extra == 'dev'", specifier = ">=2.0.21" },
-    { name = "langgraph-cli", extras = ["inmem"], marker = "extra == 'dev'", specifier = ">=0.1.81" },
-    { name = "langgraph-reflection", marker = "extra == 'dev'", specifier = ">=0.0.1" },
-    { name = "langgraph-sdk", marker = "extra == 'dev'", specifier = ">=0.1.66" },
-    { name = "langgraph-supervisor", marker = "extra == 'dev'", specifier = ">=0.0.21" },
     { name = "langsmith", specifier = ">=0.3.38" },
     { name = "openevals", specifier = ">=0.0.19" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
     { name = "pydantic", specifier = ">=2.11.3" },
-    { name = "pytest", marker = "extra == 'github'", specifier = ">=8.3.5" },
-    { name = "pytest-xdist", marker = "extra == 'github'", specifier = ">=3.8.0" },
-    { name = "requests", marker = "extra == 'dev'", specifier = ">=2.32.3" },
     { name = "setuptools", specifier = ">=80.9.0" },
-    { name = "unidiff", marker = "extra == 'dev'", specifier = ">=0.7.5" },
 ]
-provides-extras = ["github", "dev"]
 
 [package.metadata.requires-dev]
-github = [{ name = "pytest-asyncio", specifier = ">=0.26.0" }]
+dev = [
+    { name = "aws-cdk-lib", specifier = ">=2.194.0" },
+    { name = "boto3", specifier = ">=1.38.8" },
+    { name = "bs4", specifier = ">=0.0.2" },
+    { name = "import-ipynb", specifier = ">=0.2" },
+    { name = "ipykernel", specifier = ">=6.29.5" },
+    { name = "langchain-pinecone", specifier = ">=0.2.5" },
+    { name = "langgraph-checkpoint-postgres", specifier = ">=2.0.21" },
+    { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.1.81" },
+    { name = "langgraph-reflection", specifier = ">=0.0.1" },
+    { name = "langgraph-sdk", specifier = ">=0.1.66" },
+    { name = "langgraph-supervisor", specifier = ">=0.0.21" },
+    { name = "requests", specifier = ">=2.32.3" },
+    { name = "unidiff", specifier = ">=0.7.5" },
+]
+github = [
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-asyncio", specifier = ">=0.26.0" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
+]
 
 [[package]]
 name = "aiohappyeyeballs"
