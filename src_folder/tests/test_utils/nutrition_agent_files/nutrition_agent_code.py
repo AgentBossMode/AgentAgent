@@ -159,7 +159,7 @@ def retrieve_historical_data(state: GraphState) -> GraphState:
         structured_response: any
 
     class HistoricalDataResponse(BaseModel):
-        data: dict = Field(description="The retrieved historical data.")
+        data: str = Field(description="The retrieved historical data.")
         message: str = Field(description="A user-friendly message summarizing the retrieved data.")
 
     agent = create_react_agent(

@@ -15,9 +15,7 @@ async def test_pytest_writer():
     # Mock state with necessary fields
     utgenerated: UtGeneration = await generate_ut_llm_call(ReqAnalysis.model_validate_json(nutrition_req_analysis), nutrition_agent_code, nutrition_mock_tools_code)
     ut_trajectory : List[TrajectoryUt] = utgenerated.trajectory_uts
-    print(ut_trajectory)
     assert len(ut_trajectory) > 1, "No trajectory UTs generated"
     ut_final_response : List[ResponseUt] = utgenerated.final_response_uts
-    print(ut_final_response)
     assert len(ut_final_response) > 1, "No final response UTs generated"
     
