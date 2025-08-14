@@ -32,7 +32,7 @@ jobs:
       run: uv sync
       
     - name: Run tests
-      run: pytest src_folder/tests
+      run: uv pip run pytest src_folder/tests
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
