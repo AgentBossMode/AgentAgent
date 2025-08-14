@@ -42,6 +42,7 @@ dev = [
     { name = "import-ipynb" },
     { name = "ipykernel" },
     { name = "langchain-pinecone" },
+    { name = "langgraph-api" },
     { name = "langgraph-checkpoint-postgres" },
     { name = "langgraph-cli", extra = ["inmem"] },
     { name = "langgraph-reflection" },
@@ -81,8 +82,9 @@ requires-dist = [
     { name = "langchain-pinecone", marker = "extra == 'dev'", specifier = ">=0.2.5" },
     { name = "langchain-tavily", specifier = ">=0.2.3" },
     { name = "langgraph", specifier = ">=0.3.34" },
+    { name = "langgraph-api", marker = "extra == 'dev'", specifier = ">=0.2.130" },
     { name = "langgraph-checkpoint-postgres", marker = "extra == 'dev'", specifier = ">=2.0.21" },
-    { name = "langgraph-cli", extras = ["inmem"], marker = "extra == 'dev'", specifier = ">=0.1.81" },
+    { name = "langgraph-cli", extras = ["inmem"], marker = "extra == 'dev'", specifier = ">=0.3.6" },
     { name = "langgraph-reflection", marker = "extra == 'dev'", specifier = ">=0.0.1" },
     { name = "langgraph-sdk", marker = "extra == 'dev'", specifier = ">=0.1.66" },
     { name = "langgraph-supervisor", marker = "extra == 'dev'", specifier = ">=0.0.21" },
@@ -1599,7 +1601,7 @@ wheels = [
 
 [[package]]
 name = "langgraph-api"
-version = "0.2.98"
+version = "0.2.130"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
@@ -1622,9 +1624,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "watchfiles" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/5b/42a7fa38051ab9c69bbb55b41cdb6f90263e91eae773f17e493eede5b359/langgraph_api-0.2.98.tar.gz", hash = "sha256:02ba645d19e2a1e60ff4773f17fe00b329167d00f97ce971fbdbdecff44759bf", size = 239196, upload_time = "2025-07-19T02:35:24.597Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/cf/04ecee8a9ac8c8f5364747388411608d69c075601df9e20d7d0c593d701a/langgraph_api-0.2.130.tar.gz", hash = "sha256:1cb956ae2bcee6094af2f5580c894dfb146c292b42b1e7c06fd045f73b62b6d4", size = 245544, upload_time = "2025-08-13T04:37:11.809Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/25/6c6b25d127b34a8a7a0d2522a1a9f58f44e4e27008460d5fad6f2a3737eb/langgraph_api-0.2.98-py3-none-any.whl", hash = "sha256:e667a66577ea7479d766be296c6920f04f25d592cb266ca30e470876763ebc2b", size = 194855, upload_time = "2025-07-19T02:35:23.387Z" },
+    { url = "https://files.pythonhosted.org/packages/29/a0/ad8da5f1f19efcbceee9624d5207caed7e81c2e40b09c81c091be4f46459/langgraph_api-0.2.130-py3-none-any.whl", hash = "sha256:6aa5bca830a000d5b6d56f2315852ec3dd9d8ba799fd3a95d511ddd9b301c857", size = 200365, upload_time = "2025-08-13T04:37:10.138Z" },
 ]
 
 [[package]]
@@ -1721,15 +1723,15 @@ wheels = [
 
 [[package]]
 name = "langgraph-sdk"
-version = "0.1.72"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "orjson" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/a6/cf13ace9bc7f0e8b13852ced0b37ece97f3140e232821c28bc852f8c1ea2/langgraph_sdk-0.1.72.tar.gz", hash = "sha256:396d8195881830700e2d54a0a9ee273e8b1173428e667502ef9c182a3cec7ab7", size = 71600, upload_time = "2025-06-27T01:12:03.788Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/3e/3dc45dc7682c9940db9edaf8773d2e157397c5bd6881f6806808afd8731e/langgraph_sdk-0.2.0.tar.gz", hash = "sha256:cd8b5f6595e5571be5cbffd04cf936978ab8f5d1005517c99715947ef871e246", size = 72510, upload_time = "2025-07-22T17:31:06.745Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/4b/d56b51da08d168c2315cd092faa47bc83388b116756dbd6995026ec9ba3f/langgraph_sdk-0.1.72-py3-none-any.whl", hash = "sha256:925d3fcc7a26361db04f9c4beb3ec05bc36361b2a836d181ff2ab145071ec3ce", size = 50129, upload_time = "2025-06-27T01:12:02.449Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/03/a8ab0e8ea74be6058cb48bb1d85485b5c65d6ea183e3ee1aa8ca1ac73b3e/langgraph_sdk-0.2.0-py3-none-any.whl", hash = "sha256:150722264f225c4d47bbe7394676be102fdbf04c4400a0dd1bd41a70c6430cc7", size = 50569, upload_time = "2025-07-22T17:31:04.582Z" },
 ]
 
 [[package]]

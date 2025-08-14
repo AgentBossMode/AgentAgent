@@ -41,7 +41,9 @@ github = [
     "pytest-cov>=6.2.1",
 ]
 dev = [
-    "langgraph-cli[inmem]>=0.1.81",
+    "langgraph-api>=0.2.130",
+    "langgraph-cli[inmem]>=0.3.6",
+    "langgraph-sdk>=0.1.66",
     "aws-cdk-lib>=2.194.0",
     "import-ipynb>=0.2",
     "ipykernel>=6.29.5",
