@@ -32,7 +32,7 @@ jobs:
       run: uv sync
 
     - name: Set up environment variables from secrets
-      if: secrets.DOTENV_FILE
+      if: ${{ secrets.DOTENV_FILE }}
       run: echo "${{ secrets.DOTENV_FILE }}" > .env
 
     - name: Run tests
