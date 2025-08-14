@@ -34,3 +34,4 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
