@@ -42,17 +42,9 @@ async def pytest_writer(state: AgentBuilderState, config: RunnableConfig):
     state["current_status"] = {"inProcess":True ,"status": "Generating pytest code.."}
     await copilotkit_emit_state(state=state, config=modified_config)
     req_analysis : ReqAnalysis = state["req_analysis"]
-    dry_runs: List[dict] = req_analysis.dry_runs
-    iteration = 0
-    use_cases = ""
-    for dry_run in dry_runs:
-        use_cases += f"Use Case {iteration + 1}:\n"
-        use_cases += json.dumps(dry_run) + "\n\n"
-        iteration += 1
-        
     python_code = state["python_code"]
     mock_tools_code = state["mock_tools_code"]
-    utgenerated: UtGeneration = await generate_ut_llm_call(use_cases, python_code, mock_tools_code)
+    utgenerated: UtGeneration = await generate_ut_llm_call(req_analysis, python_code, mock_tools_code)
     
     inputs = []
     responses = []
@@ -89,7 +81,15 @@ from langchain_openai import ChatOpenAI
             "pytest_code": PYTEST.format(final_response_code=final_response_code, final_trajectory_code=final_trajectory_code),
             "messages": [AIMessage(content="Unit tests have been generated")]}
 
-async def generate_ut_llm_call(use_cases, python_code, mock_tools_code):
+async def generate_ut_llm_call(req_analysis: ReqAnalysis, python_code, mock_tools_code):
+    dry_runs: List[DryRun] = req_analysis.dry_runs
+    iteration = 0
+    use_cases = ""
+    for dry_run in dry_runs:
+        use_cases += f"Use Case {iteration + 1}:\n"
+        use_cases += json.dumps(dry_run.model_dump()) + "\n\n"
+        iteration += 1
+        
     pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)
     utgenerated: UtGeneration = await pytest_llm.ainvoke([HumanMessage(content=PYTEST_WRITER_PROMPT.format(python_code=python_code, use_cases=use_cases, mock_tools_code=mock_tools_code, FINAL_RESPONSE_STR=FINAL_RESPONSE_STR, TRAJECTORY_STR=TRAJECTORY_STR))])
     return utgenerated

@@ -7,7 +7,7 @@ from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 import uuid
 from pydantic import BaseModel, Field
-from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.states.NodesAndEdgesSchemas import JSONSchema, get_tools_info,get_nodes_and_edges_info
 from final_code.prompt_lib.node_info.graph_state import graph_state
 from final_code.prompt_lib.node_info.node_structure import node_structure
 from final_code.prompt_lib.node_info.tool_calling import tool_calling
@@ -197,20 +197,11 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
         config,
         emit_messages=False
     )
-
-    tools_info = ""
-    for tool in state["json_schema"].tools:
-        tools_info += f"tool_name: {tool.name}, tool_description: {tool.description}, is_composio_tool: {tool.is_composio_tool}, node_ids:[{", ".join(tool.node_ids)}]\n"
-    
-    json_schema_without_tools: JSONSchema = state["json_schema"] # Create a copy of json_schema_final
-    json_schema_without_tools.tools = [] # Clear the tools field in the copy
-    json_schema_final = json_schema_without_tools.model_dump_json(indent=2)
-
     #json_schema_final = json_schema_nutrition
     state["current_tab"] = "code"
     state["current_status"] = {"inProcess":True ,"status": "Generating Python code.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
-    response  = generate_python_code(modifiedConfig, json_schema_final, state["tools_code"], tools_info)
+    response  = generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"])
     state["current_status"] = {"inProcess":False ,"status": "Python code generated successfully."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     # Return the generated Python code and an AI message
@@ -219,14 +210,17 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
         "messages":[AIMessage(content="Generated the agent code, check main.py in the code editor.")]
     } 
 
-def generate_python_code(modifiedConfig, json_schema_final, tools_code, tools_info):
+def get_schema_info(json_schema: JSONSchema, tools_code: str):
+    return JSON_WRAPPER.format(
+            json_schema=get_nodes_and_edges_info(json_schema),
+            tools_info=get_tools_info(json_schema.tools),
+            tools_code=tools_code)
+
+def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSONSchema, tools_code) -> str:
     llm = get_model()
     response = llm.invoke([
         SystemMessage(content=generate_code_gen_prompt()),
-        HumanMessage(content=JSON_WRAPPER.format(
-            json_schema=json_schema_final,
-            tools_info=tools_info,
-            tools_code=tools_code))],
+        HumanMessage(content=get_schema_info(json_schema, tools_code))],
         config=modifiedConfig)
                                                                       
     return response.content

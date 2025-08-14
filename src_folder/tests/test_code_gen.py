@@ -1,8 +1,11 @@
+from dotenv import load_dotenv
+load_dotenv()
 import pytest
-from final_code.nodes.code_generation_node import generate_python_code
-from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
-from tests.test_utils.trading.json_schema_trading import json_schema_trading
-from final_code.nodes.code_generation_node import PythonCode
+from src_folder.final_code.nodes.code_generation_node import generate_python_code
+from tests.test_utils.nutrition_agent_files.nutrition_json_schema import json_schema_nutrition
+from tests.test_utils.nutrition_agent_files.nutrition_tools_code import nutrition_tools_code
+from src_folder.final_code.nodes.code_generation_node import PythonCode
+from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
 import ast
 
 class ClassVisitor(ast.NodeVisitor):
@@ -33,31 +36,35 @@ class StructuredOutputVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 @pytest.mark.parametrize(
-    "json_schema",
+    "json_schema,tools_code",
     [
-        json_schema_nutrition,
-        json_schema_trading
+        (json_schema_nutrition, nutrition_tools_code)
     ],
 )
-def test_code_generation_llm(json_schema : str):
-    generated_code: PythonCode = generate_python_code({}, json_schema)
-    print(generated_code.code)  # Print the generated code for debugging
+def test_code_generation_llm(json_schema : str, tools_code: str):
+    generated_code = generate_python_code({}, JSONSchema.model_validate_json(json_schema), tools_code)
+    print(generated_code)  # Print the generated code for debugging
 
     # assume code is a python code, how to write uts 
-    assert isinstance(generated_code.code, str), "Generated code should be a string."
-    assert "assuming" not in generated_code.code, "Generated code should not contain 'assuming'."
-    assert "placeholder" not in generated_code.code, "Generated code should not contain 'placeholder'."
-    assert "checkpointer = InMemorySaver()" in generated_code.code, "Generated code should contain 'checkpointer = InMemorySaver()'."
-    assert "app = workflow.compile(" in generated_code.code, "Generated code should contain 'app = workflow.compile('."
+    assert isinstance(generated_code, str), "Generated code should be a string."
+    assert "assuming" not in generated_code, "Generated code should not contain 'assuming'."
+    assert "placeholder" not in generated_code, "Generated code should not contain 'placeholder'."
+    assert "checkpointer = InMemorySaver()" in generated_code, "Generated code should contain 'checkpointer = InMemorySaver()'."
+    assert "app = workflow.compile(" in generated_code, "Generated code should contain 'app = workflow.compile('."
     
     # IF AND ONLY IF THE CODE HAS with_structured_output, check if there is pydantic import
-    if "with_structured_output" in generated_code.code:
-        assert "from pydantic import BaseModel, Field" in generated_code.code, "Generated code should contain 'from pydantic import BaseModel, Field'."
+    if "with_structured_output" in generated_code:
+        assert "from pydantic import BaseModel, Field" in generated_code, "Generated code should contain 'from pydantic import BaseModel, Field'."
     # use the ast module to check if the code is valid python code
     try:
         # with open("generated_code.py", "w") as f:
         #    f.write(ast.dump(module, indent=2))
-        module = ast.parse(generated_code.code)
+        # in generated code remove the first and last line if they are ````python` and ```
+        if generated_code.startswith("```python"):
+            generated_code = generated_code[10:]
+        if generated_code.endswith("```"):
+            generated_code = generated_code[:-3]
+        module = ast.parse(generated_code)
         structured_output_visitor = StructuredOutputVisitor()
         structured_output_visitor.visit(module)
         visitor = ClassVisitor(structured_output_visitor.structured_output_args)

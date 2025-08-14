@@ -19,7 +19,7 @@ def node_name(state: GraphState) -> GraphState:
       state_schema=CustomStateForReact,
       response_format=CustomClass)
 
-    result: CustomClass = agent.invoke(state["messages"]) #or whatever content you wish to put as per the state.
+    result: CustomClass = agent.invoke(state["messages"])["structured_response"] #or whatever content you wish to put as per the state.
     # Logic that either updates the state variable with result.attr1/result.attr2
     # DO NOT do string parsing or regex parsing
 ```
@@ -27,6 +27,12 @@ def node_name(state: GraphState) -> GraphState:
 Please ensure that the code produced for a tool node follows:
 1. **Tool Registration**: Tools are properly defined and registered in the node
 2. **Schema Adherence**: Tool inputs/outputs match their defined schemas exactly
+
+<NOTE>
+Make sure to use proper pydantic models for structured output.
+DONOT use dict!!!!
+the response_format should be a pydantic model with the required fields. Should not be a List[PydanticModel] or something like that.
+</NOTE>
 """
 
 tool_calling_checklist = """
