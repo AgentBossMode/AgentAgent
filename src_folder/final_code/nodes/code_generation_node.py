@@ -201,7 +201,7 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
     state["current_tab"] = "code"
     state["current_status"] = {"inProcess":True ,"status": "Generating Python code.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
-    response  = generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"])
+    response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"])
     state["current_status"] = {"inProcess":False ,"status": "Python code generated successfully."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
     # Return the generated Python code and an AI message
@@ -216,9 +216,9 @@ def get_schema_info(json_schema: JSONSchema, tools_code: str):
             tools_info=get_tools_info(json_schema.tools),
             tools_code=tools_code)
 
-def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSONSchema, tools_code) -> str:
+async def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSONSchema, tools_code) -> str:
     llm = get_model()
-    response = llm.invoke([
+    response = await llm.ainvoke([
         SystemMessage(content=generate_code_gen_prompt()),
         HumanMessage(content=get_schema_info(json_schema, tools_code))],
         config=modifiedConfig)

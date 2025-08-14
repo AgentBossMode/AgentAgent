@@ -26,11 +26,11 @@ jobs:
           version: "0.8.10"
 
     - name: Install the project
-      run: uv sync --locked --all-extras --dev
+      run: uv sync --locked --extra github
   
     - name: Run tests
       # For example, using `pytest`
-      run: uv run pytest src_folder/tests
+      run: uv run pytest -n 3 src_folder/tests
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

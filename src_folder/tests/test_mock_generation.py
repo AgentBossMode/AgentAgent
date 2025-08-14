@@ -34,7 +34,8 @@ class PydanticDictVisitor(ast.NodeVisitor):
         # Continue visiting nested classes
         self.generic_visit(node)
 
-def test_mock_test_writer():
+@pytest.mark.asyncio
+async def test_mock_test_writer():
     state = {
         "tools_code": nutrition_tools_code,
         "json_schema": JSONSchema.model_validate_json(json_schema_nutrition),
@@ -43,7 +44,7 @@ def test_mock_test_writer():
     config = {"type":"test"}
 
     # Call the mock_test_writer function
-    result = asyncio.run(mock_test_writer(state, config))
+    result = await mock_test_writer(state, config)
     # Check if the result is as expected
     assert isinstance(result, dict)
     assert "mock_tools_code" in result

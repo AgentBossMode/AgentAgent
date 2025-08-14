@@ -34,14 +34,15 @@ class StructuredOutputVisitor(ast.NodeVisitor):
                     self.structured_output_args.append(arg.id)
         self.generic_visit(node)
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "json_schema,tools_code",
     [
         (json_schema_nutrition, nutrition_tools_code)
     ],
 )
-def test_code_generation_llm(json_schema : str, tools_code: str):
-    generated_code = generate_python_code({}, JSONSchema.model_validate_json(json_schema), tools_code)
+async def test_code_generation_llm(json_schema : str, tools_code: str):
+    generated_code = await generate_python_code({}, JSONSchema.model_validate_json(json_schema), tools_code)
     print(generated_code)  # Print the generated code for debugging
 
     # assume code is a python code, how to write uts 
