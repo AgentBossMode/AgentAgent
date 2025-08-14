@@ -30,7 +30,7 @@ jobs:
   
     - name: Run tests
       # For example, using `pytest`
-      run: uv run pytest -n 3 src_folder/tests --cov=src_folder/final_code --cov-report=xml:coverage.xml 
+      run: uv run pytest -n 3 src_folder/tests --cov=src_folder/final_code/nodes --cov-report=xml:coverage.xml 
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
