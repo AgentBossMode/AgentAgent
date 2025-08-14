@@ -40,4 +40,5 @@ jobs:
       if: github.event_name == 'pull_request'
       uses: MishaKav/pytest-coverage-comment@main
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         pytest-xml-coverage-path: ./coverage.xml
