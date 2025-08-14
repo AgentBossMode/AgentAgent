@@ -5,8 +5,8 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 from src_folder.final_code.nodes.evaluation_pipeline_nodes.mock_test_writer import mock_test_writer
-from tests.test_utils.nutrition_agent_files.nutrition_tools_code import nutrition_tools_code
-from tests.test_utils.nutrition_agent_files.nutrition_json_schema import json_schema_nutrition
+from src_folder.tests.test_utils.nutrition_agent_files.nutrition_tools_code import nutrition_tools_code
+from src_folder.tests.test_utils.nutrition_agent_files.nutrition_json_schema import json_schema_nutrition
 from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
 class PydanticDictVisitor(ast.NodeVisitor):
     """
