@@ -30,8 +30,14 @@ jobs:
   
     - name: Run tests
       # For example, using `pytest`
-      run: uv run pytest -n 3 src_folder/tests
+      run: uv run pytest -n 3 src_folder/tests --cov=src_folder/final_code --cov-report=xml:coverage.xml 
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+    
+    - name: Add coverage comment to PR (optional)
+      if: github.event_name == 'pull_request'
+      uses: MishaKav/pytest-coverage-comment@main
+      with:
+        pytest-xml-coverage: coverage.xml

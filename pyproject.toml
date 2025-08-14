@@ -37,7 +37,8 @@ dependencies = [
 github = [
     "pytest>=8.3.5",
     "pytest-xdist>=3.8.0",
-    "pytest-asyncio>=0.26.0"
+    "pytest-asyncio>=0.26.0",
+    "pytest-cov>=6.2.1",
 ]
 dev = [
     "langgraph-cli[inmem]>=0.1.81",
