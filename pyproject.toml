@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 
-[dependency-groups]
+[project.optional-dependencies]
 github = [
     "pytest>=8.3.5",
     "pytest-xdist>=3.8.0",
