@@ -30,10 +30,9 @@ jobs:
 
     - name: Install dependencies
       run: uv sync
-
-    - name: Set up environment variables from secrets
-      if: ${{ secrets.DOTENV_FILE }}
-      run: echo "${{ secrets.DOTENV_FILE }}" > .env
-
+      
     - name: Run tests
       run: pytest src_folder/tests
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
