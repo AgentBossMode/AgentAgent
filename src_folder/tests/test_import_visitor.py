@@ -1,14 +1,13 @@
 
 import ast
-import unittest
-from src_folder.tests.ast_visitors_lib.ImportVisitor import ImportVisitor
-
+from src_folder.final_code.ast_visitors_lib.ImportVisitor import ImportVisitor
+import pytest
 
 methods_to_check = [
             ("create_react_agent", "from langgraph.prebuilt import create_react_agent"),
         ]
-
-def test_success_case_all_present():
+@pytest.mark.asyncio
+async def test_success_case_all_present():
     code = """
 from langgraph.prebuilt import create_react_agent
 from y import abc
@@ -23,7 +22,8 @@ res2 = abc(1)
     assert len(results["missing_imports"]) == 0
     assert len(results["unnecessary_imports"]) == 0
 
-def test_success_case_one_present():
+@pytest.mark.asyncio
+async def test_success_case_one_present():
     code = """
 from langgraph.prebuilt import create_react_agent
 
@@ -36,7 +36,8 @@ result = create_react_agent(None, None)
     assert len(results["missing_imports"]) == 0
     assert len(results["unnecessary_imports"]) == 0
 
-def test_success_case_none_present():
+@pytest.mark.asyncio
+async def test_success_case_none_present():
     code = """
 print('hello')
 """
@@ -47,7 +48,8 @@ print('hello')
     assert len(results["missing_imports"]) == 0
     assert len(results["unnecessary_imports"]) == 0
 
-def test_missing_import():
+@pytest.mark.asyncio
+async def test_missing_import():
     code = """
 result = create_react_agent(None, None)
 """
@@ -58,7 +60,8 @@ result = create_react_agent(None, None)
     assert len(results["missing_imports"]) == 1
     assert len(results["unnecessary_imports"]) == 0
 
-def test_unnecessary_import():
+@pytest.mark.asyncio
+async def test_unnecessary_import():
     code = """
 from langgraph.prebuilt import create_react_agent
 """
