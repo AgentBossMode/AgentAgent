@@ -19,7 +19,7 @@ def node_name(state: GraphState) -> GraphState:
       state_schema=CustomStateForReact,
       response_format=CustomClass)
 
-    result: CustomClass = agent.invoke(state["messages"])["structured_response"] #or whatever content you wish to put as per the state.
+    result: CustomClass = agent.invoke({"messages":state["messages"]})["structured_response"] #or whatever content you wish to put as per the state.
     # Logic that either updates the state variable with result.attr1/result.attr2
     # DO NOT do string parsing or regex parsing
 ```
