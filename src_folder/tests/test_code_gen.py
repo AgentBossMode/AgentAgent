@@ -1,11 +1,14 @@
 from dotenv import load_dotenv
 load_dotenv()
 import pytest
+import ast
 from src_folder.final_code.nodes.code_generation_node import generate_python_code
 from src_folder.tests.test_utils.nutrition_agent_files.nutrition_json_schema import json_schema_nutrition
 from src_folder.tests.test_utils.nutrition_agent_files.nutrition_tools_code import nutrition_tools_code
 from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
 from src_folder.tests.validators_lib.validate_struct_output import validate_struct_output
+from src_folder.tests.validators_lib.validate_ast_parse import validate_ast_parse
+from src_folder.tests.validators_lib.validate_import_statements import validate_import_statements
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "json_schema,tools_code",
@@ -30,8 +33,10 @@ async def test_code_generation_llm(json_schema : str, tools_code: str):
     try:
         # with open("generated_code.py", "w") as f:
         #    f.write(ast.dump(module, indent=2))
-        # in generated code remove the first and last line if they are ````python` and ```
-        validate_struct_output(generated_code)
+        module = validate_ast_parse(generated_code)
+        validate_struct_output(module)
+        validate_import_statements(module)
+        
     except SyntaxError as e:
         pytest.fail(f"Generated code contains syntax errors: {e}")
     except Exception as e:

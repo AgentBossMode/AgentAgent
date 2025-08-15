@@ -87,7 +87,10 @@ async def generate_ut_llm_call(req_analysis: ReqAnalysis, python_code, mock_tool
     use_cases = ""
     for dry_run in dry_runs:
         use_cases += f"Use Case {iteration + 1}:\n"
-        use_cases += json.dumps(dry_run.model_dump()) + "\n\n"
+        if isinstance(dry_run, dict):
+            use_cases += json.dumps(dry_run) + "\n\n"
+        else:
+            use_cases += json.dumps(dry_run.model_dump()) + "\n\n"
         iteration += 1
         
     pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)

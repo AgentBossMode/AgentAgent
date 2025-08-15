@@ -84,6 +84,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langgraph.prebuilt import create_react_agent
 import re
 import json
 ```

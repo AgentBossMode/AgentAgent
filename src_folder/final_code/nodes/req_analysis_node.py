@@ -11,6 +11,7 @@ from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_con
 from final_code.states.ReqAnalysis import ReqAnalysis
 from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
+from final_code.states.ReqAnalysis import Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun
 llm = get_model()
 
 
@@ -80,33 +81,32 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     req_analysis: ReqAnalysis = state["req_analysis"]
     # Filter purposes
     if value.purposes:
-        req_analysis.purposes = [p for p in value.purposes if p.selected]
+        req_analysis.purposes = [Purpose.model_validate(p) for p in value.purposes if p.selected]
     
     # Filter capabilities
     if value.capabilities:
-        req_analysis.capabilities = [c for c in value.capabilities if c.selected]
+        req_analysis.capabilities = [Capabiity.model_validate(c) for c in value.capabilities if c.selected]
 
     # Filter knowledge_sources
     if value.knowledge_sources:
-        req_analysis.knowledge_sources = [k for k in value.knowledge_sources if k.selected]
+        req_analysis.knowledge_sources = [KnowledgeAndDataRequirements.model_validate(k) for k in value.knowledge_sources if k.selected]
 
     # Filter targetted_users
     if value.targetted_users:
-        req_analysis.targetted_users = [t for t in value.targetted_users if t.selected]
+        req_analysis.targetted_users = [TargettedUser.model_validate(t) for t in value.targetted_users if t.selected]
 
     # Filter toolings
     if value.toolings:
-        req_analysis.toolings = [t for t in value.toolings if t.selected]
+        req_analysis.toolings = [Tool.model_validate(t) for t in value.toolings if t.selected]
 
     # Filter dry_runs
     if value.dry_runs:
-        req_analysis.dry_runs = [d for d in value.dry_runs if d.selected]
+        req_analysis.dry_runs = [DryRun.model_validate(d) for d in value.dry_runs if d.selected]
 
     # Update additional_information if provided
     if value.additional_information:
         req_analysis.additional_information = value.additional_information
 
-    print(req_analysis)
     return Command(
         goto="json_node",
         update={"messages": [AIMessage(content="Requirements have been identified")], "req_analysis": req_analysis}
