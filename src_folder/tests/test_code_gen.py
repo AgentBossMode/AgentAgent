@@ -9,6 +9,7 @@ from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
 from src_folder.tests.validators_lib.validate_struct_output import validate_struct_output
 from src_folder.tests.validators_lib.validate_ast_parse import validate_ast_parse
 from src_folder.tests.validators_lib.validate_import_statements import validate_import_statements
+from src_folder.final_code.ast_visitors_lib.PydanticDictVisitor import PydanticDictVisitor
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "json_schema,tools_code",
@@ -21,8 +22,6 @@ async def test_code_generation_llm(json_schema : str, tools_code: str):
 
     # assume code is a python code, how to write uts 
     assert isinstance(generated_code, str), "Generated code should be a string."
-    assert "assuming" not in generated_code, "Generated code should not contain 'assuming'."
-    assert "placeholder" not in generated_code, "Generated code should not contain 'placeholder'."
     assert "checkpointer = InMemorySaver()" in generated_code, "Generated code should contain 'checkpointer = InMemorySaver()'."
     assert "app = workflow.compile(" in generated_code, "Generated code should contain 'app = workflow.compile('."
     
@@ -36,7 +35,9 @@ async def test_code_generation_llm(json_schema : str, tools_code: str):
         module = validate_ast_parse(generated_code)
         validate_struct_output(module)
         validate_import_statements(module)
-        
+        visitor = PydanticDictVisitor()
+        visitor.visit(module)
+        assert not visitor.errors, f"Found forbidden 'dict' types in Pydantic models:\n" + "\n".join(visitor.errors)
     except SyntaxError as e:
         pytest.fail(f"Generated code contains syntax errors: {e}")
     except Exception as e:

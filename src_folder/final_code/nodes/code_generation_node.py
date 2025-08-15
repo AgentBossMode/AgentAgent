@@ -134,6 +134,7 @@ Before finalizing your code, verify:
 - [ ] GraphState properly extends MessagesState 
 - [ ] LLM calls include proper error handling
 - [ ] Structured output uses proper Pydantic models
+- [ ] Inside any Pydantic model, do not use 'dict' as a type hint for any field.
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
 - [ ] No unterminated string literals or syntax errors
