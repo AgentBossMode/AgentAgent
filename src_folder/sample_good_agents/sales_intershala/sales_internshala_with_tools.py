@@ -9,6 +9,7 @@ from src_folder.final_code.utils.create_react_agent_temp import create_react_age
 from langgraph.types import interrupt, Command
 import re
 import json
+import bs4 
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -27,44 +28,26 @@ Input: {input}
 Generate a mock output for this tool.
 """
 
+
 def Web_Scraper_Parse_URL_and_Extract_Data(url: str):
     """
-    Tool to parse a URL and extract specific data points like job title, pay, duration, required skills, and company name from the provided job link.
+    A simple web scraper using BeautifulSoup4 to extract all text content from a given URL.
 
     Args:
-        url (str): The URL of the job posting to scrape.
+        url (str): The URL of the webpage to scrape.
 
     Returns:
-        str: A JSON string containing the extracted job details.
-
-    Example:
-        Web_Scraper_Parse_URL_and_Extract_Data(url="https://example.com/job/123")
-        # Expected output:
-        # {
-        #   "job_title": "Software Engineer",
-        #   "company": "Tech Solutions Inc.",
-        #   "pay": "$120,000 - $150,000 per year",
-        #   "duration": "Full-time",
-        #   "skills": ["Python", "Django", "AWS"]
-        # }
+        str: All text content extracted from the webpage.
     """
-    class JobDetails(BaseModel):
-        job_title: str = Field(description="The full title of the job position.")
-        company: str = Field(description="Name of the hiring company.")
-        pay: Optional[str] = Field(description="Salary or pay range for the job, if available.")
-        duration: Optional[str] = Field(description="Duration of the job, e.g., 'Full-time', 'Contract', '6 months'.")
-        skills: List[str] = Field(description="A list of required skills for the job.")
-
-    input_str = f"url: {url}"
-    description = Web_Scraper_Parse_URL_and_Extract_Data.__doc__
-
-    result = llm.with_structured_output(JobDetails).invoke(
-        [
-            SystemMessage(content=MOCK_TOOL_PROMPT),
-            HumanMessage(content=INPUT_PROMPT.format(input=input_str, description=description))
-        ]
-    )
-    return result.model_dump_json(indent=2)
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        soup = BeautifulSoup(response.text, 'html.parser')
+        return soup.get_text(separator='\n', strip=True)
+    except Exception as e:
+        return f"Error scraping URL {url}: {e}"
 
 def Contact_Finder_Search_and_Retrieve_Contact(company_name: str, senior_executive_title: Optional[str] = None):
     """
