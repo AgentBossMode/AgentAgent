@@ -1,48 +1,38 @@
 tool_calling = """
+Follow this example:
 ```python
 node_name_tools = [list_of_tools]
 def node_name(state: GraphState) -> GraphState:
-    '''Node purpose: [Clear description]'''
+    # define a state which inherits from MessagesState, also always contains remaining_step  and structured_response
+    class CustomStateForReact(MessagesState):
+        remaining_steps: int
+        structured_response: any
+    # define what kind of result you need from the agent.
+    class CustomClass(BaseModel):
+        attr1: type = Field(description="What is the field")
+        attr2: type = Field(description="What is the field")
+
     agent = create_react_agent(
-        model=llm,
-        tools=node_name_tools,
-        prompt="The prompt for the agent to follow, also mention which tools to use, if any.")
-    response = agent.invoke([HumanMessage(content="Perform action based on state")])
-    return {{
-        "messages": [response["messages"]]
-    }}
+      model=llm,
+      prompt="The prompt for the agent to follow, also mention which tools to use, if any.",
+      tools=node_name_tools,
+      state_schema=CustomStateForReact,
+      response_format=CustomClass)
 
-## Implementation Patterns
-
-### Pattern: Using create_react_agent (Simplified Approach)
-```python
-# ✅ Correct - using create_react_agent for automatic tool handling
-from langgraph.prebuilt import create_react_agent
-
-# Create agent with tools - handles tool calling automatically
-agent = create_react_agent(
-    model=your_model,
-    tools=[your_tool1, your_tool2],
-    state_modifier="Your agent instructions here"
-)
-
-# Use the agent directly - no need for manual ToolNode
-def agent_node(state):
-    response = agent.invoke({{"messages": state["messages"]}})
-    return {{"messages": response["messages"]}}
+    result: CustomClass = agent.invoke({"messages":state["messages"]})["structured_response"] #or whatever content you wish to put as per the state.
+    # Logic that either updates the state variable with result.attr1/result.attr2
+    # DO NOT do string parsing or regex parsing
 ```
-
-Use ToolNode implementation approach when:
-- You want to execute a specific sequence of tools in a controlled manner. 
-- You need more control over how tools are invoked and their results are handled. 
-
-Use create_react_agent when: 
-- You need a flexible agent that can reason about the best course of action. 
-- The task requires the LLM to make decisions based on its reasoning and understanding of the situation
 
 Please ensure that the code produced for a tool node follows:
 1. **Tool Registration**: Tools are properly defined and registered in the node
 2. **Schema Adherence**: Tool inputs/outputs match their defined schemas exactly
+
+<NOTE>
+Make sure to use proper pydantic models for structured output.
+DONOT use dict!!!!
+the response_format should be a pydantic model with the required fields. Should not be a List[PydanticModel] or something like that.
+</NOTE>
 """
 
 tool_calling_checklist = """

@@ -50,8 +50,7 @@ async def  json_node(state: AgentBuilderState, config: RunnableConfig):
     # Invoke LLM to generate code based on the detailed prompt and instructions
     modifiedConfig = copilotkit_customize_config(
         config,
-        emit_messages=False
-    )
+        emit_messages=False)
     state["current_status"] = {"inProcess":True ,"status": "Generating JSON schema.."} 
     state["current_tab"] = "graph"
     await copilotkit_emit_state(config=modifiedConfig, state=state)

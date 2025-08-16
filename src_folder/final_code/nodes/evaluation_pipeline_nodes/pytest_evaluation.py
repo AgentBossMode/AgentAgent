@@ -57,12 +57,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
     pytest_out = []
     modified_config = copilotkit_customize_config(config, emit_messages=False)
     if "attempts" not in state:
-        state["attempts"] = 5
-    if state["attempts"] > 0:
-        state["attempts"] -= 1
-    else:
-        return Command(goto=END, update={"current_status":{"inProcess":False ,"status": "Max attempts reached, please try again."} })
-
+        state["attempts"] = 4
     async def pytest_results_handler(x: str):
             pytest_out.append(x)
             state["current_tab"] =  "console"
@@ -112,7 +107,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
     except Exception as e:
         print(e)
 
-    return Command(update={"current_tab": "console", "console_logs": [pytest_results_str] + pytest_out, "pytest_results": "\n".join(pytest_out)}, goto= "evaluation_supervisor")
+    return Command(update={"current_tab": "console", "console_logs": [pytest_results_str] + pytest_out, "pytest_results": "\n".join(pytest_out), "attempts": state["attempts"]-1}, goto= "evaluation_supervisor")
 
 
 async def syntax_and_runtime_issues_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner"]]:
@@ -216,6 +211,8 @@ async def evaluation_supervisor(state: AgentBuilderState) -> Command[Literal["sy
     eval_result: EvaluationResult = await llm_eval_decide.ainvoke([HumanMessage(content=EVALUATION_SUPERVISOR_PROMPT.format(file_info=get_file_info_prompt(state)))])
     if eval_result.no_failures:
         return Command(goto=END)
+    elif state["attempts"] == 0:
+        return Command(goto=END, update={"current_status":{"inProcess":False ,"status": "Max attempts reached, please try again."} })
     elif eval_result.issue_type == "syntax_error" or eval_result.issue_type == "runtime_error":
         return Command(update={"issue_type": eval_result.issue_type, "file_that_needs_fixes": eval_result.file_that_needs_fixes, "fix_needed": eval_result.fix_needed}, goto="syntax_and_runtime_issues_node")
     elif eval_result.issue_type == "assertion_fail":

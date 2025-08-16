@@ -29,3 +29,24 @@ class JSONSchema(BaseModel):
     nodes: List[NodeSchema] = Field(description="List of nodes in the graph, each with its unique identifier and schema information")
     edges: List[EdgeSchema] = Field(description="List of edges in the graph, each describing a directed connection between nodes")
     tools: Optional[List[Tool]] = Field(description="The list of tools needed by different nodes")
+
+
+def get_tools_info(tools: Optional[List[Tool]]) -> str:
+    """
+    Generate a string representation of the tools information.
+    
+    Args:
+        tools (List[Tool]): List of Tool objects.
+    
+    Returns:
+        str: A formatted string containing the tool information.
+    """
+    tools_info = ""
+    for tool in tools:
+        tools_info += f"tool_name: {tool.name}, tool_description: {tool.description}, is_composio_tool: {tool.is_composio_tool}, node_ids:[{", ".join(tool.node_ids)}]\n"
+    return tools_info
+
+def get_nodes_and_edges_info(json_schema: JSONSchema) -> str:
+    json_schema_without_tools: JSONSchema = json_schema.model_copy(deep=True) # Create a deep copy to avoid modifying original state
+    json_schema_without_tools.tools = [] # Clear the tools field in the copy
+    return json_schema_without_tools.model_dump_json(indent=2)
