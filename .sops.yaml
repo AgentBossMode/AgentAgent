@@ -1,0 +1,7 @@
+creation_rules:
+  - path_regex: .*\.env$
+    encrypt: true
+    key_groups:
+      - pgp:
+          - 326D44B624E130FD41D4B092771A3E33CC2D78EA
+          - FED4358A6B6382A044ABDD5248A72C14DBA4984A

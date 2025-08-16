@@ -1,0 +1,134 @@
+from openevals.code.e2b.execution import create_e2b_execution_evaluator
+
+from e2b_code_interpreter import Sandbox, CommandExitException, AsyncSandbox
+from langchain_core.language_models.chat_models import BaseChatModel
+
+from typing import Callable, Any, Literal, Optional
+
+from openevals.code.base import (
+    _create_base_code_evaluator,
+)
+from openevals.types import SimpleEvaluator, SimpleAsyncEvaluator
+from openevals.code.e2b.sandbox.files import (
+    PYTHON_EVALUATOR_SEPARATOR,
+)
+
+EXTRACT_IMPORT_NAMES="""
+import ast
+import sys
+
+BUILTIN_MODULES = set(sys.stdlib_module_names)
+
+def extract_import_names(file_path: str) -> list[str]:
+    with open(file_path, "r", encoding="utf-8") as f:
+        source_code = f.read()
+        if "from tools_code" in source_code:
+            source_code = "\\n".join([line for line in source_code.splitlines() if "from tools_code" not in line])
+    
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError:
+        return []
+
+    python_imports = []
+    
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for name in node.names:
+                import_path = name.name
+                if not import_path.startswith((".", "/")):
+                    base_package = import_path.split(".")[0]
+                    if base_package not in python_imports and base_package not in BUILTIN_MODULES:
+                        python_imports.append(base_package)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and not node.module.startswith((".", "/")):
+                base_package = node.module.split(".")[0]
+                if base_package not in python_imports and base_package not in BUILTIN_MODULES:
+                    python_imports.append(base_package)
+
+    return python_imports
+
+file_path = "./outputs.py"
+imports = extract_import_names(file_path)
+print("\\n".join(imports))
+"""
+
+def _create_e2b_execution_command(
+    *,
+    execution_command: str = "python",
+) -> str:
+    return (" && ").join(
+        [
+            f"echo '{EXTRACT_IMPORT_NAMES}' > extract_import_names.py",
+            "export PIP_DISABLE_PIP_VERSION_CHECK=1",
+            "python3 extract_import_names.py > openevals_requirements.txt",
+            'if command -v "uv" >/dev/null 2>&1; then uv venv --quiet && uv pip install -r openevals_requirements.txt --quiet; else pip install -r openevals_requirements.txt --quiet --upgrade-strategy only-if-needed; fi',
+            f"echo '{PYTHON_EVALUATOR_SEPARATOR}'",
+            f'if command -v "uv" >/dev/null 2>&1; then uv run {execution_command} outputs.py; else {execution_command} outputs.py; fi',
+        ]
+    )
+
+
+def custom_multi_file_e2b_evaluator(
+    *,
+    sandbox: Sandbox,
+    environment_variables: Optional[dict[str, str]] = None,
+    execution_command: str = "python",
+    sandbox_project_directory: Optional[str] = None,
+    code_extraction_strategy: Literal["none", "llm", "markdown_code_blocks"] = "none",
+    code_extractor: Optional[Callable[[Any], str]] = None,
+    model: Optional[str] = None,
+    client: Optional[BaseChatModel] = None,
+) -> SimpleEvaluator:
+    """Creates an evaluator that executes code in an E2B sandbox environment and returns whether
+    execution was successful.
+
+    Args:
+        sandbox (Sandbox): The E2B sandbox environment for code execution.
+        environment_variables (Optional[dict[str, str]], optional): Environment variables to set in the sandbox.
+            Defaults to None.
+        execution_command (Optional[str], optional): Command used to execute the code.
+            Defaults to "python".
+        sandbox_project_directory (Optional[str], optional): Directory where the code will be executed.
+            Defaults to None.
+        code_extraction_strategy (Literal["none", "llm", "markdown_code_blocks"], optional): Strategy for
+            extracting code from the input. Defaults to "none".
+        code_extractor (Optional[Callable[[Any], str]], optional): Custom function to extract code from input.
+            Only used if code_extraction_strategy is "none".
+        model (Optional[str], optional): The model identifier for LLM-based code extraction.
+            Only used if code_extraction_strategy is "llm".
+        client (Optional[BaseChatModel], optional): The chat model client for LLM-based code extraction.
+            Only used if code_extraction_strategy is "llm".
+
+    Returns:
+        SimpleEvaluator: An evaluator function that returns a tuple of (success: bool, feedback: str)
+            where success indicates if the code executed without errors and feedback contains the
+            execution output or error messages.
+
+    Raises:
+        ValueError: If model or client are provided when code_extraction_strategy is not "llm".
+    """
+    if code_extraction_strategy != "llm" and (model or client):
+        raise ValueError(
+            "model and client may only be passed if code_extraction_strategy is 'llm'"
+        )
+
+    def _scorer(outputs: str, **kwargs: Any):
+        cwd = sandbox_project_directory or "openevals"
+        sandbox.files.write(f"{cwd}/outputs.py", outputs)
+        try:
+            cmd = _create_e2b_execution_command(execution_command=execution_command)
+            sandbox.commands.run(cmd=cmd, cwd=cwd, envs=environment_variables)
+            return True, None
+        except CommandExitException as e:
+            return False, str(e)
+
+    return _create_base_code_evaluator(
+        scorer=_scorer,
+        code_extraction_strategy=code_extraction_strategy,
+        code_extractor=code_extractor,
+        model=model,
+        client=client,
+        run_name="e2b_execution_evaluator",
+        feedback_key="execution_succeeded",
+    )
