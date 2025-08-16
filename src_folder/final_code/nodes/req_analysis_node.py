@@ -1,17 +1,13 @@
-from final_code.states.AgentBuilderState import AgentBuilderState, AgentInstructions
+from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
-
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage,AIMessage
 from langgraph.types import Command, interrupt
 from typing import Literal
-from langgraph.types import Command
-from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
-from final_code.states.ReqAnalysis import ReqAnalysis
 from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
-from final_code.states.ReqAnalysis import Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun
+from final_code.states.ReqAnalysis import ReqAnalysis, Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun, DryRuns
 llm = get_model()
 
 
@@ -38,7 +34,6 @@ You should get the following information from them:
     knowledge_sources : Follow 'knowledge_instructiona' section for this.
     targetted_users
     toolings: Follow 'tooling_instructions' section for this.
-    dry_run
 3. Based on user input, first see if any of the information provided falls into the above categories:
    EX 1: user's input indicates 2 knowledge sources, in the 5 knowledge_sources suggestions two of them should be what user provided and marked as confident, then you can make upto 3 suggestions which should be extrapolated based on the input and follows 'knowledge_instructions', but donot make repetitive suggestions.
    EX2 : If nothing from input indicates a knowledge source, then you can make upto 5 suggestions based on the CONTEXT and user message, should not be repetitive and follows 'knowledge_instructions'.
@@ -57,7 +52,8 @@ You should get the following information from them:
 async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["requirement_analysis_node"]]:
     modifiedConfig = copilotkit_customize_config(
         config,
-        emit_all=False
+        emit_messages=False,
+        emit_tool_calls=False
     )
     state["current_status"] = {"inProcess":True ,"status": "Analyzing user requirements for agent building.."} 
     await copilotkit_emit_state(config=modifiedConfig, state=state)
@@ -67,7 +63,7 @@ async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Comm
 
 
 
-async def requirement_analysis_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["json_node"]]:
+async def requirement_analysis_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["generate_dry_run"]]:
     """
     LangGraph node for performing requirement analysis.
     It interacts with the LLM to gather agent specifications from the user.
@@ -99,15 +95,46 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     if value.toolings:
         req_analysis.toolings = [Tool.model_validate(t) for t in value.toolings if t.selected]
 
-    # Filter dry_runs
-    if value.dry_runs:
-        req_analysis.dry_runs = [DryRun.model_validate(d) for d in value.dry_runs if d.selected]
-
     # Update additional_information if provided
     if value.additional_information:
         req_analysis.additional_information = value.additional_information
 
     return Command(
-        goto="json_node",
+        goto="generate_dry_run",
         update={"messages": [AIMessage(content="Requirements have been identified")], "req_analysis": req_analysis}
     )
+
+async def generate_dry_run(state: AgentBuilderState) -> Command[Literal["dry_run_interrupt"]]:
+    GENERATE_DRY_RUN_PROMPT = """
+Generate dry runs for the agent based on the requirements analysis provided.
+    The dry run should include:
+    - Input type (trigger or on-demand)
+    - Input information
+    - A list of actions performed by the agent in the dry run
+    - Output information
+
+    Use the following requirements analysis as context:
+    {req_analysis}
+
+    Also check the user provided messages for any additional context.
+    """
+
+    req_analysis: ReqAnalysis = state["req_analysis"]
+    messages = state["messages"]
+    llm_dry_run = llm.with_structured_output(DryRuns)
+    dry_runs: DryRuns = await llm_dry_run.ainvoke([SystemMessage(content=GENERATE_DRY_RUN_PROMPT.format(req_analysis=req_analysis.model_dump_json(indent=2)))]+ messages)
+    return Command(
+        goto="dry_run_interrupt",
+        update={"messages": [AIMessage(content="Generated dry runs")], "dry_runs": dry_runs}
+    )
+
+def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["json_node"]]:
+    """
+    Interrupt handler for dry run generation.
+    It collects the dry run information from the user and updates the state.
+    """
+    dry_runs: DryRuns = state["dry_runs"]
+    value_1: dict = interrupt({"type":"dry_runs", "payload": state["dry_runs"] })
+    dry_runs_1: DryRuns = DryRuns.model_validate(value_1)    
+    dry_runs.dry_runs = [DryRun.model_validate(d) for d in dry_runs_1.dry_runs if d.selected]
+    return Command(goto="json_node", update={"dry_runs": dry_runs, "messages": [AIMessage(content="Dry runs have been generated and selected")], "current_status": {"inProcess":False ,"status": "Dry runs generated"}})

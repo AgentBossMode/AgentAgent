@@ -44,7 +44,6 @@ class Tool(BaseModel):
 
 
 class AgentAction(BaseModel):
-    determinism: Literal["deterministic", "llm"] = Field(description="Description of the action, if this action can be done via plain non-ML python code, say deterministic, that does not mean string parsing on the input or any other by product")
     knowledge: str = Field(description="which knowledge base is used and why is it needed")
     toolings: str = Field(description="What toolings are used to to be used by this step")
     action: str = Field(description="Ex format: Using the 'knowledge', agent learns about 'abc' and then uses the x tool to do 'xyz'")
@@ -56,6 +55,8 @@ class DryRun(BaseModel):
     output: str = Field(description="The end result, what is achieved by the agent")
     selected: bool = Field(default=False)
 
+class DryRuns(BaseModel):
+    dry_runs: List[DryRun] = Field(description="A list of dry runs generated for the agent")
 
 class ReqAnalysis(BaseModel):
     purposes:  List[Purpose]= Field(description="Provide upto 5 distinct suggestions")
@@ -64,5 +65,4 @@ class ReqAnalysis(BaseModel):
     targetted_users: List[TargettedUser] = Field(description="Provide upto 5 distinct suggestions")
     toolings: List[Tool] = Field(description="Provide upto 5 distinct suggestions")
     additional_information: str = Field(description="Any additional information in user input not categorizable in above categories")
-    dry_runs: List[DryRun] = Field(description="Provide upto 5 distinct suggestions, Different dry runs, to help visualize how the agent should work")
     user_selections:dict = Field(default=None)
