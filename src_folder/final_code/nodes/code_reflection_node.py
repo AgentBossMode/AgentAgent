@@ -9,6 +9,8 @@ from final_code.llms.model_factory import get_model, ModelName
 import os
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_state
+import json
+
 REFLECTION_SYSTEM_PROMPT = """
  You are an expert software engineer.
  You will be given a langgraph code.
@@ -76,13 +78,15 @@ async def run_reflection(state: AgentBuilderState, config: RunnableConfig) -> Co
                py_code = py_code[:-len("```")]
             return Command(goto="__end__", update={"python_code":py_code})
         else:
-            final_log_str = result['metadata'] + result['comment']
+            metadata_str = json.dumps(result['metadata']) if isinstance(result['metadata'], dict) else str(result['metadata'])
+            comment_str = result['comment'] or ""
+            final_log_str = metadata_str + comment_str
             modified_config = copilotkit_customize_config(config, emit_messages=False)
             state["console_logs"] = state["console_logs"] + [final_log_str]
             await copilotkit_emit_state(config=modified_config, state=state)
             return  Command(goto="code_rectification_node", update= {
                 "remaining_steps": state["remaining_steps"]-1,
-                "python_code":f"I ran the code and found some problems: {result['metadata']} {result['comment']}\n\n"
+                "python_code":f"I ran the code and found some problems: {metadata_str} {comment_str}\n\n"
                         f"PYTHON CODE that led to above failures: \n\n{py_code}\n\n"
                         "Try to fix it. Make sure to regenerate the entire code snippet. "
             })
