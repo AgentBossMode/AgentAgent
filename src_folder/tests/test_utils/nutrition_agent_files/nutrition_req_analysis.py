@@ -113,7 +113,11 @@ nutrition_req_analysis = r'''
       }
     ],
     "additional_information": "The user wants to track calorie intake and expenditure, and get insights into their diet and exercise history. The agent should be able to calculate and store calorie data for both food and exercise, and retrieve historical data for Q&A.",
-    "dry_runs": [
+  }'''
+
+nutrition_dry_runs = r'''
+{
+"dry_runs": [
       {
         "input_type": "on-demand",
         "input": "I ate a banana and ran for 30 minutes.",
@@ -191,4 +195,4 @@ nutrition_req_analysis = r'''
         "selected": true
       }
     ]
-  }'''
+}'''
