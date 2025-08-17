@@ -10,11 +10,20 @@ class Tool(BaseModel):
     py_code: Optional[str] = Field(default=None, description="Python code for the tool, if applicable")
     node_ids: List[str] = Field(description="The node ids of the nodes for which the tool is relevant. This is the id variable in NodeSchema")
 
+class VariableSchema(BaseModel):
+    name: str = Field(description="Name of variable or class attribute")
+    type: str = Field(description="Data type of variable or class attribute")
+    description: str = Field(description="Description of variable or class attributes or when the variable or class attributes is used or variable or class attributes is changed")
+
+class GraphStateSchema(BaseModel):
+    type: str = Field(description="Data type of graph state") 
+    fields: List[VariableSchema] = Field(description="List of Schema of all Attributes representing a class")
+
 class NodeSchema(BaseModel):
     id: str = Field(description="The node's identifier")
-    schema_info: str = Field(description="A string describing the structure of the `GraphState` (e.g., \"GraphState:\\n type: TypedDict\\n fields:\\n - name: input\\n type: str...\"). You will need to parse this to define the `GraphState` TypedDict.")
-    input_schema: str = Field(description="The expected input schema for the node (typically \"GraphState\").")
-    output_schema: str = Field(description="The schema of the output produced by the node (typically \"GraphState\", indicating a partial update).")
+    llm_actions: List[str] = Field(description="A list of abstract actions a node is expected to do")
+    input_schema: List[VariableSchema] = Field(description="The expected input schema for the node (typically \"GraphState\").")
+    output_schema: List[VariableSchema] = Field(description="The schema of the output produced by the node (typically \"GraphState\", indicating a partial update).")
     description: str = Field(description="Natural language description of what the node does")
     function_name: str = Field(description="The suggested Python function name for this node.")
 
@@ -25,6 +34,7 @@ class EdgeSchema(BaseModel):
     conditional: bool = Field(description="A boolean flag, `true` if the edge is part of a conditional branch, `false` otherwise")
 
 class JSONSchema(BaseModel):
+    graphstate: GraphStateSchema = Field(description="Identified graphstate schema for a particular set of requirements")
     justification: str = Field(description="Identified architecture and justification of deciding the architecture")
     nodes: List[NodeSchema] = Field(description="List of nodes in the graph, each with its unique identifier and schema information")
     edges: List[EdgeSchema] = Field(description="List of edges in the graph, each describing a directed connection between nodes")
