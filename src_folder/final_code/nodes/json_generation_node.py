@@ -66,58 +66,58 @@ You are tasked with generating a JSONSchema object which represents a langgraph 
 The output should follow this exact structure:
 
 ```json
-{
-  "graphstate": {
+{{
+  "graphstate": {{
     "type": "TypedDict",
     "fields": [
-      {
+      {{
         "name": "[field_name]",
         "type": "[field_type]",
         "description": "[field_description]"
-      }
+      }}
     ]
-  },
+  }},
   "tools": [
-    {
+    {{
       "name": "[tool_name]",
       "description": "[what_this_tool_does]",
       "node_ids": [
         "[node_id_that_uses_this_tool]"
       ]
-    }
+    }}
   ],
   "nodes": [
-    {
+    {{
       "id": "[node_id]",
       "function_name": "[function_name]",
       "description": "[node_description]",
       "llm_actions": "[list_of_actions]",
       "input_schema": [
-        {
+        {{
           "name": "[field_name]",
           "type": "[field_type]",
           "description": "[how_this_field_is_used_as_input]"
-        }
+        }}
       ],
       "output_schema": [
-        {
+        {{
           "name": "[field_name]",
           "type": "[field_type]",
           "description": "[how_this_field_is_modified_or_created]"
-        }
+        }}
       ]
-    }
+    }}
   ],
   "edges": [
-    {
+    {{
       "source": "[source_node_id]",
       "target": "[target_node_id]",
       "conditional": "[true|false]",
       "routing_conditions": "[conditions_if_conditional]"
-    }
+    }}
   ],
   "justification": "[explanation_of_architectural_choice_and_workflow_design]"
-}
+}}
 
 </INSTRUCTIONS>
 <EXAMPLES>
@@ -145,6 +145,7 @@ async def json_node(state: AgentBuilderState, config: RunnableConfig):
         dry_runs=state["dry_runs"].model_dump_json(indent=2),
         tooling_instructions=tooling_instructions,
         json_notes=json_notes,
+        node_action_types=node_action_types,
         json_example_ecommerce=json_example_ecommerce,
         json_example_marketing=json_example_marketing,
         json_example_report_finance=json_example_report_finance

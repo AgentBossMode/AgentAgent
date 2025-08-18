@@ -1,8 +1,8 @@
-json_example_ecommerce = """
+json_example_ecommerce = r'''
 ### Example 1: E-commerce Customer Support Agent with Multi-Agent Architecture
-**Input**: "Create a customer support workflow that takes customer queries, analyzes them, routes to appropriate specialist agents (technical, billing, general), each agent researches using knowledge base and external APIs, generates responses, validates them, and if confidence is low, escalates to human agent"
+Input: "Create a customer support workflow that takes customer queries, analyzes them, routes to appropriate specialist agents (technical, billing, general), each agent researches using knowledge base and external APIs, generates responses, validates them, and if confidence is low, escalates to human agent"
 
-**Expected Schema Pattern**:
+Expected Schema Pattern:
 {
   "graphstate": {
     "type": "TypedDict",
@@ -410,12 +410,12 @@ json_example_ecommerce = """
   ],
   "justification": "This workflow implements a Multi-Agent Supervisor architecture with Human-in-the-Loop capabilities. The supervisor (analyze_and_route) classifies queries and routes to specialized agents. Each specialist agent performs multiple LLM actions: tool_call to gather data, aggregate to combine sources, analyze to understand context, and generate responses. A validation layer ensures quality control, with automatic escalation to humans for complex cases."
 }
-    """
-json_example_marketing = """
+'''
+json_example_marketing = r'''
 ### Example 2: Content Marketing Pipeline with Plan-and-Execute Architecture
-**Input**: "Create a content marketing workflow that takes a topic, researches competitors and trends, creates a content plan, generates multiple content pieces (blog post, social media, email), gets approval for each, optimizes based on feedback, and publishes across platforms"
+Input: "Create a content marketing workflow that takes a topic, researches competitors and trends, creates a content plan, generates multiple content pieces (blog post, social media, email), gets approval for each, optimizes based on feedback, and publishes across platforms"
 
-**Expected Schema Pattern**:
+Expected Schema Pattern:
 {
   "graphstate": {
     "type": "TypedDict",
@@ -919,11 +919,11 @@ json_example_marketing = """
   ],
   "justification": "This workflow implements a Plan-and-Execute architecture with Human-in-the-Loop validation. The planning phase (research_and_plan) creates a comprehensive strategy, followed by parallel execution of content generation. Each node performs multiple LLM actions combining tool calls for data gathering, analysis for insights, and generation for content creation. The approval loop allows for iterative refinement based on human feedback."
 }
-"""
-json_example_report_finance = """
+'''
+json_example_report_finance = r'''
 
 ### Example 3: Financial Report Analysis with Self-Correction Architecture
-**Input**: "Build a workflow that takes financial documents, extracts key metrics, validates data accuracy, performs trend analysis, generates insights, cross-references with market data, identifies anomalies, creates visualizations, and produces executive summary with confidence scores"
+Input: "Build a workflow that takes financial documents, extracts key metrics, validates data accuracy, performs trend analysis, generates insights, cross-references with market data, identifies anomalies, creates visualizations, and produces executive summary with confidence scores"
 
 {
   "graphstate": {
@@ -1374,4 +1374,4 @@ json_example_report_finance = """
   ],
   "justification": "This workflow employs a Self-Correction architecture by first extracting and validating data, and then performing analysis in parallel to identify trends, compare with market data, and detect anomalies. The process is self-correcting as the `validate_and_correct` node modifies the `corrected_metrics` field based on a quality score, which is then used by subsequent nodes. The final `generate_summary_and_insights` node aggregates all the parallel results into a coherent summary, effectively serving as the final aggregation and validation step.
 }
-"""
+'''
