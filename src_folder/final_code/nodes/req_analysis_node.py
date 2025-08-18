@@ -99,6 +99,7 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     if value.additional_information:
         req_analysis.additional_information = value.additional_information
 
+    req_analysis.user_selections = value.user_selections if value.user_selections else {}
     return Command(
         goto="generate_dry_run",
         update={"messages": [AIMessage(content="Requirements have been identified")], "req_analysis": req_analysis}
@@ -137,4 +138,5 @@ def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Comma
     value_1: dict = interrupt({"type":"dry_runs", "payload": state["dry_runs"] })
     dry_runs_1: DryRuns = DryRuns.model_validate(value_1)    
     dry_runs.dry_runs = [DryRun.model_validate(d) for d in dry_runs_1.dry_runs if d.selected]
+    dry_runs.user_selections = dry_runs_1.user_selections if dry_runs_1.user_selections else {}
     return Command(goto="json_node", update={"dry_runs": dry_runs, "messages": [AIMessage(content="Dry runs have been generated and selected")], "current_status": {"inProcess":False ,"status": "Dry runs generated"}})
