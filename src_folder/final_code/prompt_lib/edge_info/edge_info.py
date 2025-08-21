@@ -74,52 +74,8 @@ graph.add_conditional_edges(
 ```
 """
 
-edge_info= """
-<Edges>
-Edges define how the logic is routed and how the graph decides to stop. This is a big part of how your agents work and how different nodes communicate with each other. There are a few key types of edges:
 
-Normal Edges: Go directly from one node to the next.
-Conditional Edges: Call a function to determine which node(s) to go to next.
-A node can have MULTIPLE outgoing edges. If a node has multiple out-going edges, all of those destination nodes will be executed in parallel as a part of the next superstep.
-
-<NonConditionalEdges>
-If you always want to go from node A to node B, you can use the add_edge method directly.
-
-``` python
-graph.add_edge("node_a", "node_b")
-```
-#### The following must be ensured without fail when defining a Non-Conditional Edges
-- [ ] **Valid Connections**: Source and target nodes exist in the graph
-- [ ] **Flow Logic**: Edge connections support the intended workflow
-- [ ] **No Orphaned Nodes**: All nodes are reachable through edge connections
-
-</NonConditionalEdges>
-
-<ConditionalEdges>
-If you want to optionally route to 1 or more edges (or optionally terminate), you can use the add_conditional_edges method. This method accepts the name of a node and a "routing function" to call after that node is executed:
-
-``` python
-graph.add_conditional_edges("node_a", routing_function)
-```
-
-Similar to nodes, the routing_function accepts the current state of the graph and returns a value.
-
-By default, the return value routing_function is used as the name of the node (or list of nodes) to send the state to next. All those nodes will be run in parallel as a part of the next superstep.
-
-You can optionally provide a dictionary that maps the routing_function's output to the name of the next node.
-
-``` python 
-graph.add_conditional_edges("node_a", routing_function, {{True: "node_b", False: "node_c"}})
-```
-#### The following must be ensured without fail when defining a Conditional Edges
-- [ ] **Condition Function**: Properly defined condition functions that return valid next node names
-- [ ] **Edge Mapping**: Correct mapping between condition outcomes and target nodes
-- [ ] **Default Paths**: Appropriate default/fallback paths defined
-- [ ] **State Access**: Condition functions correctly access required state properties
-
-</ConditionalEdges>
-</Edges>
-
+command_info = """
 <Command>
 It can be useful to combine control flow (edges) and state updates (nodes). 
 For example, you might want to BOTH perform state updates AND decide which node to go to next in the SAME node. 
@@ -172,12 +128,58 @@ Use Command
 2. For example, when implementing multi-agent handoffs where it's important to route to a different agent and pass some information to that agent.
 Use conditional edges to route between nodes conditionally without updating the state.
 </CommandOrConditionalEdge>
+"""
+
+edge_info= """
+<Edges>
+Edges define how the logic is routed and how the graph decides to stop. This is a big part of how your agents work and how different nodes communicate with each other. There are a few key types of edges:
+
+Normal Edges: Go directly from one node to the next.
+Conditional Edges: Call a function to determine which node(s) to go to next.
+A node can have MULTIPLE outgoing edges. If a node has multiple out-going edges, all of those destination nodes will be executed in parallel as a part of the next superstep.
+
+<NonConditionalEdges>
+If you always want to go from node A to node B, you can use the add_edge method directly.
+
+``` python
+graph.add_edge("node_a", "node_b")
+```
+#### The following must be ensured without fail when defining a Non-Conditional Edges
+- [ ] **Valid Connections**: Source and target nodes exist in the graph
+- [ ] **Flow Logic**: Edge connections support the intended workflow
+- [ ] **No Orphaned Nodes**: All nodes are reachable through edge connections
+
+</NonConditionalEdges>
+
+<ConditionalEdges>
+If you want to optionally route to 1 or more edges (or optionally terminate), you can use the add_conditional_edges method. This method accepts the name of a node and a "routing function" to call after that node is executed:
+
+``` python
+graph.add_conditional_edges("node_a", routing_function)
+```
+
+Similar to nodes, the routing_function accepts the current state of the graph and returns a value.
+
+By default, the return value routing_function is used as the name of the node (or list of nodes) to send the state to next. All those nodes will be run in parallel as a part of the next superstep.
+
+You can optionally provide a dictionary that maps the routing_function's output to the name of the next node.
+
+``` python 
+graph.add_conditional_edges("node_a", routing_function, {{True: "node_b", False: "node_c"}})
+```
+#### The following must be ensured without fail when defining a Conditional Edges
+- [ ] **Condition Function**: Properly defined condition functions that return valid next node names
+- [ ] **Edge Mapping**: Correct mapping between condition outcomes and target nodes
+- [ ] **Default Paths**: Appropriate default/fallback paths defined
+- [ ] **State Access**: Condition functions correctly access required state properties
+
+</ConditionalEdges>
+</Edges>
 
 Output: python code with appropriate inline comments
 Follow the below algorithm to generate output: 
 if: non-conditional edge, then: refer to implementation in 'NonConditionalEdge' for implementation
-else if: either the return type of the function is Command or according to 'CommandOrConditionalEdge' we should use Command functionality, then: refer to 'Command' section for implementation
-else if : according to 'CommandOrConditionalEdge' conditional_edge should be used, then: refer to 'ConditionalEdges' section for implementation.
+else: refer to 'ConditionalEdge' for implementation.
 
 Ensure that all the generated nodes follow the checklist below:
 - [ ] **Node Dependencies**: Proper sequencing of nodes based on data dependencies

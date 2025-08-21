@@ -6,6 +6,7 @@ from typing import List
 from final_code.states.BaseCopilotRenderingState import BaseCopilotRenderingState
 from final_code.states.ToolOptions import ToolOptions
 from final_code.pydantic_models.UtGen import UtGeneration
+from final_code.pydantic_models.PytestReport import PytestReport, TestResult
 
 
 class AgentBuilderState(BaseCopilotRenderingState):
@@ -29,3 +30,6 @@ class AgentBuilderState(BaseCopilotRenderingState):
     fix_needed: str = Field(description="detailed explanation of fixes needed, in a diff format")
     attempts: int = Field(default=5, description="Number of attempts made to fix the issue")
     utGeneration: UtGeneration = Field(description="The unit test generation object containing final_response_uts and trajectory_uts")
+    pytest_report: dict = Field(description="The pytest json report")
+    syntax_issues: List[TestResult] = Field(default_factory=list, description="List of syntax issues found in the code")
+    assertion_failures: List[TestResult] = Field(default_factory=list, description="List of assertion failures found in the code")
