@@ -15,9 +15,6 @@ from final_code.prompt_lib.node_info.struct_output import struct_output
 from final_code.prompt_lib.node_info.interrupt_info import interrupt_info
 from final_code.prompt_lib.node_info.multi_pattern import multi_pattern
 from final_code.prompt_lib.edge_info.edge_info import edge_info
-from final_code.utils.get_filtered_file import get_filtered_file
-from final_code.ast_visitors_lib.validation_script import run_detailed_validation
-import ast
 from copilotkit.langgraph import copilotkit_emit_state 
 llm = get_model()
 
@@ -121,13 +118,7 @@ from langchain_openai import ChatOpenAI
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 ```
 
-### 3. If there is mention of ReactAgentState in create_react_agent method calls, add this after the imports section:
-
-class ReactAgentState(MessagesState):
-    remaining_steps: int
-    structured_response: any
-                                                                                              
-### 4. Final Graph Compilation
+###3: Final Graph Compilation
 ```python
 checkpointer = InMemorySaver()
 app = workflow.compile(
@@ -143,7 +134,7 @@ Before finalizing your code, verify:
 - [ ] GraphState properly extends MessagesState 
 - [ ] LLM calls include proper error handling
 - [ ] Structured output uses proper Pydantic models
-- [ ] Inside any Pydantic model, do not use 'dict' or 'Dict' as a type hint for any field. you can instead use str and then store a serialized JSON
+- [ ] Inside any Pydantic model, do not use 'dict' as a type hint for any field.
 - [ ] Conditional edges handle all possible routing outcomes
 - [ ] Code is compilable and logically consistent
 - [ ] No unterminated string literals or syntax errors
@@ -195,6 +186,9 @@ def generate_code_gen_prompt():
             multi_pattern=multi_pattern,
             edge_info=edge_info)
 
+class PythonCode(BaseModel):
+    code: str = Field(description="complete and compilable langgraph python code")
+
 async def code_node(state: AgentBuilderState, config: RunnableConfig):
     """
     LangGraph node to generate the final Python code for the agent.
@@ -217,29 +211,6 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
         "python_code": response,
         "messages":[AIMessage(content="Generated the agent code, check main.py in the code editor.")]
     } 
-
-
-async def code_analyzer_node(state: AgentBuilderState, config: RunnableConfig):
-    FIX_PROMPT = """
-Fix the 'python_code' based on the errors and the provided fixes
-<python_code>
-{python_code}
-</python_code>
-
-<error_report>
-{fixes}
-</error_report>
-"""
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False
-    )
-    python_file = get_filtered_file(state["python_code"])
-    error_report = run_detailed_validation(python_file)
-    if len(error_report["errors"])>0 or len(error_report["warnings"]) >0:
-        response = await llm.ainvoke([SystemMessage(content=FIX_PROMPT.format(python_code=python_file, fixes=error_report))], config=modifiedConfig)
-        return {"python_code": response.content}
-    return {"python_code": state["python_code"]}
 
 def get_schema_info(json_schema: JSONSchema, tools_code: str):
     return JSON_WRAPPER.format(

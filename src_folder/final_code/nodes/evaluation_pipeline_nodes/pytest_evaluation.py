@@ -5,17 +5,13 @@ from pydantic import BaseModel, Field
 from langgraph.types import Command
 from typing import Literal
 from final_code.llms.model_factory import get_model
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 from langgraph.graph import END
 from final_code.nodes.code_generation_node import generate_code_gen_prompt
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.pydantic_models.UtGen import UtGeneration
-from final_code.pydantic_models.PytestReport import TestResult
-from final_code.utils.get_filtered_file import get_filtered_file
-from typing import List
-import json
 def get_file_info_prompt(state: AgentBuilderState):
     FILE_INFO = """
 <python_code.py code>
@@ -34,8 +30,12 @@ def get_file_info_prompt(state: AgentBuilderState):
 test_app.py imports app from python_code.py 
 python_code.py imports mock_tools_code.py
 </RELATION_OF_FILES>
+
+<pytest_results>
+{pytest_results}
+</pytest_results>
 """
-    return FILE_INFO.format(python_code= state["python_code"], mock_tools_code=state["mock_tools_code"], pytest_code=state["pytest_code"])
+    return FILE_INFO.format(python_code= state["python_code"], mock_tools_code=state["mock_tools_code"], pytest_code=state["pytest_code"], pytest_results=state["pytest_results"])
 
 def get_context_info_prompt(state: AgentBuilderState):
     CONTEXT_WINDOW = """
@@ -53,236 +53,167 @@ def get_context_info_prompt(state: AgentBuilderState):
 """
     return CONTEXT_WINDOW.format(issue_type=state["issue_type"], file_that_needs_fixes=state["file_that_needs_fixes"], fix_needed=state["fix_needed"])
 
-async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["evaluation_start"]]:
-    if "type" in config and config["type"] == "test":
-        is_test =True
-    elif "metadata" in config and "type" in config["metadata"] and config["metadata"]["type"] == "test":
-        is_test = True
-    else:
-        is_test = False
+async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["evaluation_supervisor"]]:
     pytest_out = []
     modified_config = copilotkit_customize_config(config, emit_messages=False)
     if "attempts" not in state:
-        state["attempts"] = 10
-    
+        state["attempts"] = 4
     async def pytest_results_handler(x: str):
             pytest_out.append(x)
             state["current_tab"] =  "console"
             state["console_logs"] = state["console_logs"] + [x]
-            if is_test:
-                pass
-            else:
-                await copilotkit_emit_state(state=state, config=modified_config)
+            await copilotkit_emit_state(state=state, config=modified_config)
     
     sandbox = await AsyncSandbox.create(envs= {"OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"], "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY_INCEPTION"], "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2_INCEPTION"], "LANGCHAIN_PROJECT": "inception_prompt"})
 
-    await sandbox.files.write("./app.py", get_filtered_file(state["python_code"]))
-    await sandbox.files.write("./tools_code.py", get_filtered_file(state["mock_tools_code"]))
-    await sandbox.files.write("./test_app.py", get_filtered_file(state["pytest_code"]))
+
+    await sandbox.files.write("./app.py", state["python_code"])
+    await sandbox.files.write("./tools_code.py", state["mock_tools_code"])
+    await sandbox.files.write("./test_app.py", state["pytest_code"])
     cmd = create_e2b_execution_command()
     await sandbox.commands.run(cmd)
-    await sandbox.commands.run("pip install pytest pytest-xdist pytest-json-report")
-    try:  
+    await sandbox.commands.run("pip install pytest pytest-xdist")
+    try:
+        
         state["current_status"] = {"inProcess":True ,"status": "Running pytests..."}
         state["current_tab"] =  "console"
         state["console_logs_incoming"]= True
+        utGeneration: UtGeneration = state["utGeneration"]        
+        pytest_results_str = ""
+        for i, ut in enumerate(utGeneration.final_response_uts):
+            pytest_results_str += f"Final Response UT {i+1}:\n"
+            pytest_results_str += f"  Input: {ut.input}\n"
+            pytest_results_str += f"  Expected Response: {ut.expected_response}\n\n"
 
-        if is_test:
-            pytest_results_str = ""
-            pass
-        else:
-            utGeneration: UtGeneration = state["utGeneration"]        
-            pytest_results_str = ""
-            for i, ut in enumerate(utGeneration.final_response_uts):
-                pytest_results_str += f"Final Response UT {i+1}:\n"
-                pytest_results_str += f"  Input: {ut.input}\n"
-                pytest_results_str += f"  Expected Response: {ut.expected_response}\n\n"
-
-            for i, ut in enumerate(utGeneration.trajectory_uts):
-                pytest_results_str += f"Trajectory UT {i+1}:\n"
-                pytest_results_str += f"  Input: {ut.input}\n"
-                # Join the list of strings for better readability in the logs.
-                trajectory_str = ", ".join(map(str, ut.expected_trajectory))
-                pytest_results_str += f"  Expected Trajectory: {trajectory_str}\n\n"
-
-            state["console_logs"] = [pytest_results_str]
-            await copilotkit_emit_state(state=state, config=modified_config)
-        commandResult = await sandbox.commands.run("pytest -n 2 -vv \
-  --tb=long \
-  --capture=tee-sys \
-  --json-report \
-  --json-report-file=report.json ./test_app.py",
+        for i, ut in enumerate(utGeneration.trajectory_uts):
+            pytest_results_str += f"Trajectory UT {i+1}:\n"
+            pytest_results_str += f"  Input: {ut.input}\n"
+            # Join the list of strings for better readability in the logs.
+            trajectory_str = ", ".join(map(str, ut.expected_trajectory))
+            pytest_results_str += f"  Expected Trajectory: {trajectory_str}\n\n"
+        
+        state["console_logs"] = [pytest_results_str]
+        await copilotkit_emit_state(state=state, config=modified_config)
+        commandResult = await sandbox.commands.run("pytest -n 2 -rfEP ./test_app.py",
                                               background=False, 
                                               on_stderr= pytest_results_handler,
                                               on_stdout= pytest_results_handler,
                                               timeout=300)
-        json_report = await sandbox.files.read("./report.json")
         state["current_status"] = {"inProcess":False ,"status": "Pytests run completed"}
         state["current_tab"] =  "console"
         state["console_logs_incoming"]= False
 
-        if is_test:
-            pass
-        else:
-            await copilotkit_emit_state(state=state, config=modified_config)
+        await copilotkit_emit_state(state=state, config=modified_config)
     except Exception as e:
-        json_report = await sandbox.files.read("./report.json")
-        state["current_status"] = {"inProcess":False ,"status": "Pytests run completed"}
-        state["current_tab"] =  "console"
-        state["console_logs_incoming"]= False
-    final_report: dict = json.loads(json_report)
-    return Command(update={"pytest_report": final_report,"current_tab": "console", "console_logs": [pytest_results_str] + pytest_out, "pytest_results": "\n".join(pytest_out), "attempts": state["attempts"]-1}, goto= "evaluation_start")
+        print(e)
+
+    return Command(update={"current_tab": "console", "console_logs": [pytest_results_str] + pytest_out, "pytest_results": "\n".join(pytest_out), "attempts": state["attempts"]-1}, goto= "evaluation_supervisor")
 
 
-async def evaluation_start(state: AgentBuilderState) -> Command[Literal["__end__", "evaluation_supervisor"]]:    
-  
-    pytest_report: dict = state["pytest_report"]
-    if pytest_report.get("summary", {}).get("failed", 1) == 0:
-        return Command(goto=END)
-    elif state["attempts"] == 0:
-        return Command(goto=END, update={"current_status":{"inProcess":False ,"status": "Max attempts reached, please try again."} })
+async def syntax_and_runtime_issues_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner"]]:
+    llm = get_model()
+    SYNTAX_AND_RUNTIME_ISSUE_FIX_PROMPT = """
+You are an expert in making code fixes for langgraph agents.
 
-    failed_tests: List[TestResult] = [TestResult.model_validate(test) for test in pytest_report["tests"] if test["outcome"] == "failed"]
-    assertion_failures : List[TestResult] = []
-    syntax_failures : List[TestResult] = []
-    for failed_test in failed_tests:
-        if failed_test.call.crash.message.__contains__("AssertionError"):
-            assertion_failures.append(failed_test)
-        else:
-            syntax_failures.append(failed_test)
-    return Command(goto="evaluation_supervisor", update={"syntax_issues": syntax_failures, "assertion_failures": assertion_failures})
+<INSTRUCTIONS>
+1. Understand the 'issue_type' and 'fix_needed' for the 'file_that_need_fixes'
+2. Read the 'python_code.py', 'mock_tools_code.py', 'test_app.py' for reference.
+3. Before applying fixes, make sure whatever fixes you make comply with the 'langgraph_context' section which acts as a guide for code generation.
+4. Generate the compilable final code.
+5. The final code should be executable WITHOUT ANY MARKDOWN blocks.
+</INSTRUCTIONS>
 
-async def evaluation_supervisor(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner", "__end__"]]:
-    if "type" in config and config["type"] == "test":
-        is_test =True
-    elif "metadata" in config and "type" in config["metadata"] and config["metadata"]["type"] == "test":
-        is_test = True
-    else:
-        is_test = False
-    syntax_failures: List[TestResult] = state["syntax_issues"]
-    assertion_failures: List[TestResult]  = state["assertion_failures"]
+{context_info}
 
-    failure_string = ""
-
-    if len(syntax_failures) > 0:
-        failure_string += "<Syntax_Issues>\n"
-        i = 0
-        for failure in syntax_failures:
-            failure_string += f"<FAILURE_{i}>"
-            failure_string += f"Test: {failure.nodeid}\n"
-            failure_string += f"Traceback: {failure.call.traceback}\n\n"
-            failure_string += f"Error: {failure.call.crash}\n\n"
-            failure_string += f"</FAILURE_{i}>\n\n"
-            i += 1
-        failure_string+= "</Syntax_Issues>\n"
-    if len(assertion_failures) > 0:
-        failure_string += "<Assertion_Failures>"
-        i=0
-        for failure in assertion_failures:
-            failure_string += f"<FAILURE_{i}>" +"\n"
-            failure_string += f"Test: {failure.nodeid}\n"
-            failure_string += f"Traceback: {failure.call.traceback}\n\n"
-            failure_string += f"Error: {failure.call.crash}\n\n"
-            failure_string += f"</FAILURE_{i}>\n\n"
-            i += 1
-        failure_string += "</Assertion_Failures>"
-    
-    EVALUATION_PROMPT =  """
-You are an expert engineer in debugging issues related to langgraph agents.
-User will provide you with a list of failures, which might contain, Syntax Issues, Assertion Failures, or both.
-You are also provided with the python_code.py, mock_tools_code.py, and test_app.py files.
-
-<failure_string>
-{failure_string}
-</failure_string>
-
-<file_info>
 {file_info}
-</file_info>
 
 <langgraph_context>
 {langgraph_context}
 </langgraph_context>
+"""
+    modified_config = copilotkit_customize_config(config, emit_messages=False)
+    state["current_tab"] =  "console"
+    state["current_status"] = {"inProcess":True ,"status": "Evaluating syntax and runtime failures..."}
+    await copilotkit_emit_state(state=state, config=modified_config)
+    
+    final_code = await llm.ainvoke([HumanMessage(content=SYNTAX_AND_RUNTIME_ISSUE_FIX_PROMPT.format(
+        context_info=get_context_info_prompt(state),
+        file_info=get_file_info_prompt(state),
+        langgraph_context=generate_code_gen_prompt()
+    ))], config=modified_config)
+
+    state["current_tab"] =  "console"
+    state["current_status"] = {"inProcess":False ,"status": "Pytest errors evaluated, making code changes."}
+    await copilotkit_emit_state(state=state, config=modified_config)
+    if state["file_that_needs_fixes"] == "python_code":
+        return Command(update={"python_code": final_code.content}, goto="pytest_runner")
+    elif state["file_that_needs_fixes"] == "mock_tools_code":
+        return Command(update={"mock_tools_code": final_code.content}, goto="pytest_runner")
+    elif state["file_that_needs_fixes"] == "pytest_code":
+        return Command(update={"pytest_code": final_code.content}, goto="pytest_runner")
+    
+
+async def fix_assert_fail_issue_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner"]]:
+    llm = get_model()
+    ASSERTION_FAIL_FIXES_PROMPT = """
+You are an expert engineer building and evaluating langgraph agent. Just understand why the assertions are failing, what fixes need to be made.
 <INSTRUCTIONS>
-1. Understand the failures provided in the failure_string and the files provided.
-2. Now generate a list of fixes needed to be made, the file that needs fixes, and the type of issue.
-3. Whenever suggesting a fix in a file, ensure that the issue is being fixes across the file. i.e. if a bug is identified in line 10 and same bug is present in line 20, then fix both the lines.
-4. For suggesting changes to the python_code.py, always make sure it conforms to the patterns described in 'langgraph_context' section.
+1. Understand the 'issue_type' and 'fix_needed' for the 'file_that_need_fixes'
+2. Read the 'python_code.py', 'mock_tools_code.py', 'test_app.py' for reference.
+3. You are to see what fixes need to be made, why the assertion is failing, and see how you can make the changes. If the selected file is 'python_code.py' make sure the changes being made are being done by checking langgraph_context
+4. Generate the compilable final code.
+5. The final code should be executable WITHOUT ANY MARKDOWN blocks.
 </INSTRUCTIONS>
-    """
+{context_info}
+
+{file_info}
+
+<langgraph_context>
+{langgraph_context}
+</langgraph_context>
+"""
+    modified_config = copilotkit_customize_config(config, emit_messages=False)
+    state["current_status"] = {"inProcess":True ,"status": "Evaluating assertion failures..."}
+    await copilotkit_emit_state(state=state, config=modified_config)
+    
+    final_code = await llm.ainvoke([HumanMessage(content=ASSERTION_FAIL_FIXES_PROMPT.format(context_info=get_context_info_prompt(state),
+        file_info=get_file_info_prompt(state),
+        langgraph_context=generate_code_gen_prompt()))], config=modified_config)
+    
+    state["current_status"] = {"inProcess":False ,"status": "Assertion failures evaluated, making fixes"}
+    await copilotkit_emit_state(state=state, config=modified_config)
+
+    if state["file_that_needs_fixes"] == "python_code":
+        return Command(update={"python_code": final_code.content}, goto="pytest_runner")
+    elif state["file_that_needs_fixes"] == "mock_tools_code":
+        return Command(update={"mock_tools_code": final_code.content}, goto="pytest_runner")
+    elif state["file_that_needs_fixes"] == "pytest_code":
+        return Command(update={"pytest_code": final_code.content}, goto="pytest_runner")
+
+
+EVALUATION_SUPERVISOR_PROMPT ="""
+1. You are provided with 3 files: app.py, mock_tools.py, and test_app.py. 
+2. You are also provided with pytest_results which were obtained for the tests present in test_app.py
+3. Your job is to first see if the pytest_results show any failures, if not then set no_failures field to true
+4. If pytest_results does show failure, using app.py, mock_tools.py and test_app.py as your context, identify the type of issue, the file needing fix, and the fix needed
+
+{file_info}
+"""
+async def evaluation_supervisor(state: AgentBuilderState) -> Command[Literal["syntax_and_runtime_issues_node", "fix_assert_fail_issue_node", "__end__"]]:    
     class EvaluationResult(BaseModel):
+        no_failures: bool = Field(description="True if there were no failures in the pytest results, otherwise False.")
         issue_type: Literal["syntax_error", "runtime_error", "assertion_fail"] = Field(description="identify the type of issue")
         file_that_needs_fixes: Literal["python_code", "mock_tools_code", "pytest_code"] = Field(description="identify the file to fix")
-        fix_needed: str = Field(description="fixes needed, in a diff format")
-        explanation: str = Field(description="Explanation of the issue and the fix needed, in a concise manner")
+        fix_needed: str = Field(description="detailed explanation of fixes needed, in a diff format")
 
-    class EvaluationResults(BaseModel):
-        evaluation_results: List[EvaluationResult] = Field(description="List of evaluation results containing issue_type, file_that_needs_fixes, fix_needed, and explanation")
     llm = get_model()
-    llm_evals  = llm.with_structured_output(EvaluationResults)
-    evaluationResults: EvaluationResults = await llm_evals.ainvoke([HumanMessage(content=EVALUATION_PROMPT.format(langgraph_context=generate_code_gen_prompt(), failure_string=failure_string, file_info=get_file_info_prompt(state)))])
-
-    # combine the fixes needed in python_code in a single string
-    fixes_needed_python_code = ""
-    i = 0
-    for result in evaluationResults.evaluation_results:
-        if result.file_that_needs_fixes == "python_code":
-            fixes_needed_python_code += f"fix number: {i}"
-            fixes_needed_python_code += f"fix_needed: {result.fix_needed}" + "\n"
-            fixes_needed_python_code += f"Justification: {result.explanation}" + "\n\n"
-            i += 1
-
-    FIX_PROMPT = """
-    You are an expert in making code fixes for langgraph agents.
-    <file_info>
-    {file_info}
-    <file_info>
-
-    You have to fix the following file:
-    <file_to_fix>
-    {file_to_fix}
-    <file_to_fix>
-
-    <INSTRUCTIONS>
-   1. You are provided by user a list of fixes with justifications.
-   2. You have to analyze the fixes mentioned, and apply them all to the 'file_to_fix'
-   3. Generate the compilable final code.
-   4. The final code should be executable WITHOUT ANY MARKDOWN blocks.
-   5. No ```python at start or ``` at end. THIS IS IMPORTANT
-    </INSTRUCTIONS>
-"""
-
-    python_code = state["python_code"]
-    if fixes_needed_python_code != "":
-        python_code_message = await llm.ainvoke([SystemMessage(content=FIX_PROMPT.format(file_to_fix="python_code.py", file_info=get_file_info_prompt(state))), HumanMessage(content=fixes_needed_python_code)], config=copilotkit_customize_config(state, emit_messages=False))
-        python_code = python_code_message.content
-    # combine the fixes needed in mock_tools_code in a single string
-    fixes_needed_mock_tools_code = ""
-    i = 0
-    for result in evaluationResults.evaluation_results:
-        if result.file_that_needs_fixes == "mock_tools_code":
-            fixes_needed_mock_tools_code += f"fix number: {i}"
-            fixes_needed_mock_tools_code += f"fix_needed: {result.fix_needed}"+ "\n"
-            fixes_needed_mock_tools_code += f"Justification: {result.explanation}" + "\n\n"
-            i+=1
-
-    mock_tools_code = state["mock_tools_code"]
-    if fixes_needed_mock_tools_code != "":
-        mock_tools_code_message = await llm.ainvoke([SystemMessage(content=FIX_PROMPT.format(file_to_fix="mock_tools_code.py", file_info=get_file_info_prompt(state))) , HumanMessage(content=fixes_needed_mock_tools_code)], config=copilotkit_customize_config(state, emit_messages=False))
-        mock_tools_code = mock_tools_code_message.content
-
-    # combine the fixes needed in pytest_code in a single string
-    fixes_needed_pytest_code = ""
-    for result in evaluationResults.evaluation_results:
-        if result.file_that_needs_fixes == "pytest_code":
-            fixes_needed_pytest_code += f"fix number: {i}"
-            fixes_needed_pytest_code += f"fix_needed: {result.fix_needed}" + "\n"
-            fixes_needed_pytest_code += f"Justification: {result.explanation}"+ "\n\n"
-    
-    pytest_code = state["pytest_code"]
-    if fixes_needed_pytest_code != "":
-        pytest_code_message = await llm.ainvoke([SystemMessage(content=FIX_PROMPT.format(file_to_fix="test_app.py", file_info=get_file_info_prompt(state))), HumanMessage(content=fixes_needed_pytest_code)], config=copilotkit_customize_config(state, emit_messages=False))
-        pytest_code = pytest_code_message.content
-    if is_test:
-        return Command(goto="__end__", update={ "python_code": python_code, "mock_tools_code": mock_tools_code, "pytest_code": pytest_code })
-    return Command(goto="pytest_runner", update={ "python_code": python_code, "mock_tools_code": mock_tools_code, "pytest_code": pytest_code })
+    llm_eval_decide = llm.with_structured_output(EvaluationResult)
+    eval_result: EvaluationResult = await llm_eval_decide.ainvoke([HumanMessage(content=EVALUATION_SUPERVISOR_PROMPT.format(file_info=get_file_info_prompt(state)))])
+    if eval_result.no_failures:
+        return Command(goto=END)
+    elif state["attempts"] == 0:
+        return Command(goto=END, update={"current_status":{"inProcess":False ,"status": "Max attempts reached, please try again."} })
+    elif eval_result.issue_type == "syntax_error" or eval_result.issue_type == "runtime_error":
+        return Command(update={"issue_type": eval_result.issue_type, "file_that_needs_fixes": eval_result.file_that_needs_fixes, "fix_needed": eval_result.fix_needed}, goto="syntax_and_runtime_issues_node")
+    elif eval_result.issue_type == "assertion_fail":
+        return Command(update={"issue_type": eval_result.issue_type, "file_that_needs_fixes": eval_result.file_that_needs_fixes, "fix_needed": eval_result.fix_needed}, goto="fix_assert_fail_issue_node")

@@ -72,7 +72,6 @@ Input: {{input}}
 Generate a mock output for this tool.
 \"\"\"
 
-@tool
 def Web_Scraper_Read(url: str):
     \"\"\"
     PEP 257 docstring for the tool, generated in step 2 of INSTRUCTIONS.
@@ -110,9 +109,6 @@ def Web_Scraper_Read(url: str):
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.tools import tool
-
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 ```
 </INSTRUCTIONS>
