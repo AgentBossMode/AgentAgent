@@ -57,7 +57,7 @@ class DryRun(BaseModel):
 
 class DryRuns(BaseModel):
     dry_runs: List[DryRun] = Field(description="A list of dry runs generated for the agent")
-    user_selections:dict = Field(default=None)
+    user_selections:dict = Field(default=None, description="Keep None, by default always")
 
 class ReqAnalysis(BaseModel):
     purposes:  List[Purpose]= Field(description="Provide upto 5 distinct suggestions")

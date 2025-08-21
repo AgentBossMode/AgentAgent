@@ -2,6 +2,7 @@ nutrition_mock_tools_code = r'''
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from langchain_core.messages import HumanMessage, SystemMessage
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 MOCK_TOOL_PROMPT = """

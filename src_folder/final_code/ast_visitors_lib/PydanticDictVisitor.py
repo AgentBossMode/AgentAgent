@@ -21,7 +21,7 @@ class PydanticDictVisitor(ast.NodeVisitor):
                     # Walk the annotation to see if 'dict' is used as a type name.
                     if any(sub_node.id == 'dict' for sub_node in ast.walk(item.annotation) if isinstance(sub_node, ast.Name)):
                         field_name = item.target.id if isinstance(item.target, ast.Name) else 'unknown'
-                        self.errors.append(f"Field '{field_name}' in Pydantic model '{node.name}' uses forbidden type 'dict'.")
+                        self.errors.append(f"Field '{field_name}' in Pydantic model '{node.name}' uses forbidden type 'dict'. instead make the field a str and then description be to return a JSON string")
         
         # Continue visiting nested classes
         self.generic_visit(node)
