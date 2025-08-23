@@ -1,12 +1,10 @@
 from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
 # from tests.test_utils.nutrition_llm.json_schema_nutrition import json_schema_nutrition
 from copilotkit.langgraph import copilotkit_customize_config
 from langchain_core.runnables import RunnableConfig
-import uuid
-from pydantic import BaseModel, Field
 from final_code.states.NodesAndEdgesSchemas import JSONSchema, get_tools_info,get_nodes_and_edges_info
 from final_code.prompt_lib.node_info.graph_state import graph_state
 from final_code.prompt_lib.node_info.node_structure import node_structure
@@ -17,8 +15,8 @@ from final_code.prompt_lib.node_info.multi_pattern import multi_pattern
 from final_code.prompt_lib.edge_info.edge_info import edge_info
 from final_code.utils.get_filtered_file import get_filtered_file
 from final_code.ast_visitors_lib.validation_script import run_detailed_validation
-import ast
-from copilotkit.langgraph import copilotkit_emit_state 
+from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
+
 llm = get_model()
 
 JSON_WRAPPER = """
@@ -195,52 +193,6 @@ def generate_code_gen_prompt():
             multi_pattern=multi_pattern,
             edge_info=edge_info)
 
-async def code_node(state: AgentBuilderState, config: RunnableConfig):
-    """
-    LangGraph node to generate the final Python code for the agent.
-    It uses the gathered agent_instructions and the CODE_GEN_PROMPT.
-    """
-
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False
-    )
-    #json_schema_final = json_schema_nutrition
-    state["current_tab"] = "code"
-    state["current_status"] = {"inProcess":True ,"status": "Generating Python code.."} 
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
-    response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"])
-    state["current_status"] = {"inProcess":False ,"status": "Python code generated successfully."} 
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
-    # Return the generated Python code and an AI message
-    return {
-        "python_code": response,
-        "messages":[AIMessage(content="Generated the agent code, check main.py in the code editor.")]
-    } 
-
-
-async def code_analyzer_node(state: AgentBuilderState, config: RunnableConfig):
-    FIX_PROMPT = """
-Fix the 'python_code' based on the errors and the provided fixes
-<python_code>
-{python_code}
-</python_code>
-
-<error_report>
-{fixes}
-</error_report>
-"""
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False
-    )
-    python_file = get_filtered_file(state["python_code"])
-    error_report = run_detailed_validation(python_file)
-    if len(error_report["errors"])>0 or len(error_report["warnings"]) >0:
-        response = await llm.ainvoke([SystemMessage(content=FIX_PROMPT.format(python_code=python_file, fixes=error_report))], config=modifiedConfig)
-        return {"python_code": response.content}
-    return {"python_code": state["python_code"]}
-
 def get_schema_info(json_schema: JSONSchema, tools_code: str):
     return JSON_WRAPPER.format(
             json_schema=get_nodes_and_edges_info(json_schema),
@@ -253,5 +205,53 @@ async def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSON
         SystemMessage(content=generate_code_gen_prompt()),
         HumanMessage(content=get_schema_info(json_schema, tools_code))],
         config=modifiedConfig)
-                                                                      
     return response.content
+
+async def code_node(state: AgentBuilderState, config: RunnableConfig):
+    """
+    LangGraph node to generate the final Python code for the agent.
+    It uses the gathered agent_instructions and the CODE_GEN_PROMPT.
+    """
+
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False
+    )
+    #json_schema_final = json_schema_nutrition
+    state["current_tab"] = "code"
+    await append_in_progress_to_list(modifiedConfig, state, "Generating Python code...")
+    response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"])
+    await update_last_status(modifiedConfig, state, "Python code generated successfully", True)
+    # Return the generated Python code and an AI message
+    return {
+        "python_code": response,
+        "agent_status_list": state["agent_status_list"],
+    } 
+
+async def code_analyzer_node(state: AgentBuilderState, config: RunnableConfig):
+    FIX_PROMPT = """
+You are a langgraph expert, user will provide you with a python code and a list of errors/warning with fixes. Your job is to make the fixes.
+"""
+    PYTHON_PROMPT = """
+<python_code>
+{python_code}
+</python_code>
+"""
+    ERROR_REPORT = """
+<error_report>
+{fixes}
+</error_report>
+"""
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False
+    )
+    python_file = get_filtered_file(state["python_code"])
+    error_report = run_detailed_validation(python_file)
+    if len(error_report["errors"])>0 or len(error_report["warnings"]) >0:
+        llm = get_model()
+        response = await llm.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
+                                             HumanMessage(content=PYTHON_PROMPT.format(python_code=python_file)),
+                                             HumanMessage(content=ERROR_REPORT.format(fixes=error_report))], config=modifiedConfig)
+        return {"python_code": response.content}
+    return {"python_code": state["python_code"]}

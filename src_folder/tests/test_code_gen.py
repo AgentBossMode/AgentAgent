@@ -3,8 +3,9 @@ load_dotenv()
 import pytest
 import ast
 from src_folder.final_code.nodes.code_generation_node import generate_python_code, code_analyzer_node
-from src_folder.tests.test_utils.nutrition_agent_files.nutrition_json_schema import json_schema_nutrition
-from src_folder.tests.test_utils.nutrition_agent_files.nutrition_tools_code import nutrition_tools_code
+from src_folder.tests.test_utils.stock_agent.stock_tools import stock_tools
+from src_folder.tests.test_utils.stock_agent.stock_json import stock_json
+
 from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
 from src_folder.final_code.ast_visitors_lib.validation_script import run_detailed_validation
 from src_folder.final_code.utils.get_filtered_file import get_filtered_file
@@ -13,7 +14,7 @@ from src_folder.final_code.utils.get_filtered_file import get_filtered_file
 @pytest.mark.parametrize(
     "json_schema,tools_code",
     [
-        (json_schema_nutrition, nutrition_tools_code)
+        (stock_json, stock_tools)
     ],
 )
 async def test_code_generation_llm(json_schema : str, tools_code: str):

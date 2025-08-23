@@ -117,47 +117,22 @@ class LangGraphFormatValidator(ast.NodeVisitor):
                         f"Fix: Remove the explicit messages field definition."
                     )
         
-        # Validate field types
-        for item in node.body:
-            if isinstance(item, ast.AnnAssign):
-                self._validate_state_field_type(item, node.name)
-    
-    def _validate_state_field_type(self, field: ast.AnnAssign, class_name: str):
-        """Validate state field type annotations"""
-        if isinstance(field.target, ast.Name):
-            field_name = field.target.id
-            
-            # Check for vague types like 'any' or 'dict'
-            if isinstance(field.annotation, ast.Name):
-                if field.annotation.id in ['any', 'dict', 'Dict']:
-                    self.errors.append(
-                        f"Field '{field_name}' in class '{class_name}' uses vague type '{field.annotation.id}'. "
-                        f"Fix: Use specific types like str, int, List[str], or custom Pydantic models."
-                    )
-    
     def _validate_pydantic_model(self, node: ast.ClassDef):
         """Validate Pydantic model definitions"""
         for item in node.body:
             if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 field_name = item.target.id
-                
-                # Check for dict/Dict usage in Pydantic models
-                if isinstance(item.annotation, ast.Name) and item.annotation.id in ['dict', 'Dict']:
-                    self.errors.append(
-                        f"Pydantic model '{node.name}' field '{field_name}' uses 'dict' type. "
-                        f"Fix: Use str and store serialized JSON instead, or create a proper Pydantic model."
-                    )
-                
-                # Check for List[Dict] patterns
-                if (isinstance(item.annotation, ast.Subscript) and 
-                    isinstance(item.annotation.value, ast.Name) and 
-                    item.annotation.value.id == 'List'):
-                    if (isinstance(item.annotation.slice, ast.Name) and 
-                        item.annotation.slice.id in ['dict', 'Dict']):
+                annotation_node = item.annotation
+
+                # Walk through the annotation to find any instance of 'dict' or 'Dict'
+                for sub_node in ast.walk(annotation_node):
+                    if isinstance(sub_node, ast.Name) and sub_node.id in ['dict', 'Dict']:
                         self.errors.append(
-                            f"Pydantic model '{node.name}' field '{field_name}' uses 'List[dict]' type. "
-                            f"Fix: Create a proper Pydantic model and use List[YourModel]."
+                            f"Pydantic model '{node.name}' field '{field_name}' uses a 'dict' type in annotation '{ast.unparse(annotation_node)}'. "
+                            f"Fix: Use a specific Pydantic model for structured data, make changes in the code referencing this field to accomodate the change in type"
                         )
+                        # Found an error for this field, no need to check further in the same annotation.
+                        break
     
     def _validate_node_function(self, node: ast.FunctionDef):
         """Validate node function implementation"""
@@ -258,10 +233,9 @@ class LangGraphFormatValidator(ast.NodeVisitor):
                 missing_imports.append(req_import)
         
         if missing_imports:
-            self.errors.append(
-                f"Missing required imports: {missing_imports}. "
-                f"Fix: Add appropriate import statements for these components."
-            )
+            missing_imports = sorted(list(missing_imports))
+            error_msg = f"Missing required imports: {missing_imports}. Fix: Add appropriate import statements for these components."
+            self.errors.append(error_msg)
         
         # Check for GraphState class
         if not self.graph_state_class:
@@ -283,7 +257,7 @@ class LangGraphFormatValidator(ast.NodeVisitor):
 
         # Check for edges
         if not self.edge_calls:
-            self.warnings.append("No edge definitions detected")
+            self.errors.append("No edge definitions detected")
         
         # Check for compilation
         if not self.has_app_compile:
@@ -293,7 +267,7 @@ class LangGraphFormatValidator(ast.NodeVisitor):
             )
         
         if not self.has_checkpointer:
-            self.warnings.append(
+            self.errors.append(
                 "No checkpointer definition found. "
                 "Consider adding: checkpointer = InMemorySaver()"
             )

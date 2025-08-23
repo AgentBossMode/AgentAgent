@@ -12,6 +12,7 @@ from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.json_notes import json_notes
 from final_code.prompt_lib.node_info.node_actions import node_action_types
 from final_code.prompt_lib.examples.json_examples import json_example_ecommerce, json_example_marketing, json_example_report_finance
+from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
 
 llm = get_model()
 
@@ -136,9 +137,10 @@ async def json_node(state: AgentBuilderState, config: RunnableConfig):
     modifiedConfig = copilotkit_customize_config(
         config,
         emit_messages=False)
-    state["current_status"] = {"inProcess":True ,"status": "Generating JSON schema.."} 
+    
     state["current_tab"] = "graph"
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
+    await append_in_progress_to_list(modifiedConfig, state, "Generating JSON schema...")
+    
     json_extraction_llm = llm.with_structured_output(JSONSchema)
     json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
         req_analysis=req_analysis.model_dump_json(indent=2),
@@ -150,8 +152,9 @@ async def json_node(state: AgentBuilderState, config: RunnableConfig):
         json_example_marketing=json_example_marketing,
         json_example_report_finance=json_example_report_finance
     ))], config=modifiedConfig)
-    state["current_status"] = {"inProcess":False ,"status": "JSON schema generated successfully"} 
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
+
+    await update_last_status(modifiedConfig, state, "JSON schema generated successfully", True)
+    
     reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
     # Return the generated Python code and an AI message
     return {
@@ -160,5 +163,5 @@ async def json_node(state: AgentBuilderState, config: RunnableConfig):
         "justification": json_extracted_output.justification,
         "reactflow_json": reactflow_json,
         "current_tab": "graph",
-        "messages": [AIMessage(content="Workflow schema has been successfully generated!")]
+        "agent_status_list": state["agent_status_list"]
     }

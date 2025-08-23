@@ -158,14 +158,44 @@ If you want to optionally route to 1 or more edges (or optionally terminate), yo
 graph.add_conditional_edges("node_a", routing_function)
 ```
 
-Similar to nodes, the routing_function accepts the current state of the graph and returns a value.
+The routing_function accepts the current state of the graph and returns a value.
 
-By default, the return value routing_function is used as the name of the node (or list of nodes) to send the state to next. All those nodes will be run in parallel as a part of the next superstep.
 
 You can optionally provide a dictionary that maps the routing_function's output to the name of the next node.
-
 ``` python 
-graph.add_conditional_edges("node_a", routing_function, {{True: "node_b", False: "node_c"}})
+
+def route_user_intent(state: GraphState) -> str:
+    \"\"\"
+    Routing function: Determines the next node based on the classified user intent.
+    Implementation reasoning: This function acts as a conditional router, directing the workflow
+                              to the appropriate specialized agent node based on the 'user_intent' field in the state.
+    \"\"\"
+    if state["user_intent"] == "record_trade":
+        return "record_trade"
+    elif state["user_intent"] == "portfolio_summary":
+        return "summarize_portfolio"
+ 
+    # Fallback or error handling
+    return "__END__" # Or a node to handle unknown intent
+
+workflow = StateGraph(GraphState)
+
+# Add nodes
+workflow.add_node("classify_user_intent", classify_user_intent)
+workflow.add_node("record_trade", record_trade)
+workflow.add_node("summarize_portfolio", summarize_portfolio)
+
+# Add edges
+workflow.add_edge(START, "classify_user_intent")
+workflow.add_conditional_edges(
+    "classify_user_intent",
+    route_user_intent,
+    {
+        "record_trade": "record_trade",
+        "summarize_portfolio": "summarize_portfolio",
+        "__END__": END # Handle unknown intent by ending the graph
+    }
+)
 ```
 #### The following must be ensured without fail when defining a Conditional Edges
 - [ ] **Condition Function**: Properly defined condition functions that return valid next node names

@@ -15,6 +15,8 @@ import json
 
 # Import the validator (assuming it's in the same directory)
 from src_folder.final_code.ast_visitors_lib.langgraph_parser import validate_langgraph_code, LangGraphFormatValidator
+from src_folder.final_code.prompt_lib.node_info.tool_calling import tool_calling
+
 
 
 def validate_file(file_path: str) -> Dict[str, Any]:
@@ -289,12 +291,16 @@ class DetailedLangGraphValidator(LangGraphFormatValidator):
     
     def _validate_react_agent_call(self, node: ast.Call):
         """Validate create_react_agent call structure"""
-        state_schema_structure= """
+        state_schema_structure= F"""
 <STATE_SCHEMA>
 class ReactAgentState(MessagesState):
     remaining_steps: int
     structured_response: any
 </STATE_SCHEMA>
+
+<CALLING_PATTERN>
+{tool_calling}
+</CALLING_PATTERN>
         """
         # Check for required parameters
         required_params = {'model', 'tools', 'state_schema', 'response_format'}
@@ -307,6 +313,7 @@ class ReactAgentState(MessagesState):
         
         missing_params = required_params - provided_params
         if missing_params:
+            missing_params = sorted(list(missing_params))
             self.errors.append(
                 f"create_react_agent missing required parameters: {missing_params}. "
                 f"Fix: Add the missing parameters to your create_react_agent call."

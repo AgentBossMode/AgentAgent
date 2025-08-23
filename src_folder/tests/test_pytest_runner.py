@@ -5,8 +5,18 @@
 # from src_folder.tests.test_utils.nutrition_agent_files.pytest_runner_code_files.nutrition_main import nutrition_main
 # from src_folder.tests.test_utils.nutrition_agent_files.pytest_runner_code_files.nutrition_mock_tools import nutrition_mock_tools
 # from src_folder.tests.test_utils.nutrition_agent_files.pytest_runner_code_files.nutrition_tests import nutrition_tests
+
+# from src_folder.tests.test_utils.github_issues_agent.github_code import github_code
+# from src_folder.tests.test_utils.github_issues_agent.github_mock_tools import github_mock_tools
+# from src_folder.tests.test_utils.github_issues_agent.github_tests import github_tests
+
+
 # from langgraph.graph import StateGraph, START
 # from src_folder.final_code.states.AgentBuilderState import AgentBuilderState
+
+
+# from agentevals.graph_trajectory.llm import create_graph_trajectory_llm_as_judge
+# from agentevals.graph_trajectory.utils import (extract_langgraph_trajectory_from_thread)
 
 # @pytest.mark.asyncio
 # async def test_pipeline():
@@ -17,9 +27,9 @@
 #     workflow.add_edge(START, "pytest_runner")
 #     app = workflow.compile()
 #     state = {
-#         "python_code": nutrition_main,
-#         "pytest_code": nutrition_tests,
-#         "mock_tools_code": nutrition_mock_tools,
+#         "python_code": github_code,
+#         "pytest_code": github_tests,
+#         "mock_tools_code": github_mock_tools,
 #         "console_logs": [],
 #         "current_status": {},
 #         "messages": [],
@@ -30,5 +40,4 @@
 
 #     config = {"type":"test"}
 #     final_result = await app.ainvoke(input=state, config=config)
-#     print(final_result)
 #     assert False

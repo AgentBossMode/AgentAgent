@@ -29,6 +29,7 @@ class AgentBuilderState(BaseCopilotRenderingState):
     file_that_needs_fixes: Literal["python_code", "mock_tools_code", "pytest_code"] = Field(description="identify the file to fix")
     fix_needed: str = Field(description="detailed explanation of fixes needed, in a diff format")
     attempts: int = Field(default=5, description="Number of attempts made to fix the issue")
+    attempt_num: int = Field(default=1, description="Current attempt number")
     utGeneration: UtGeneration = Field(description="The unit test generation object containing final_response_uts and trajectory_uts")
     pytest_report: dict = Field(description="The pytest json report")
     syntax_issues: List[TestResult] = Field(default_factory=list, description="List of syntax issues found in the code")
