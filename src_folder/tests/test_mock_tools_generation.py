@@ -1,25 +1,25 @@
 from dotenv import load_dotenv
 load_dotenv()
 import pytest 
-from src_folder.final_code.nodes.evaluation_pipeline_nodes.mock_test_writer import mock_test_writer
-from src_folder.tests.test_utils.nutrition_agent_files.nutrition_tools_code import nutrition_tools_code
-from src_folder.tests.test_utils.nutrition_agent_files.nutrition_json_schema import json_schema_nutrition
+from final_code.nodes.evaluation_pipeline_nodes.mock_tools_writer import mock_tools_writer
+from src_folder.tests.test_utils.stock_agent.stock_tools import stock_tools
+from src_folder.tests.test_utils.stock_agent.stock_json import stock_json
 from src_folder.final_code.ast_visitors_lib.PydanticDictVisitor import PydanticDictVisitor
 from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
 from src_folder.tests.validators_lib.validate_struct_output import validate_struct_output
 from src_folder.tests.validators_lib.validate_ast_parse import validate_ast_parse
 
 @pytest.mark.asyncio
-async def test_mock_test_writer():
+async def test_mock_tools_writer():
     state = {
-        "tools_code": nutrition_tools_code,
-        "json_schema": JSONSchema.model_validate_json(json_schema_nutrition),
+        "tools_code": stock_tools,
+        "json_schema": JSONSchema.model_validate_json(stock_json),
         "current_status": {}
     }
     config = {"type":"test"}
 
     # Call the mock_test_writer function
-    result = await mock_test_writer(state, config)
+    result = await mock_tools_writer(state, config)
     # Check if the result is as expected
     assert isinstance(result, dict)
     assert "mock_tools_code" in result

@@ -2,6 +2,8 @@ from copilotkit.langgraph import CopilotKitState
 from pydantic import Field
 from typing import List
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
+from final_code.pydantic_models.AgentStatusList import AgentStatusList
+
 
 class BaseCopilotRenderingState(CopilotKitState):
     # code files
@@ -18,6 +20,7 @@ class BaseCopilotRenderingState(CopilotKitState):
     reactflow_json: str = Field(description="The JSON representation of the ReactFlow graph for the agent")
     json_schema: JSONSchema = Field(description="The JSON schema of the agent's architecture, including nodes and edges")
     json_dict: str = Field(description="The JSON representation of the agent's architecture and nodes")
-    # in chat status
-    current_status: dict = Field(description="current status")
+    # current status
+    agent_status_list: AgentStatusList = Field(description="agent status list")
+
     

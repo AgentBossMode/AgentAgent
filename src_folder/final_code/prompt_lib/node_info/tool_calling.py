@@ -1,12 +1,9 @@
 tool_calling = """
 Follow this example:
 ```python
+
 node_name_tools = [list_of_tools]
 def node_name(state: GraphState) -> GraphState:
-    # define a state which inherits from MessagesState, also always contains remaining_step  and structured_response
-    class CustomStateForReact(MessagesState):
-        remaining_steps: int
-        structured_response: any
     # define what kind of result you need from the agent.
     class CustomClass(BaseModel):
         attr1: type = Field(description="What is the field")
@@ -16,7 +13,7 @@ def node_name(state: GraphState) -> GraphState:
       model=llm,
       prompt="The prompt for the agent to follow, also mention which tools to use, if any.",
       tools=node_name_tools,
-      state_schema=CustomStateForReact,
+      state_schema=ReactAgentState
       response_format=CustomClass)
 
     result: CustomClass = agent.invoke({"messages":state["messages"]})["structured_response"] #or whatever content you wish to put as per the state.

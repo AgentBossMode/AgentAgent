@@ -4,14 +4,14 @@ from langchain_core.messages import SystemMessage,AIMessage
 from langgraph.types import Command, interrupt
 from typing import Literal
 from langchain_core.runnables import RunnableConfig
-from copilotkit.langgraph import copilotkit_emit_state, copilotkit_customize_config
+from copilotkit.langgraph import copilotkit_customize_config
 from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
 from final_code.states.ReqAnalysis import ReqAnalysis, Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun, DryRuns
+from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
+
+
 llm = get_model()
-
-
-
 
 REQ_ANALYSIS_PROMPT = """
 Follow 'INSTRUCTIONS' section to analyze the user input and generate a ReqAnalysis object.
@@ -55,11 +55,18 @@ async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Comm
         emit_messages=False,
         emit_tool_calls=False
     )
-    state["current_status"] = {"inProcess":True ,"status": "Analyzing user requirements for agent building.."} 
-    await copilotkit_emit_state(config=modifiedConfig, state=state)
+
+    await append_in_progress_to_list(modifiedConfig, state, "Analyzing user requirements for agent building...")
+
     llm_req = llm.with_structured_output(ReqAnalysis)
     reqs_analysis: ReqAnalysis = await llm_req.ainvoke([SystemMessage(content=REQ_ANALYSIS_PROMPT.format(tooling_instructions=tooling_instructions, knowledge_instructiona=knowledge_instructiona))] +  state["messages"], config=modifiedConfig)
-    return Command(goto="requirement_analysis_node", update={"req_analysis": reqs_analysis, "current_status": {"inProcess":False ,"status": "Requirements analysis completed"}})
+    
+    await update_last_status(modifiedConfig, state, "Requirements analysis completed", True)
+    
+    return Command(goto="requirement_analysis_node", update={
+        "req_analysis": reqs_analysis,
+        "agent_status_list": state["agent_status_list"]
+        })
 
 
 
@@ -105,7 +112,7 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
         update={"messages": [AIMessage(content="Requirements have been identified")], "req_analysis": req_analysis}
     )
 
-async def generate_dry_run(state: AgentBuilderState) -> Command[Literal["dry_run_interrupt"]]:
+async def generate_dry_run(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["dry_run_interrupt"]]:
     GENERATE_DRY_RUN_PROMPT = """
 Generate dry runs for the agent based on the requirements analysis provided.
     The dry run should include:
@@ -119,14 +126,25 @@ Generate dry runs for the agent based on the requirements analysis provided.
 
     Also check the user provided messages for any additional context.
     """
-
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_messages=False,
+        emit_tool_calls=False
+    )
     req_analysis: ReqAnalysis = state["req_analysis"]
     messages = state["messages"]
     llm_dry_run = llm.with_structured_output(DryRuns)
+    await append_in_progress_to_list(modifiedConfig, state, "Generating dry runs...")
+
     dry_runs: DryRuns = await llm_dry_run.ainvoke([SystemMessage(content=GENERATE_DRY_RUN_PROMPT.format(req_analysis=req_analysis.model_dump_json(indent=2)))]+ messages)
+
+    await update_last_status(modifiedConfig, state, "Dry runs generated.", True)
+
     return Command(
         goto="dry_run_interrupt",
-        update={"messages": [AIMessage(content="Generated dry runs")], "dry_runs": dry_runs}
+        update={
+            "agent_status_list": state["agent_status_list"],
+              "dry_runs": dry_runs}
     )
 
 def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["json_node"]]:

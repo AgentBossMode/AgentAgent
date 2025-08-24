@@ -1,0 +1,917 @@
+{
+    "created": 1755538592.4140031,
+    "duration": 36.91798520088196,
+    "exitcode": 1,
+    "root": "/home/user",
+    "environment": {},
+    "summary": {
+        "failed": 6,
+        "passed": 4,
+        "total": 10,
+        "collected": 10
+    },
+    "tests": [
+        {
+            "nodeid": "test_app.py::test_full_workflow_final_response[How many calories did I burn yesterday?-Yesterday, you burned a total of [X] calories through your activities.]",
+            "lineno": 48,
+            "outcome": "failed",
+            "keywords": [
+                "test_full_workflow_final_response[How many calories did I burn yesterday?-Yesterday, you burned a total of [X] calories through your activities.]",
+                "parametrize",
+                "pytestmark",
+                "How many calories did I burn yesterday?-Yesterday, you burned a total of [X] calories through your activities.",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0008602300000006835,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 5.828847128999996,
+                "outcome": "failed",
+                "crash": {
+                    "path": "/home/user/test_app.py",
+                    "lineno": 66,
+                    "message": "AssertionError: assert False == True\n +  where False = final_answer_correct(input, 'Yesterday, you burned a total of [X] calories through your activities.', 'Historical data retrieval status: Failed to retrieve historical data: NOTION_MASTER_DATABASE_ID environment variable must be set.')"
+                },
+                "traceback": [
+                    {
+                        "path": "test_app.py",
+                        "lineno": 66,
+                        "message": "AssertionError"
+                    }
+                ],
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12\n\ninput_query = 'How many calories did I burn yesterday?'\nreference_output = 'Yesterday, you burned a total of [X] calories through your activities.'\n\n    @pytest.mark.parametrize(\n        \"input_query, reference_output\",\n        [\n            (\"I ate a banana and ran for 30 minutes.\", \"Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.\"),\n    (\"I ran for 20 minutes.\", \"Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.\"),\n    (\"How many calories did I burn yesterday?\", \"Yesterday, you burned a total of [X] calories through your activities.\"),\n    (\"What did I eat on Monday?\", \"On Monday, you reported eating: [List of food items and their calorie counts].\"),\n    (\"What's my net calorie intake for the week?\", \"This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.\")\n        ],\n    )\n    def test_full_workflow_final_response(input_query: str, reference_output: str):\n        # Invoke the full graph\n        thread_config = {\"configurable\": {\"thread_id\": uuid4() }}\n        result = app.invoke({\"messages\": [HumanMessage(content=input_query)]}, config=thread_config)\n    \n        # Get the last message, which is the final response\n        actual_output = result[\"messages\"][-1].content\n>       assert final_answer_correct(input, reference_output, actual_output) == True\nE       AssertionError: assert False == True\nE        +  where False = final_answer_correct(input, 'Yesterday, you burned a total of [X] calories through your activities.', 'Historical data retrieval status: Failed to retrieve historical data: NOTION_MASTER_DATABASE_ID environment variable must be set.')\n\ntest_app.py:66: AssertionError"
+            },
+            "teardown": {
+                "duration": 0.00033957099999781803,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_final_response[I ate a banana and ran for 30 minutes.-Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.]",
+            "lineno": 48,
+            "outcome": "failed",
+            "keywords": [
+                "test_full_workflow_final_response[I ate a banana and ran for 30 minutes.-Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.]",
+                "parametrize",
+                "pytestmark",
+                "I ate a banana and ran for 30 minutes.-Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0006614650000003053,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 4.2955944029999955,
+                "outcome": "failed",
+                "crash": {
+                    "path": "/home/user/app.py",
+                    "lineno": 73,
+                    "message": "AttributeError: 'function' object has no attribute 'invoke'\nDuring task with name 'calorie_calculation' and id 'd1bf96d5-4eff-c32e-844a-e86f88eee696'"
+                },
+                "traceback": [
+                    {
+                        "path": "test_app.py",
+                        "lineno": 62,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/main.py",
+                        "lineno": 3026,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/main.py",
+                        "lineno": 2647,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/_runner.py",
+                        "lineno": 162,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/_retry.py",
+                        "lineno": 42,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+                        "lineno": 657,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+                        "lineno": 401,
+                        "message": ""
+                    },
+                    {
+                        "path": "app.py",
+                        "lineno": 73,
+                        "message": "AttributeError"
+                    }
+                ],
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12\n\ninput_query ='I ate a banana and ran for 30 minutes.'\nreference_output = 'Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.'\n\n    @pytest.mark.parametrize(\n        \"input_query, reference_output\",\n        [\n            (\"I ate a banana and ran for 30 minutes.\", \"Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.\"),\n    (\"I ran for 20 minutes.\", \"Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.\"),\n    (\"How many calories did I burn yesterday?\", \"Yesterday, you burned a total of [X] calories through your activities.\"),\n    (\"What did I eat on Monday?\", \"On Monday, you reported eating: [List of food items and their calorie counts].\"),\n    (\"What's my net calorie intake for the week?\", \"This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.\")\n        ],\n    )\n    def test_full_workflow_final_response(input_query: str, reference_output: str):\n        # Invoke the full graph\n        thread_config = {\"configurable\": {\"thread_id\": uuid4() }}\n>       result = app.invoke({\"messages\": [HumanMessage(content=input_query)]}, config=thread_config)\n\ntest_app.py:62: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph.graph.state.CompiledStateGraph object at 0x7f2992dd91f0>\ninput = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='37221876-c3f9-483a-90e9-26afb245d932')]}\nconfig = {'configurable': {'thread_id': UUID('cba5b71a-01ff-495b-8f27-ed4a659dcc17')}}\ncontext = None, stream_mode = 'values', print_mode = ()\noutput_keys = ['messages', 'user_input', 'food_items', 'exercise_activities', 'calories_consumed', 'calories_burned', ...]\ninterrupt_before = None, interrupt_after = None, durability = None, kwargs = {}\n\n    def invoke(\n        self,\n        input: InputT | Command | None,\n        config: RunnableConfig | None = None,\n        *,\n        context: ContextT | None = None,\n        stream_mode: StreamMode = \"values\",\n        print_mode: StreamMode | Sequence[StreamMode] = (),\n        output_keys: str | Sequence[str] | None = None,\n        interrupt_before: All | Sequence[str] | None = None,\n        interrupt_after: All | Sequence[str] | None = None,\n        durability: Durability | None = None,\n        **kwargs: Any,\n    ) -> dict[str, Any] | Any:\n        \"\"\"Run the graph with a single input and config.\n    \n        Args:\n            input: The input data for the graph. It can be a dictionary or any other type.\n            config: Optional. The configuration for the graph run.\n            context: The static context to use for the run.\n                !!! version-added \"Added in version 0.6.0.\"\n            stream_mode: Optional[str]. The stream mode for the graph run. Default is \"values\".\n            print_mode: Accepts the same values as `stream_mode`, but only prints the output to the console, for debugging purposes. Does not affect the output of the graph in any way.\n            output_keys: Optional. The output keys to retrieve from the graph run.\n            interrupt_before: Optional. The nodes to interrupt the graph run before.\n            interrupt_after: Optional. The nodes to interrupt the graph run after.\n            durability: The durability mode for the graph execution, defaults to \"async\". Options are:\n                - `\"sync\"`: Changes are persisted synchronously before the next step starts.\n                - `\"async\"`: Changes are persisted asynchronously while the next step executes.\n                - `\"exit\"`: Changes are persisted only when the graph exits.\n            **kwargs: Additional keyword arguments to pass to the graph run.\n    \n        Returns:\n            The output of the graph run. If stream_mode is \"values\", it returns the latest output.\n            If stream_mode is not \"values\", it returns a list of output chunks.\n        \"\"\"\n        output_keys = output_keys if output_keys is not None else self.output_channels\n    \n        latest: dict[str, Any] | Any = None\n        chunks: list[dict[str, Any] | Any] = []\n        interrupts: list[Interrupt] = []\n    \n>       for chunk in self.stream(\n            input,\n            config,\n            context=context,\n            stream_mode=[\"updates\", \"values\"]\n            if stream_mode == \"values\"\n            else stream_mode,\n            print_mode=print_mode,\n            output_keys=output_keys,\n            interrupt_before=interrupt_before,\n            interrupt_after=interrupt_after,\n            durability=durability,\n            **kwargs,\n        ):\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/main.py:3026: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph.graph.state.CompiledStateGraph object at 0x7f2992dd91f0>\ninput = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='37221876-c3f9-483a-90e9-26afb245d932')]}\nconfig = {'callbacks': None, 'configurable': {'__pregel_runtime': Runtime(context=None, store=None, stream_writer=<function Pre...one), 'thread_id': UUID('cba5b71a-01ff-495b-8f27-ed4a659dcc17')}, 'metadata': ChainMap({}), 'recursion_limit': 25, ...}\ncontext = None, stream_mode = ['updates', 'values'], print_mode = ()\noutput_keys = ['messages', 'user_input', 'food_items', 'exercise_activities', 'calories_consumed', 'calories_burned', ...]\ninterrupt_before = None, interrupt_after = None, durability = None\nsubgraphs = False\n\n    def stream(\n        self,\n        input: InputT | Command | None,\n        config: RunnableConfig | None = None,\n        *,\n        context: ContextT | None = None,\n        stream_mode: StreamMode | Sequence[StreamMode] | None = None,\n        print_mode: StreamMode | Sequence[StreamMode] = (),\n        output_keys: str | Sequence[str] | None = None,\n        interrupt_before: All | Sequence[str] | None = None,\n        interrupt_after: All | Sequence[str] | None = None,\n        durability: Durability | None = None,\n        subgraphs: bool = False,\n        debug: bool | None = None,\n        **kwargs: Unpack[DeprecatedKwargs],\n    ) -> Iterator[dict[str, Any] | Any]:\n        \"\"\"Stream graph steps for a single input.\n    \n        Args:\n            input: The input to the graph.\n            config: The configuration to use for the run.\n            context: The static context to use for the run.\n                !!! version-added \"Added in version 0.6.0.\"\n            stream_mode: The mode to stream output, defaults to `self.stream_mode`.\n                Options are:\n    \n                - `\"values\"`: Emit all values in the state after each step, including interrupts.\n                    When used with functional API, values are emitted once at the end of the workflow.\n                - `\"updates\"`: Emit only the node or task names and updates returned by the nodes or tasks after each step.\n                    If multiple updates are made in the same step (e.g. multiple nodes are run) then those updates are emitted separately.\n                - `\"custom\"`: Emit custom data from inside nodes or tasks using `StreamWriter`.\n                - `\"messages\"`: Emit LLM messages token-by-token together with metadata for any LLM invocations inside nodes or tasks.\n                    Will be emitted as 2-tuples `(LLM token, metadata)`.\n                - `\"checkpoints\"`: Emit an event when a checkpoint is created, in the same format as returned by get_state().\n                - `\"tasks\"`: Emit events when tasks start and finish, including their results and errors.\n    \n                You can pass a list as the `stream_mode` parameter to stream multiple modes at once.\n                The streamed outputs will be tuples of `(mode, data)`.\n    \n                See [LangGraph streaming guide](https://langchain-ai.github.io/langgraph/how-tos/streaming/) for more details.\n            print_mode: Accepts the same values as `stream_mode`, but only prints the output to the console, for debugging purposes. Does not affect the output of the graph in any way.\n            output_keys: The keys to stream, defaults to all non-context channels.\n            interrupt_before: Nodes to interrupt before, defaults to all nodes in the graph.\n            interrupt_after: Nodes to interrupt after, defaults to all nodes in the graph.\n            durability: The durability mode for the graph execution, defaults to \"async\". Options are:\n                - `\"sync\"`: Changes are persisted synchronously before the next step starts.\n                - `\"async\"`: Changes are persisted asynchronously while the next step executes.\n                - `\"exit\"`: Changes are persisted only when the graph exits.\n            subgraphs: Whether to stream events from inside subgraphs, defaults to False.\n                If True, the events will be emitted as tuples `(namespace, data)`,\n                or `(namespace, mode, data)` if `stream_mode` is a list,\n                where `namespace` is a tuple with the path to the node where a subgraph is invoked,\n                e.g. `(\"parent_node:<task_id>\", \"child_node:<task_id>\")`.\n    \n                See [LangGraph streaming guide](https://langchain-ai.github.io/langgraph/how-tos/streaming/) for more details.\n    \n        Yields:\n            The output of each step in the graph. The output shape depends on the stream_mode.\n        \"\"\"\n        if (checkpoint_during := kwargs.get(\"checkpoint_during\")) is not None:\n            warnings.warn(\n                \"`checkpoint_during` is deprecated and will be removed. Please use `durability` instead.\",\n                category=LangGraphDeprecatedSinceV10,\n                stacklevel=2,\n            )\n            if durability is not None:\n                raise ValueError(\n                    \"Cannot use both `checkpoint_during` and `durability` parameters. Please use `durability` instead.\"\n                )\n            durability = \"async\" if checkpoint_during else \"exit\"\n    \n        if stream_mode is None:\n            # if being called as a node in another graph, default to values mode\n            # but don't overwrite stream_mode arg if provided\n            stream_mode = (\n                \"values\"\n                if config is not None and CONFIG_KEY_TASK_ID in config.get(CONF, {})\n                else self.stream_mode\n            )\n        if debug or self.debug:\n            print_mode = [\"updates\", \"values\"]\n    \n        stream = SyncQueue()\n    \n        config = ensure_config(self.config, config)\n        callback_manager = get_callback_manager_for_config(config)\n        run_manager = callback_manager.on_chain_start(\n            None,\n            input,\n            name=config.get(\"run_name\", self.get_name()),\n            run_id=config.get(\"run_id\"),\n        )\n        try:\n            # assign defaults\n            (\n                stream_modes,\n                output_keys,\n                interrupt_before_,\n                interrupt_after_,\n                checkpointer,\n                store,\n                cache,\n                durability_,\n            ) = self._defaults(\n                config,\n                stream_mode=stream_mode,\n                print_mode=print_mode,\n                output_keys=output_keys,\n                interrupt_before=interrupt_before,\n                interrupt_after=interrupt_after,\n                durability=durability,\n            )\n            if checkpointer is None and durability is not None:\n                warnings.warn(\n                    \"`durability` has no effect when no checkpointer is present.\",\n                )\n            # set up subgraph checkpointing\n            if self.checkpointer is True:\n                ns = cast(str, config[CONF][CONFIG_KEY_CHECKPOINT_NS])\n                config[CONF][CONFIG_KEY_CHECKPOINT_NS] = recast_checkpoint_ns(ns)\n            # set up messages stream mode\n            if \"messages\" in stream_modes:\n                ns_ = cast(Optional[str], config[CONF].get(CONFIG_KEY_CHECKPOINT_NS))\n                run_manager.inheritable_handlers.append(\n                    StreamMessagesHandler(\n                        stream.put,\n                        subgraphs,\n                        parent_ns=tuple(ns_.split(NS_SEP)) if ns_ else None,\n                    )\n                )\n    \n            # set up custom stream mode\n            if \"custom\" in stream_modes:\n    \n                def stream_writer(c: Any) -> None:\n                    stream.put(\n                        (\n                            tuple(\n                                get_config()[CONF][CONFIG_KEY_CHECKPOINT_NS].split(\n                                    NS_SEP\n                                )[:-1]\n                            ),\n                            \"custom\",\n                            c,\n                        )\n                    )\n            elif CONFIG_KEY_STREAM in config[CONF]:\n                stream_writer = config[CONF][CONFIG_KEY_RUNTIME].stream_writer\n            else:\n    \n                def stream_writer(c: Any) -> None:\n                    pass\n    \n            # set durability mode for subgraphs\n            if durability is not None:\n                config[CONF][CONFIG_KEY_DURABILITY] = durability_\n    \n            runtime = Runtime(\n                context=_coerce_context(self.context_schema, context),\n                store=store,\n                stream_writer=stream_writer,\n                previous=None,\n            )\n            parent_runtime = config[CONF].get(CONFIG_KEY_RUNTIME, DEFAULT_RUNTIME)\n            runtime = parent_runtime.merge(runtime)\n            config[CONF][CONFIG_KEY_RUNTIME] = runtime\n    \n            with SyncPregelLoop(\n                input,\n                stream=StreamProtocol(stream.put, stream_modes),\n                config=config,\n                store=store,\n                cache=cache,\n                checkpointer=checkpointer,\n                nodes=self.nodes,\n                specs=self.channels,\n                output_keys=output_keys,\n                input_keys=self.input_channels,\n                stream_keys=self.stream_channels_asis,\n                interrupt_before=interrupt_before_,\n                interrupt_after=interrupt_after_,\n                manager=run_manager,\n                durability=durability_,\n                trigger_to_nodes=self.trigger_to_nodes,\n                migrate_checkpoint=self._migrate_checkpoint,\n                retry_policy=self.retry_policy,\n                cache_policy=self.cache_policy,\n            ) as loop:\n                # create runner\n                runner = PregelRunner(\n                    submit=config[CONF].get(\n                        CONFIG_KEY_RUNNER_SUBMIT, weakref.WeakMethod(loop.submit)\n                    ),\n                    put_writes=weakref.WeakMethod(loop.put_writes),\n                    node_finished=config[CONF].get(CONFIG_KEY_NODE_FINISHED),\n                )\n                # enable subgraph streaming\n                if subgraphs:\n                    loop.config[CONF][CONFIG_KEY_STREAM] = loop.stream\n                # enable concurrent streaming\n                if (\n                    self.stream_eager\n                    or subgraphs\n                    or \"messages\" in stream_modes\n                    or \"custom\" in stream_modes\n                ):\n                    # we are careful to have a single waiter live at any one time\n                    # because on exit we increment semaphore count by exactly 1\n                    waiter: concurrent.futures.Future | None = None\n                    # because sync futures cannot be cancelled, we instead\n                    # release the stream semaphore on exit, which will cause\n                    # a pending waiter to return immediately\n                    loop.stack.callback(stream._count.release)\n    \n                    def get_waiter() -> concurrent.futures.Future[None]:\n                        nonlocal waiter\n                        if waiter is None or waiter.done():\n                            waiter = loop.submit(stream.wait)\n                            return waiter\n                        else:\n                            return waiter\n    \n                else:\n                    get_waiter = None  # type: ignore[assignment]\n                # Similarly to Bulk Synchronous Parallel / Pregel model\n                # computation proceeds in steps, while there are channel updates.\n                # Channel updates from step N are only visible in step N+1\n                # channels are guaranteed to be immutable for the duration of the step,\n                # with channel updates applied only at the transition between steps.\n                while loop.tick():\n                    for task in loop.match_cached_writes():\n                        loop.output_writes(task.id, task.writes, cached=True)\n>                   for _ in runner.tick(\n                        [t for t in loop.tasks.values() if not t.writes],\n                        timeout=self.step_timeout,\n                        get_waiter=get_waiter,\n                        schedule_task=loop.accept_push,\n                    ):\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/main.py:2647: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph.pregel._runner.PregelRunner object at 0x7f29915775c0>\ntasks = (PregelExecutableTask(name='calorie_calculation', input={'messages': [HumanMessage(content='I ate a banana and ran for...ysis'), (ChannelWriteEntry(channel='__end__', value=None, skip_none=False, mapper=None), '__end__')])], subgraphs=[]),)\n\n    def tick(\n        self,\n        tasks: Iterable[PregelExecutableTask],\n        *,\n        reraise: bool = True,\n        timeout: float | None = None,\n        retry_policy: Sequence[RetryPolicy] | None = None,\n        get_waiter: Callable[[], concurrent.futures.Future[None]] | None = None,\n        schedule_task: Callable[\n            [PregelExecutableTask, int, Call | None],\n            PregelExecutableTask | None,\n        ],\n    ) -> Iterator[None]:\n        tasks = tuple(tasks)\n        futures = FuturesDict(\n            callback=weakref.WeakMethod(self.commit),\n            event=threading.Event(),\n            future_type=concurrent.futures.Future,\n        )\n        # give control back to the caller\n        yield\n        # fast path if single task with no timeout and no waiter\n        if len(tasks) == 0:\n            return\n        elif len(tasks) == 1 and timeout is None and get_waiter is None:\n            t = tasks[0]\n            try:\n>               run_with_retry(\n                    t,\n                    retry_policy,\n                    configurable={\n                        CONFIG_KEY_CALL: partial(\n                            _call,\n                            weakref.ref(t),\n                            retry_policy=retry_policy,\n                            futures=weakref.ref(futures),\n                            schedule_task=schedule_task,\n                            submit=self.submit,\n                        ),\n                    },\n                )\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/_runner.py:162: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntask = PregelExecutableTask(name='calorie_calculation', input={'messages': [HumanMessage(content='I ate a banana and ran for ...alysis'), (ChannelWriteEntry(channel='__end__', value=None, skip_none=False, mapper=None), '__end__')])], subgraphs=[])\nretry_policy = None\nconfigurable = {'__pregel_call': functools.partial(<function _call at 0x7f2998471940>, <weakref at 0x7f2992df67a0; to 'PregelExecutab...cPregelLoop object at 0x7f2992e73710>>, submit=<weakref at 0x7f299157e2d0; to 'BackgroundExecutor' at 0x7f299151d220>)}\n\n    def run_with_retry(\n        task: PregelExecutableTask,\n        retry_policy: Sequence[RetryPolicy] | None,\n        configurable: dict[str, Any] | None = None,\n    ) -> None:\n        \"\"\"Run a task with retries.\"\"\"\n        retry_policy = task.retry_policy or retry_policy\n        attempts = 0\n        config = task.config\n        if configurable is not None:\n            config = patch_configurable(config, configurable)\n        while True:\n            try:\n                # clear any writes from previous attempts\n                task.writes.clear()\n                # run the task\n>               return task.proc.invoke(task.input, config)\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/_retry.py:42: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph._internal._runnable.RunnableSeq object at 0x7f29915b4200>\ninput = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='37221876-c3f9-483a-90e9-26afb245d932')]}\nconfig = {'callbacks': <langchain_core.callbacks.manager.CallbackManager object at 0x7f29923e8980>, 'configurable': {'__pregel_...ph_node': 'calorie_calculation', 'langgraph_path': ('__pregel_pull', 'calorie_calculation'), 'langgraph_step': 1, ...}}\nkwargs = {}\ncallback_manager = <langchain_core.callbacks.manager.CallbackManager object at 0x7f29915b4230>\nrun_manager = <langchain_core.callbacks.manager.CallbackManagerForChainRun object at 0x7f2991577ec0>\ni = 0\nstep = calorie_calculation(tags=None, recurse=True, explode_args=False, func_accepts={})\nh = <langchain_core.tracers.langchain.LangChainTracer object at 0x7f2992fd1f70>\nrun = RunTree(id=2085fc47-5198-4d82-9ced-96fd75a41c28, name='calorie_calculation', run_type='chain', dotted_order='20250818T173558628957Z23633888-2dcd-44a6-8d65-bc77efdccde3.20250818T173558919111Z2085fc47-5198-4d82-9ced-96fd75a41c28')\ncontext = <_contextvars.Context object at 0x7f29915b0240>\n\n    def invoke(\n        self, input: Input, config: RunnableConfig | None = None, **kwargs: Any\n    ) -> Any:\n        if config is None:\n            config = ensure_config()\n        # setup callbacks and context\n        callback_manager = get_callback_manager_for_config(config)\n        # start the root run\n        run_manager = callback_manager.on_chain_start(\n            None,\n            self.trace_inputs(input) if self.trace_inputs is not None else input,\n            name=config.get(\"run_name\") or self.get_name(),\n            run_id=config.pop(\"run_id\", None),\n        )\n        # invoke all steps in sequence\n        try:\n            for i, step in enumerate(self.steps):\n                # mark each step as a child run\n                config = patch_config(\n                    config, callbacks=run_manager.get_child(f\"seq:step:{i + 1}\")\n                )\n                # 1st step is the actual node,\n                # others are writers which don't need to be run in context\n                if i == 0:\n                    # get the run object\n                    for h in run_manager.handlers:\n                        if isinstance(h, LangChainTracer):\n                            run = h.run_map.get(str(run_manager.run_id))\n                            break\n                    else:\n                        run = None\n                    # run in context\n                    with set_config_context(config, run) as context:\n>                       input = context.run(step.invoke, input, config, **kwargs)\n\n/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py:657: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = calorie_calculation(tags=None, recurse=True, explode_args=False, func_accepts={})\ninput = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='37221876-c3f9-483a-90e9-26afb245d932')]}\nconfig = {'callbacks': <langchain_core.callbacks.manager.CallbackManager object at 0x7f29923e8980>, 'configurable': {'__pregel_...ph_node': 'calorie_calculation', 'langgraph_path': ('__pregel_pull', 'calorie_calculation'), 'langgraph_step': 1, ...}}\nkwargs = {}\nargs = ({'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='37221876-c3f9-483a-90e9-26afb245d932')]},)\nruntime = Runtime(context=None, store=None, stream_writer=<function Pregel.stream.<locals>.stream_writer at 0x7f2992dceca0>, previous=None)\n\n    def invoke(\n        self, input: Any, config: RunnableConfig | None = None, **kwargs: Any\n    ) -> Any:\n        if self.func is None:\n            raise TypeError(\n                f'No synchronous function provided to \"{self.name}\".'\n                \"\\nEither initialize with a synchronous function or invoke\"\n                \" via the async API (ainvoke, astream, etc.)\"\n            )\n        if config is None:\n            config = ensure_config()\n        if self.explode_args:\n            args, _kwargs = input\n            kwargs = {**self.kwargs, **_kwargs, **kwargs}\n        else:\n            args = (input,)\n            kwargs = {**self.kwargs, **kwargs}\n    \n        runtime = config[CONF].get(CONFIG_KEY_RUNTIME)\n    \n        for kw, (runtime_key, default) in self.func_accepts.items():\n            # If the kwarg is already set, use the set value\n            if kw in kwargs:\n                continue\n    \n            kw_value: Any = MISSING\n            if kw == \"config\":\n                kw_value = config\n            elif runtime:\n                if kw == \"runtime\":\n                    kw_value = runtime\n                else:\n                    try:\n                        kw_value = getattr(runtime, runtime_key)\n                    except AttributeError:\n                        pass\n    \n            if kw_value is MISSING:\n                if default is inspect.Parameter.empty:\n                    raise ValueError(\n                        f\"Missing required config key '{runtime_key}' for '{self.name}'.\"\n                    )\n                kw_value = default\n            kwargs[kw] = kw_value\n    \n        if self.trace:\n            callback_manager = get_callback_manager_for_config(config, self.tags)\n            run_manager = callback_manager.on_chain_start(\n                None,\n                input,\n                name=config.get(\"run_name\") or self.get_name(),\n                run_id=config.pop(\"run_id\", None),\n            )\n            try:\n                child_config = patch_config(config, callbacks=run_manager.get_child())\n                # get the run\n                for h in run_manager.handlers:\n                    if isinstance(h, LangChainTracer):\n                        run = h.run_map.get(str(run_manager.run_id))\n                        break\n                else:\n                    run = None\n                # run in context\n                with set_config_context(child_config, run) as context:\n                    ret = context.run(self.func, *args, **kwargs)\n            except BaseException as e:\n                run_manager.on_chain_error(e)\n                raise\n            else:\n                run_manager.on_chain_end(ret)\n        else:\n>           ret = self.func(*args, **kwargs)\n\n/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py:401: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstate = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='37221876-c3f9-483a-90e9-26afb245d932')]}\n\n    def calculate_calories(state: GraphState) -> GraphState:\n        \"\"\"\n        Node purpose: Calculates calories from user-reported food intake and exercise activities.\n                       This node also acts as a router, determining the next step based on the user's intent.\n        Implementation reasoning: Uses a ReAct agent to leverage tools for calorie calculation and an LLM with structured output for intent classification and data extraction.\n        \"\"\"\n        class CustomStateForReact(MessagesState):\n            remaining_steps: int\n            structured_response: CalorieCalculationOutput\n    \n        agent = create_react_agent(\n            model=llm,\n            prompt=\"You are a helpful assistant that calculates calories from food and exercise. \"\n                   \"You can also identify if the user is asking for historical data or net calorie analysis. \"\n                   \"Use the provided tools to search for food and exercise calorie information. \"\n                   \"After processing, classify the user's intent and extract relevant entities.\",\n            tools=calorie_calculation_tools,\n            state_schema=CustomStateForReact,\n            response_format=CalorieCalculationOutput\n        )\n    \n        user_message = state[\"messages\"][-1].content\n        result: CalorieCalculationOutput = agent.invoke({\"messages\": state[\"messages\"]})[\"structured_response\"]\n    \n        calories_consumed = 0.0\n        if result.food_items:\n            for food_item in result.food_items:\n>               search_result = Food_Database_API_Search.invoke({\"food_query\": food_item})\nE               AttributeError: 'function' object has no attribute 'invoke'\nE               During task with name 'calorie_calculation' and id 'd1bf96d5-4eff-c32e-844a-e86f88eee696'\n\napp.py:73: AttributeError"
+            },
+            "teardown": {
+                "duration": 0.000513830999999243,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_final_response[I ran for 20 minutes.-Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.]",
+            "lineno": 48,
+            "outcome": "failed",
+            "keywords": [
+                "test_full_workflow_final_response[I ran for 20 minutes.-Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.]",
+                "parametrize",
+                "pytestmark",
+                "I ran for 20 minutes.-Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0008434229999991771,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 3.846878412999999,
+                "outcome": "failed",
+                "crash": {
+                    "path": "/home/user/test_app.py",
+                    "lineno": 66,
+                    "message": "AssertionError: assert False == True\n +  where False = final_answer_correct(input, 'Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.', 'Data storage status: failedfailed to store exercise data: NOTION_EXERCISE_DATABASE_ID environment variable must be set.')"
+                },
+                "traceback": [
+                    {
+                        "path": "test_app.py",
+                        "lineno": 66,
+                        "message": "AssertionError"
+                    }
+                ],
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12\n\ninput_query = 'I ran for 20 minutes.'\nreference_output = 'Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.'\n\n    @pytest.mark.parametrize(\n        \"input_query, reference_output\",\n        [\n            (\"I ate a banana and ran for 30 minutes.\", \"Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.\"),\n    (\"I ran for 20 minutes.\", \"Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.\"),\n    (\"How many calories did I burn yesterday?\", \"Yesterday, you burned a total of [X] calories through your activities.\"),\n    (\"What did I eat on Monday?\", \"On Monday, you reported eating: [List of food items and their calorie counts].\"),\n    (\"What's my net calorie intake for the week?\", \"This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.\")\n        ],\n    )\n    def test_full_workflow_final_response(input_query: str, reference_output: str):\n        # Invoke the full graph\n        thread_config = {\"configurable\": {\"thread_id\": uuid4() }}\n        result = app.invoke({\"messages\": [HumanMessage(content=input_query)]}, config=thread_config)\n    \n        # Get the last message, which is the final response\n        actual_output = result[\"messages\"][-1].content\n>       assert final_answer_correct(input, reference_output, actual_output) == True\nE       AssertionError: assert False == True\nE        +  where False = final_answer_correct(input, 'Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.', 'Data storage status: failedfailed to store exercise data: NOTION_EXERCISE_DATABASE_ID environment variable must be set.')\n\ntest_app.py:66: AssertionError"
+            },
+            "teardown": {
+                "duration": 0.0003019510000044079,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_final_response[What did I eat on Monday?-On Monday, you reported eating: [List of food items and their calorie counts].]",
+            "lineno": 48,
+            "outcome": "failed",
+            "keywords": [
+                "test_full_workflow_final_response[What did I eat on Monday?-On Monday, you reported eating: [List of food items and their calorie counts].]",
+                "parametrize",
+                "pytestmark",
+                "What did I eat on Monday?-On Monday, you reported eating: [List of food items and their calorie counts].",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0004500329999999053,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 3.753720958999999,
+                "outcome": "failed",
+                "crash": {
+                    "path": "/home/user/test_app.py",
+                    "lineno": 66,
+                    "message": "AssertionError: assert False == True\n +  where False = final_answer_correct(input, 'On Monday, you reported eating: [List of food items and their calorie counts].', 'Historical data retrieval status: Failed to retrieve historical data: NOTION_MASTER_DATABASE_ID environment variable must be set.')"
+                },
+                "traceback": [
+                    {
+                        "path": "test_app.py",
+                        "lineno": 66,
+                        "message": "AssertionError"
+                    }
+                ],
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12\n\ninput_query = 'What did I eat on Monday?'\nreference_output = 'On Monday, you reported eating: [List of food items and their calorie counts].'\n\n    @pytest.mark.parametrize(\n        \"input_query, reference_output\",\n        [\n            (\"I ate a banana and ran for 30 minutes.\", \"Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.\"),\n    (\"I ran for 20 minutes.\", \"Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.\"),\n    (\"How many calories did I burn yesterday?\", \"Yesterday, you burned a total of [X] calories through your activities.\"),\n    (\"What did I eat on Monday?\", \"On Monday, you reported eating: [List of food items and their calorie counts].\"),\n    (\"What's my net calorie intake for the week?\", \"This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.\")\n        ],\n    )\n    def test_full_workflow_final_response(input_query: str, reference_output: str):\n        # Invoke the full graph\n        thread_config = {\"configurable\": {\"thread_id\": uuid4() }}\n        result = app.invoke({\"messages\": [HumanMessage(content=input_query)]}, config=thread_config)\n    \n        # Get the last message, which is the final response\n        actual_output = result[\"messages\"][-1].content\n>       assert final_answer_correct(input, reference_output, actual_output) == True\nE       AssertionError: assert False == True\nE        +  where False = final_answer_correct(input, 'On Monday, you reported eating: [List of food items and their calorie counts].', 'Historical data retrieval status: Failed to retrieve historical data: NOTION_MASTER_DATABASE_ID environment variable must be set.')\n\ntest_app.py:66: AssertionError"
+            },
+            "teardown": {
+                "duration": 0.0003162510000009888,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_final_response[What's my net calorie intake for the week?-This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.]",
+            "lineno": 48,
+            "outcome": "failed",
+            "keywords": [
+                "test_full_workflow_final_response[What's my net calorie intake for the week?-This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.]",
+                "parametrize",
+                "pytestmark",
+                "What's my net calorie intake for the week?-This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0007328690000036886,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 4.667822576000006,
+                "outcome": "failed",
+                "crash": {
+                    "path": "/home/user/test_app.py",
+                    "lineno": 66,
+                    "message": "AssertionError: assert False == True\n +  where False = final_answer_correct(input, 'This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.', 'Failed to perform net calorie analysis: NOTION_MASTER_DATABASE_ID environment variable must be set.')"
+                },
+                "traceback": [
+                    {
+                        "path": "test_app.py",
+                        "lineno": 66,
+                        "message": "AssertionError"
+                    }
+                ],
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12\n\ninput_query = \"What's my net calorie intake for the week?\"\nreference_output = 'This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.'\n\n    @pytest.mark.parametrize(\n        \"input_query, reference_output\",\n        [\n            (\"I ate a banana and ran for 30 minutes.\", \"Understood. A banana is approximately 105 calories. A 30-minute run typically burns around 300-450 calories, depending on intensity. This data has been recorded.\"),\n    (\"I ran for 20 minutes.\", \"Okay, a 20-minute run has been logged. This typically burns around 200-300 calories. This data has been stored.\"),\n    (\"How many calories did I burn yesterday?\", \"Yesterday, you burned a total of [X] calories through your activities.\"),\n    (\"What did I eat on Monday?\", \"On Monday, you reported eating: [List of food items and their calorie counts].\"),\n    (\"What's my net calorie intake for the week?\", \"This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.\")\n        ],\n    )\n    def test_full_workflow_final_response(input_query: str, reference_output: str):\n        # Invoke the full graph\n        thread_config = {\"configurable\": {\"thread_id\": uuid4() }}\n        result = app.invoke({\"messages\": [HumanMessage(content=input_query)]}, config=thread_config)\n    \n        # Get the last message, which is the final response\n        actual_output = result[\"messages\"][-1].content\n>       assert final_answer_correct(input, reference_output, actual_output) == True\nE       AssertionError: assert False == True\nE        +  where False = final_answer_correct(input, 'This week, your total calorie intake was [X] and your total calories burned were [Y], resulting in a net of [X-Y] calories.', 'Failed to perform net calorie analysis: NOTION_MASTER_DATABASE_ID environment variable must be set.')\n\ntest_app.py:66: AssertionError"
+            },
+            "teardown": {
+                "duration": 0.00040146299999577195,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_trajectory[I ate a banana and ran for 30 minutes.-expected_tool_call_names0]",
+            "lineno": 101,
+            "outcome": "failed",
+            "keywords": [
+                "test_full_workflow_trajectory[I ate a banana and ran for 30 minutes.-expected_tool_call_names0]",
+                "parametrize",
+                "pytestmark",
+                "I ate a banana and ran for 30 minutes.-expected_tool_call_names0",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0006385109999982319,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 4.050206002000003,
+                "outcome": "failed",
+                "crash": {
+                    "path": "/home/user/app.py",
+                    "lineno": 73,
+                    "message": "AttributeError: 'function' object has no attribute 'invoke'\nDuring task with name 'calorie_calculation' and id '7da4d8e1-e773-37b0-2812-4c4a519dba7e'"
+                },
+                "traceback": [
+                    {
+                        "path": "test_app.py",
+                        "lineno": 116,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/main.py",
+                        "lineno": 2647,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/_runner.py",
+                        "lineno": 253,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/_runner.py",
+                        "lineno": 511,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/_executor.py",
+                        "lineno": 81,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/concurrent/futures/_base.py",
+                        "lineno": 449,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/concurrent/futures/_base.py",
+                        "lineno": 401,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/concurrent/futures/thread.py",
+                        "lineno": 59,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/pregel/_retry.py",
+                        "lineno": 42,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+                        "lineno": 657,
+                        "message": ""
+                    },
+                    {
+                        "path": "/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+                        "lineno": 401,
+                        "message": ""
+                    },
+                    {
+                        "path": "app.py",
+                        "lineno": 73,
+                        "message": "AttributeError"
+                    }
+                ],
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12\n\ninput_query = 'I ate a banana and ran for 30 minutes.'\nexpected_tool_call_names = ['calorie_calculation', 'data_storage']\n\n    @pytest.mark.parametrize(\n        \"input_query, expected_tool_call_names\",\n        [\n         (\"I ate a banana and ran for 30 minutes.\", ['calorie_calculation', 'data_storage']),\n    (\"I ran for 20 minutes.\", ['calorie_calculation', 'data_storage']),\n    (\"How many calories did I burn yesterday?\", ['calorie_calculation', 'historical_retrieval']),\n    (\"What did I eat on Monday?\", ['calorie_calculation', 'historical_retrieval']),\n    (\"What's my net calorie intake for the week?\", ['calorie_calculation', 'net_calorie_analysis'])\n        ]\n    )\n    def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: list[str]):\n        trajectory = []\n        thread_config = {\"configurable\": {\"thread_id\": uuid4()}}\n    \n>       for namespace, chunk in app.stream({\"messages\": [\n                {\n                    \"role\": \"user\",\n                    \"content\": input_query,\n                }]\n                }, config=thread_config, subgraphs=True, stream_mode=\"debug\"):\n\ntest_app.py:116: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph.graph.state.CompiledStateGraph object at 0x7f34deae5490>\ninput = {'messages': [{'content': 'I ate a banana and ran for 30 minutes.', 'role': 'user'}]}\nconfig = {'callbacks': None, 'configurable': {'__pregel_runtime': Runtime(context=None, store=None, stream_writer=<function Pre...one), 'thread_id': UUID('3070ab51-a0bf-4c66-8ce2-2dd332c29605')}, 'metadata': ChainMap({}), 'recursion_limit': 25, ...}\ncontext = None, stream_mode = 'debug', print_mode = ()\noutput_keys = ['messages', 'user_input', 'food_items', 'exercise_activities', 'calories_consumed', 'calories_burned', ...]\ninterrupt_before = None, interrupt_after = None, durability = None\nsubgraphs = True\n\n    def stream(\n        self,\n        input: InputT | Command | None,\n        config: RunnableConfig | None = None,\n        *,\n        context: ContextT | None = None,\n        stream_mode: StreamMode | Sequence[StreamMode] | None = None,\n        print_mode: StreamMode | Sequence[StreamMode] = (),\n        output_keys: str | Sequence[str] | None = None,\n        interrupt_before: All | Sequence[str] | None = None,\n        interrupt_after: All | Sequence[str] | None = None,\n        durability: Durability | None = None,\n        subgraphs: bool = False,\n        debug: bool | None = None,\n        **kwargs: Unpack[DeprecatedKwargs],\n    ) -> Iterator[dict[str, Any] | Any]:\n        \"\"\"Stream graph steps for a single input.\n    \n        Args:\n            input: The input to the graph.\n            config: The configuration to use for the run.\n            context: The static context to use for the run.\n                !!! version-added \"Added in version 0.6.0.\"\n            stream_mode: The mode to stream output, defaults to `self.stream_mode`.\n                Options are:\n    \n                - `\"values\"`: Emit all values in the state after each step, including interrupts.\n                    When used with functional API, values are emitted once at the end of the workflow.\n                - `\"updates\"`: Emit only the node or task names and updates returned by the nodes or tasks after each step.\n                    If multiple updates are made in the same step (e.g. multiple nodes are run) then those updates are emitted separately.\n                - `\"custom\"`: Emit custom data from inside nodes or tasks using `StreamWriter`.\n                - `\"messages\"`: Emit LLM messages token-by-token together with metadata for any LLM invocations inside nodes or tasks.\n                    Will be emitted as 2-tuples `(LLM token, metadata)`.\n                - `\"checkpoints\"`: Emit an event when a checkpoint is created, in the same format as returned by get_state().\n                - `\"tasks\"`: Emit events when tasks start and finish, including their results and errors.\n    \n                You can pass a list as the `stream_mode` parameter to stream multiple modes at once.\n                The streamed outputs will be tuples of `(mode, data)`.\n    \n                See [LangGraph streaming guide](https://langchain-ai.github.io/langgraph/how-tos/streaming/) for more details.\n            print_mode: Accepts the same values as `stream_mode`, but only prints the output to the console, for debugging purposes. Does not affect the output of the graph in any way.\n            output_keys: The keys to stream, defaults to all non-context channels.\n            interrupt_before: Nodes to interrupt before, defaults to all nodes in the graph.\n            interrupt_after: Nodes to interrupt after, defaults to all nodes in the graph.\n            durability: The durability mode for the graph execution, defaults to \"async\". Options are:\n                - `\"sync\"`: Changes are persisted synchronously before the next step starts.\n                - `\"async\"`: Changes are persisted asynchronously while the next step executes.\n                - `\"exit\"`: Changes are persisted only when the graph exits.\n            subgraphs: Whether to stream events from inside subgraphs, defaults to False.\n                If True, the events will be emitted as tuples `(namespace, data)`,\n                or `(namespace, mode, data)` if `stream_mode` is a list,\n                where `namespace` is a tuple with the path to the node where a subgraph is invoked,\n                e.g. `(\"parent_node:<task_id>\", \"child_node:<task_id>\")`.\n    \n                See [LangGraph streaming guide](https://langchain-ai.github.io/langgraph/how-tos/streaming/) for more details.\n    \n        Yields:\n            The output of each step in the graph. The output shape depends on the stream_mode.\n        \"\"\"\n        if (checkpoint_during := kwargs.get(\"checkpoint_during\")) is not None:\n            warnings.warn(\n                \"`checkpoint_during` is deprecated and will be removed. Please use `durability` instead.\",\n                category=LangGraphDeprecatedSinceV10,\n                stacklevel=2,\n            )\n            if durability is not None:\n                raise ValueError(\n                    \"Cannot use both `checkpoint_during` and `durability` parameters. Please use `durability` instead.\"\n                )\n            durability = \"async\" if checkpoint_during else \"exit\"\n    \n        if stream_mode is None:\n            # if being called as a node in another graph, default to values mode\n            # but don't overwrite stream_mode arg if provided\n            stream_mode = (\n                \"values\"\n                if config is not None and CONFIG_KEY_TASK_ID in config.get(CONF, {})\n                else self.stream_mode\n            )\n        if debug or self.debug:\n            print_mode = [\"updates\", \"values\"]\n    \n        stream = SyncQueue()\n    \n        config = ensure_config(self.config, config)\n        callback_manager = get_callback_manager_for_config(config)\n        run_manager = callback_manager.on_chain_start(\n            None,\n            input,\n            name=config.get(\"run_name\", self.get_name()),\n            run_id=config.get(\"run_id\"),\n        )\n        try:\n            # assign defaults\n            (\n                stream_modes,\n                output_keys,\n                interrupt_before_,\n                interrupt_after_,\n                checkpointer,\n                store,\n                cache,\n                durability_,\n            ) = self._defaults(\n                config,\n                stream_mode=stream_mode,\n                print_mode=print_mode,\n                output_keys=output_keys,\n                interrupt_before=interrupt_before,\n                interrupt_after=interrupt_after,\n                durability=durability,\n            )\n            if checkpointer is None and durability is not None:\n                warnings.warn(\n                    \"`durability` has no effect when no checkpointer is present.\",\n                )\n            # set up subgraph checkpointing\n            if self.checkpointer is True:\n                ns = cast(str, config[CONF][CONFIG_KEY_CHECKPOINT_NS])\n                config[CONF][CONFIG_KEY_CHECKPOINT_NS] = recast_checkpoint_ns(ns)\n            # set up messages stream mode\n            if \"messages\" in stream_modes:\n                ns_ = cast(Optional[str], config[CONF].get(CONFIG_KEY_CHECKPOINT_NS))\n                run_manager.inheritable_handlers.append(\n                    StreamMessagesHandler(\n                        stream.put,\n                        subgraphs,\n                        parent_ns=tuple(ns_.split(NS_SEP)) if ns_ else None,\n                    )\n                )\n    \n            # set up custom stream mode\n            if \"custom\" in stream_modes:\n    \n                def stream_writer(c: Any) -> None:\n                    stream.put(\n                        (\n                            tuple(\n                                get_config()[CONF][CONFIG_KEY_CHECKPOINT_NS].split(\n                                    NS_SEP\n                                )[:-1]\n                            ),\n                            \"custom\",\n                            c,\n                        )\n                    )\n            elif CONFIG_KEY_STREAM in config[CONF]:\n                stream_writer = config[CONF][CONFIG_KEY_RUNTIME].stream_writer\n            else:\n    \n                def stream_writer(c: Any) -> None:\n                    pass\n    \n            # set durability mode for subgraphs\n            if durability is not None:\n                config[CONF][CONFIG_KEY_DURABILITY] = durability_\n    \n            runtime = Runtime(\n                context=_coerce_context(self.context_schema, context),\n                store=store,\n                stream_writer=stream_writer,\n                previous=None,\n            )\n            parent_runtime = config[CONF].get(CONFIG_KEY_RUNTIME, DEFAULT_RUNTIME)\n            runtime = parent_runtime.merge(runtime)\n            config[CONF][CONFIG_KEY_RUNTIME] = runtime\n    \n            with SyncPregelLoop(\n                input,\n                stream=StreamProtocol(stream.put, stream_modes),\n                config=config,\n                store=store,\n                cache=cache,\n                checkpointer=checkpointer,\n                nodes=self.nodes,\n                specs=self.channels,\n                output_keys=output_keys,\n                input_keys=self.input_channels,\n                stream_keys=self.stream_channels_asis,\n                interrupt_before=interrupt_before_,\n                interrupt_after=interrupt_after_,\n                manager=run_manager,\n                durability=durability_,\n                trigger_to_nodes=self.trigger_to_nodes,\n                migrate_checkpoint=self._migrate_checkpoint,\n                retry_policy=self.retry_policy,\n                cache_policy=self.cache_policy,\n            ) as loop:\n                # create runner\n                runner = PregelRunner(\n                    submit=config[CONF].get(\n                        CONFIG_KEY_RUNNER_SUBMIT, weakref.WeakMethod(loop.submit)\n                    ),\n                    put_writes=weakref.WeakMethod(loop.put_writes),\n                    node_finished=config[CONF].get(CONFIG_KEY_NODE_FINISHED),\n                )\n                # enable subgraph streaming\n                if subgraphs:\n                    loop.config[CONF][CONFIG_KEY_STREAM] = loop.stream\n                # enable concurrent streaming\n                if (\n                    self.stream_eager\n                    or subgraphs\n                    or \"messages\" in stream_modes\n                    or \"custom\" in stream_modes\n                ):\n                    # we are careful to have a single waiter live at any one time\n                    # because on exit we increment semaphore count by exactly 1\n                    waiter: concurrent.futures.Future | None = None\n                    # because sync futures cannot be cancelled, we instead\n                    # release the stream semaphore on exit, which will cause\n                    # a pending waiter to return immediately\n                    loop.stack.callback(stream._count.release)\n    \n                    def get_waiter() -> concurrent.futures.Future[None]:\n                        nonlocal waiter\n                        if waiter is None or waiter.done():\n                            waiter = loop.submit(stream.wait)\n                            return waiter\n                        else:\n                            return waiter\n    \n                else:\n                    get_waiter = None  # type: ignore[assignment]\n                # Similarly to Bulk Synchronous Parallel / Pregel model\n                # computation proceeds in steps, while there are channel updates.\n                # Channel updates from step N are only visible in step N+1\n                # channels are guaranteed to be immutable for the duration of the step,\n                # with channel updates applied only at the transition between steps.\n                while loop.tick():\n                    for task in loop.match_cached_writes():\n                        loop.output_writes(task.id, task.writes, cached=True)\n>                   for _ in runner.tick(\n                        [t for t in loop.tasks.values() if not t.writes],\n                        timeout=self.step_timeout,\n                        get_waiter=get_waiter,\n                        schedule_task=loop.accept_push,\n                    ):\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/main.py:2647: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph.pregel._runner.PregelRunner object at 0x7f34dc333b30>\ntasks = (PregelExecutableTask(name='calorie_calculation', input={'messages': [HumanMessage(content='I ate a banana and ran for...ysis'), (ChannelWriteEntry(channel='__end__', value=None, skip_none=False, mapper=None), '__end__')])], subgraphs=[]),)\n\n    def tick(\n        self,\n        tasks: Iterable[PregelExecutableTask],\n        *,\n        reraise: bool = True,\n        timeout: float | None = None,\n        retry_policy: Sequence[RetryPolicy] | None = None,\n        get_waiter: Callable[[], concurrent.futures.Future[None]] | None = None,\n        schedule_task: Callable[\n            [PregelExecutableTask, int, Call | None],\n            PregelExecutableTask | None,\n        ],\n    ) -> Iterator[None]:\n        tasks = tuple(tasks)\n        futures = FuturesDict(\n            callback=weakref.WeakMethod(self.commit),\n            event=threading.Event(),\n            future_type=concurrent.futures.Future,\n        )\n        # give control back to the caller\n        yield\n        # fast path if single task with no timeout and no waiter\n        if len(tasks) == 0:\n            return\n        elif len(tasks) == 1 and timeout is None and get_waiter is None:\n            t = tasks[0]\n            try:\n                run_with_retry(\n                    t,\n                    retry_policy,\n                    configurable={\n                        CONFIG_KEY_CALL: partial(\n                            _call,\n                            weakref.ref(t),\n                            retry_policy=retry_policy,\n                            futures=weakref.ref(futures),\n                            schedule_task=schedule_task,\n                            submit=self.submit,\n                        ),\n                    },\n                )\n                self.commit(t, None)\n            except Exception as exc:\n                self.commit(t, exc)\n                if reraise and futures:\n                    # will be re-raised after futures are done\n                    fut: concurrent.futures.Future = concurrent.futures.Future()\n                    fut.set_exception(exc)\n                    futures.done.add(fut)\n                elif reraise:\n                    if tb := exc.__traceback__:\n                        while tb.tb_next is not None and any(\n                            tb.tb_frame.f_code.co_filename.endswith(name)\n                            for name in EXCLUDED_FRAME_FNAMES\n                        ):\n                            tb = tb.tb_next\n                        exc.__traceback__ = tb\n                    raise\n            if not futures:  # maybe `t` scheduled another task\n                return\n            else:\n                tasks = ()  # don't reschedule this task\n        # add waiter task if requested\n        if get_waiter is not None:\n            futures[get_waiter()] = None\n        # schedule tasks\n        for t in tasks:\n            fut = self.submit()(  # type: ignore[misc]\n                run_with_retry,\n                t,\n                retry_policy,\n                configurable={\n                    CONFIG_KEY_CALL: partial(\n                        _call,\n                        weakref.ref(t),\n                        retry_policy=retry_policy,\n                        futures=weakref.ref(futures),\n                        schedule_task=schedule_task,\n                        submit=self.submit,\n                    ),\n                },\n                __reraise_on_exit__=reraise,\n            )\n            futures[fut] = t\n        # execute tasks, and wait for one to fail or all to finish.\n        # each task is independent from all other concurrent tasks\n        # yield updates/debug output as each task finishes\n        end_time = timeout + time.monotonic() if timeout else None\n        while len(futures) > (1 if get_waiter is not None else 0):\n            done, inflight = concurrent.futures.wait(\n                futures,\n                return_when=concurrent.futures.FIRST_COMPLETED,\n                timeout=(max(0, end_time - time.monotonic()) if end_time else None),\n            )\n            if not done:\n                break  # timed out\n            for fut in done:\n                task = futures.pop(fut)\n                if task is None:\n                    # waiter task finished, schedule another\n                    if inflight and get_waiter is not None:\n                        futures[get_waiter()] = None\n            else:\n                # remove references to loop vars\n                del fut, task\n            # maybe stop other tasks\n            if _should_stop_others(done):\n                break\n            # give control back to the caller\n            yield\n        # wait for done callbacks\n        futures.event.wait(\n            timeout=(max(0, end_time - time.monotonic()) if end_time else None)\n        )\n        # give control back to the caller\n        yield\n        # panic on failure or timeout\n        try:\n>           _panic_or_proceed(\n                futures.done.union(f for f, t in futures.items() if t is not None),\n                panic=reraise,\n            )\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/_runner.py:253: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfuts = {<Future at 0x7f34dc7ca780 state=finished raised AttributeError>}\n\n    def _panic_or_proceed(\n        futs: set[concurrent.futures.Future] | set[asyncio.Future],\n        *,\n        timeout_exc_cls: type[Exception] = TimeoutError,\n        panic: bool = True,\n    ) -> None:\n        \"\"\"Cancel remaining tasks if any failed, re-raise exception if panic is True.\"\"\"\n        done: set[concurrent.futures.Future[Any] | asyncio.Future[Any]] = set()\n        inflight: set[concurrent.futures.Future[Any] | asyncio.Future[Any]] = set()\n        for fut in futs:\n            if fut.cancelled():\n                continue\n            elif fut.done():\n                done.add(fut)\n            else:\n                inflight.add(fut)\n        interrupts: list[GraphInterrupt] = []\n        while done:\n            # if any task failed\n            fut = done.pop()\n            if exc := _exception(fut):\n                # cancel all pending tasks\n                while inflight:\n                    inflight.pop().cancel()\n                # raise the exception\n                if panic:\n                    if isinstance(exc, GraphInterrupt):\n                        # collect interrupts\n                        interrupts.append(exc)\n                    elif fut not in SKIP_RERAISE_SET:\n>                       raise exc\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/_runner.py:511: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph.pregel._executor.BackgroundExecutor object at 0x7f34dc316f90>\ntask = <Future at 0x7f34dc7ca780 state=finished raised AttributeError>\n\n    def done(self, task: concurrent.futures.Future) -> None:\n        \"\"\"Remove the task from the tasks dict when it's done.\"\"\"\n        try:\n>           task.result()\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/_executor.py:81: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = None, timeout = None\n\n    def result(self, timeout=None):\n        \"\"\"Return the result of the call that the future represents.\n    \n        Args:\n            timeout: The number of seconds to wait for the result if the future\n                isn't done. If None, then there is no limit on the wait time.\n    \n        Returns:\n            The result of the call that the future represents.\n    \n        Raises:\n            CancelledError: If the future was cancelled.\n            TimeoutError: If the future didn't finish executing before the given\n                timeout.\n            Exception: If the call raised then that exception will be raised.\n        \"\"\"\n        try:\n            with self._condition:\n                if self._state in [CANCELLED, CANCELLED_AND_NOTIFIED]:\n                    raise CancelledError()\n                elif self._state == FINISHED:\n>                   return self.__get_result()\n\n/usr/local/lib/python3.12/concurrent/futures/_base.py:449: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = None\n\n    def __get_result(self):\n        if self._exception:\n            try:\n>               raise self._exception\n\n/usr/local/lib/python3.12/concurrent/futures/_base.py:401: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = None\n\n    def run(self):\n        if not self.future.set_running_or_notify_cancel():\n            return\n    \n        try:\n>           result = self.fn(*self.args, **self.kwargs)\n\n/usr/local/lib/python3.12/concurrent/futures/thread.py:59: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntask = PregelExecutableTask(name='calorie_calculation', input={'messages': [HumanMessage(content='I ate a banana and ran for ...alysis'), (ChannelWriteEntry(channel='__end__', value=None, skip_none=False, mapper=None), '__end__')])], subgraphs=[])\nretry_policy = None\nconfigurable = {'__pregel_call': functools.partial(<function _call at 0x7f34dfe218a0>, <weakref at 0x7f34dc5095d0; to 'PregelExecutab...cPregelLoop object at 0x7f34dc314230>>, submit=<weakref at 0x7f34dc504250; to 'BackgroundExecutor' at 0x7f34dc316f90>)}\n\n    def run_with_retry(\n        task: PregelExecutableTask,\n        retry_policy: Sequence[RetryPolicy] | None,\n        configurable: dict[str, Any] | None = None,\n    ) -> None:\n        \"\"\"Run a task with retries.\"\"\"\n        retry_policy = task.retry_policy or retry_policy\n        attempts = 0\n        config = task.config\n        if configurable is not None:\n            config = patch_configurable(config, configurable)\n        while True:\n            try:\n                # clear any writes from previous attempts\n                task.writes.clear()\n                # run the task\n>               return task.proc.invoke(task.input, config)\n\n/usr/local/lib/python3.12/site-packages/langgraph/pregel/_retry.py:42: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <langgraph._internal._runnable.RunnableSeq object at 0x7f34dc7c8110>\ninput = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='4ec00912-7c21-4e59-b22f-ee65a1e70ce4')]}\nconfig = {'callbacks': <langchain_core.callbacks.manager.CallbackManager object at 0x7f34dc737bc0>, 'configurable': {'__pregel_...ph_node': 'calorie_calculation', 'langgraph_path': ('__pregel_pull', 'calorie_calculation'), 'langgraph_step': 1, ...}}\nkwargs = {}\ncallback_manager = <langchain_core.callbacks.manager.CallbackManager object at 0x7f34dc7ca300>\nrun_manager = <langchain_core.callbacks.manager.CallbackManagerForChainRun object at 0x7f34dc7c80e0>\ni = 0\nstep = calorie_calculation(tags=None, recurse=True, explode_args=False, func_accepts={})\nh = <langchain_core.tracers.langchain.LangChainTracer object at 0x7f34dc314590>\nrun = RunTree(id=5f400802-4727-4fcb-b5d4-404b32398a7b, name='calorie_calculation', run_type='chain', dotted_order='20250818T173608342876Ze764a8c5-0a1d-46e7-a4e3-3690955d3ad1.20250818T173608347219Z5f400802-4727-4fcb-b5d4-404b32398a7b')\ncontext = <_contextvars.Context object at 0x7f34dc78fa00>\n\n    def invoke(\n        self, input: Input, config: RunnableConfig | None = None, **kwargs: Any\n    ) -> Any:\n        if config is None:\n            config = ensure_config()\n        # setup callbacks and context\n        callback_manager = get_callback_manager_for_config(config)\n        # start the root run\n        run_manager = callback_manager.on_chain_start(\n            None,\n            self.trace_inputs(input) if self.trace_inputs is not None else input,\n            name=config.get(\"run_name\") or self.get_name(),\n            run_id=config.pop(\"run_id\", None),\n        )\n        # invoke all steps in sequence\n        try:\n            for i, step in enumerate(self.steps):\n                # mark each step as a child run\n                config = patch_config(\n                    config, callbacks=run_manager.get_child(f\"seq:step:{i + 1}\")\n                )\n                # 1st step is the actual node,\n                # others are writers which don't need to be run in context\n                if i == 0:\n                    # get the run object\n                    for h in run_manager.handlers:\n                        if isinstance(h, LangChainTracer):\n                            run = h.run_map.get(str(run_manager.run_id))\n                            break\n                    else:\n                        run = None\n                    # run in context\n                    with set_config_context(config, run) as context:\n>                       input = context.run(step.invoke, input, config, **kwargs)\n\n/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py:657: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = calorie_calculation(tags=None, recurse=True, explode_args=False, func_accepts={})\ninput = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='4ec00912-7c21-4e59-b22f-ee65a1e70ce4')]}\nconfig = {'callbacks': <langchain_core.callbacks.manager.CallbackManager object at 0x7f34dc737bc0>, 'configurable': {'__pregel_...ph_node': 'calorie_calculation', 'langgraph_path': ('__pregel_pull', 'calorie_calculation'), 'langgraph_step': 1, ...}}\nkwargs = {}\nargs = ({'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='4ec00912-7c21-4e59-b22f-ee65a1e70ce4')]},)\nruntime = Runtime(context=None, store=None, stream_writer=<function Pregel.stream.<locals>.stream_writer at 0x7f34e527fce0>, previous=None)\n\n    def invoke(\n        self, input: Any, config: RunnableConfig | None = None, **kwargs: Any\n    ) -> Any:\n        if self.func is None:\n            raise TypeError(\n                f'No synchronous function provided to \"{self.name}\".'\n                \"\\nEither initialize with a synchronous function or invoke\"\n                \" via the async API (ainvoke, astream, etc.)\"\n            )\n        if config is None:\n            config = ensure_config()\n        if self.explode_args:\n            args, _kwargs = input\n            kwargs = {**self.kwargs, **_kwargs, **kwargs}\n        else:\n            args = (input,)\n            kwargs = {**self.kwargs, **kwargs}\n    \n        runtime = config[CONF].get(CONFIG_KEY_RUNTIME)\n    \n        for kw, (runtime_key, default) in self.func_accepts.items():\n            # If the kwarg is already set, use the set value\n            if kw in kwargs:\n                continue\n    \n            kw_value: Any = MISSING\n            if kw == \"config\":\n                kw_value = config\n            elif runtime:\n                if kw == \"runtime\":\n                    kw_value = runtime\n                else:\n                    try:\n                        kw_value = getattr(runtime, runtime_key)\n                    except AttributeError:\n                        pass\n    \n            if kw_value is MISSING:\n                if default is inspect.Parameter.empty:\n                    raise ValueError(\n                        f\"Missing required config key '{runtime_key}' for '{self.name}'.\"\n                    )\n                kw_value = default\n            kwargs[kw] = kw_value\n    \n        if self.trace:\n            callback_manager = get_callback_manager_for_config(config, self.tags)\n            run_manager = callback_manager.on_chain_start(\n                None,\n                input,\n                name=config.get(\"run_name\") or self.get_name(),\n                run_id=config.pop(\"run_id\", None),\n            )\n            try:\n                child_config = patch_config(config, callbacks=run_manager.get_child())\n                # get the run\n                for h in run_manager.handlers:\n                    if isinstance(h, LangChainTracer):\n                        run = h.run_map.get(str(run_manager.run_id))\n                        break\n                else:\n                    run = None\n                # run in context\n                with set_config_context(child_config, run) as context:\n                    ret = context.run(self.func, *args, **kwargs)\n            except BaseException as e:\n                run_manager.on_chain_error(e)\n                raise\n            else:\n                run_manager.on_chain_end(ret)\n        else:\n>           ret = self.func(*args, **kwargs)\n\n/usr/local/lib/python3.12/site-packages/langgraph/_internal/_runnable.py:401: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstate = {'messages': [HumanMessage(content='I ate a banana and ran for 30 minutes.', additional_kwargs={}, response_metadata={}, id='4ec00912-7c21-4e59-b22f-ee65a1e70ce4')]}\n\n    def calculate_calories(state: GraphState) -> GraphState:\n        \"\"\"\n        Node purpose: Calculates calories from user-reported food intake and exercise activities.\n                       This node also acts as a router, determining the next step based on the user's intent.\n        Implementation reasoning: Uses a ReAct agent to leverage tools for calorie calculation and an LLM with structured output for intent classification and data extraction.\n        \"\"\"\n        class CustomStateForReact(MessagesState):\n            remaining_steps: int\n            structured_response: CalorieCalculationOutput\n    \n        agent = create_react_agent(\n            model=llm,\n            prompt=\"You are a helpful assistant that calculates calories from food and exercise. \"\n                   \"You can also identify if the user is asking for historical data or net calorie analysis. \"\n                   \"Use the provided tools to search for food and exercise calorie information. \"\n                   \"After processing, classify the user's intent and extract relevant entities.\",\n            tools=calorie_calculation_tools,\n            state_schema=CustomStateForReact,\n            response_format=CalorieCalculationOutput\n        )\n    \n        user_message = state[\"messages\"][-1].content\n        result: CalorieCalculationOutput = agent.invoke({\"messages\": state[\"messages\"]})[\"structured_response\"]\n    \n        calories_consumed = 0.0\n        if result.food_items:\n            for food_item in result.food_items:\n>               search_result = Food_Database_API_Search.invoke({\"food_query\": food_item})\nE               AttributeError: 'function' object has no attribute 'invoke'\nE               During task with name 'calorie_calculation' and id '7da4d8e1-e773-37b0-2812-4c4a519dba7e'\n\napp.py:73: AttributeError"
+            },
+            "teardown": {
+                "duration": 0.0004438380000024722,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_trajectory[I ran for 20 minutes.-expected_tool_call_names1]",
+            "lineno": 101,
+            "outcome": "passed",
+            "keywords": [
+                "test_full_workflow_trajectory[I ran for 20 minutes.-expected_tool_call_names1]",
+                "parametrize",
+                "pytestmark",
+                "I ran for 20 minutes.-expected_tool_call_names1",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.00042612000000019634,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 5.268201441999999,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "teardown": {
+                "duration": 0.0003424180000024535,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_trajectory[How many calories did I burn yesterday?-expected_tool_call_names2]",
+            "lineno": 101,
+            "outcome": "passed",
+            "keywords": [
+                "test_full_workflow_trajectory[How many calories did I burn yesterday?-expected_tool_call_names2]",
+                "parametrize",
+                "pytestmark",
+                "How many calories did I burn yesterday?-expected_tool_call_names2",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0008978990000017006,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 5.186812400000001,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "teardown": {
+                "duration": 0.0005133039999947187,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_trajectory[What did I eat on Monday?-expected_tool_call_names3]",
+            "lineno": 101,
+            "outcome": "passed",
+            "keywords": [
+                "test_full_workflow_trajectory[What did I eat on Monday?-expected_tool_call_names3]",
+                "parametrize",
+                "pytestmark",
+                "What did I eat on Monday?-expected_tool_call_names3",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.00045178199999895696,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 15.327913715999998,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "teardown": {
+                "duration": 0.0003094019999991815,
+                "outcome": "passed",
+                "longrepr": "[gw0] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        },
+        {
+            "nodeid": "test_app.py::test_full_workflow_trajectory[What's my net calorie intake for the week?-expected_tool_call_names4]",
+            "lineno": 101,
+            "outcome": "passed",
+            "keywords": [
+                "test_full_workflow_trajectory[What's my net calorie intake for the week?-expected_tool_call_names4]",
+                "parametrize",
+                "pytestmark",
+                "What's my net calorie intake for the week?-expected_tool_call_names4",
+                "test_app.py",
+                "user",
+                ""
+            ],
+            "setup": {
+                "duration": 0.0003686899999948423,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "call": {
+                "duration": 4.838100597999997,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            },
+            "teardown": {
+                "duration": 0.00021241599999655136,
+                "outcome": "passed",
+                "longrepr": "[gw1] linux -- Python 3.12.11 /usr/local/bin/python3.12"
+            }
+        }
+    ],
+    "warnings": [
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "Expected None, but test_app.py::test_full_workflow_trajectory[I ran for 20 minutes.-expected_tool_call_names1] returned False, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?",
+            "category": "PytestReturnNotNoneWarning",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/_pytest/python.py",
+            "lineno": 163
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "Expected None, but test_app.py::test_full_workflow_trajectory[How many calories did I burn yesterday?-expected_tool_call_names2] returned False, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?",
+            "category": "PytestReturnNotNoneWarning",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/_pytest/python.py",
+            "lineno": 163
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "Expected None, but test_app.py::test_full_workflow_trajectory[What's my net calorie intake for the week?-expected_tool_call_names4] returned False, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?",
+            "category": "PytestReturnNotNoneWarning",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/_pytest/python.py",
+            "lineno": 163
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/",
+            "category": "PydanticDeprecatedSince20",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/langchain_core/tools/base.py",
+            "lineno": 1319
+        },
+        {
+            "message": "Expected None, but test_app.py::test_full_workflow_trajectory[What did I eat on Monday?-expected_tool_call_names3] returned False, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?",
+            "category": "PytestReturnNotNoneWarning",
+            "when": "runtest",
+            "filename": "/usr/local/lib/python3.12/site-packages/_pytest/python.py",
+            "lineno": 163
+        }
+    ]
+}

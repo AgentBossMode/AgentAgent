@@ -36,6 +36,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "agentevals" },
     { name = "aws-cdk-lib" },
     { name = "boto3" },
     { name = "bs4" },
@@ -61,6 +62,7 @@ github = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agentevals", marker = "extra == 'dev'", specifier = ">=0.0.9" },
     { name = "aws-cdk-lib", marker = "extra == 'dev'", specifier = ">=2.194.0" },
     { name = "boto3", marker = "extra == 'dev'", specifier = ">=1.38.8" },
     { name = "bs4", marker = "extra == 'dev'", specifier = ">=0.0.2" },
@@ -103,6 +105,18 @@ requires-dist = [
     { name = "uvloop", marker = "extra == 'github'", specifier = ">=0.21.0" },
 ]
 provides-extras = ["github", "dev"]
+
+[[package]]
+name = "agentevals"
+version = "0.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "openevals" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/31/ce/ebc8548e37d7352954980bb791594f262e084405c0bf29e749e44c8b341e/agentevals-0.0.9.tar.gz", hash = "sha256:35131a5e4b60d2a6ac3203d3d15983aa5f9162b8acb1b8700f9b2c777df1150d", size = 40136, upload_time = "2025-07-24T17:46:16.483Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/57/d5c3f161dcb74a2d853d44e02850be4341c92a3865d0562c10eca4ffc901/agentevals-0.0.9-py3-none-any.whl", hash = "sha256:4da425c1183fe8d24600e4316a31baca74e2bdc4d5e03d202fc1b314ece4cb02", size = 27453, upload_time = "2025-07-24T17:46:15.27Z" },
+]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -1956,7 +1970,7 @@ wheels = [
 
 [[package]]
 name = "openevals"
-version = "0.0.19"
+version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain" },
@@ -1964,9 +1978,9 @@ dependencies = [
     { name = "langsmith" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/96/12a770c32f17d19a3c329d852c0b79425564d7edcb571207318ac6012ff6/openevals-0.0.19.tar.gz", hash = "sha256:fb3b6bcd17042b8fe509c92beeb787bd1defd2359b52464995bd36360f582948", size = 92604, upload_time = "2025-04-21T04:48:05.204Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/3f/245f4e86e60b873ec93b71aaf219c9a6840a74d957e6d9f756ce3be64b9f/openevals-0.1.0.tar.gz", hash = "sha256:3dbb7cc4251ab7f6fcd5cbc8939b8538c5bf333e88ad01e5d8ac287f509891a4", size = 95378, upload_time = "2025-05-08T23:30:09.907Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/04/3c/57eb656b8d8d3f754b0246a47f94b068f5cc5b9e397f337a78b57ab81024/openevals-0.0.19-py3-none-any.whl", hash = "sha256:e2973d23c52d99e432a8719a4ce1a5123d001535691916df765096341869898d", size = 61788, upload_time = "2025-04-21T04:48:03.588Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/10/5a340aa03999f8e1e89b7bb7f34de27d195219f207a2e311e8f1655d1075/openevals-0.1.0-py3-none-any.whl", hash = "sha256:214b53197b1becff74279ea063c8752f8887a81afda700477639c19a0d683647", size = 62693, upload_time = "2025-05-08T23:30:08.22Z" },
 ]
 
 [[package]]
