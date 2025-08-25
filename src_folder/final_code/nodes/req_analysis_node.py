@@ -8,7 +8,7 @@ from copilotkit.langgraph import copilotkit_customize_config
 from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
 from final_code.states.ReqAnalysis import ReqAnalysis, Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun, DryRuns
-from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
+from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status, append_success_to_list_without_emit
 
 
 llm = get_model()
@@ -109,7 +109,7 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     req_analysis.user_selections = value.user_selections if value.user_selections else {}
     return Command(
         goto="generate_dry_run",
-        update={"messages": [AIMessage(content="Requirements have been identified")], "req_analysis": req_analysis}
+        update={ "req_analysis": req_analysis }
     )
 
 async def generate_dry_run(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["dry_run_interrupt"]]:
@@ -157,4 +157,5 @@ def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Comma
     dry_runs_1: DryRuns = DryRuns.model_validate(value_1)    
     dry_runs.dry_runs = [DryRun.model_validate(d) for d in dry_runs_1.dry_runs if d.selected]
     dry_runs.user_selections = dry_runs_1.user_selections if dry_runs_1.user_selections else {}
-    return Command(goto="json_node", update={"dry_runs": dry_runs, "messages": [AIMessage(content="Dry runs have been generated and selected")], "current_status": {"inProcess":False ,"status": "Dry runs generated"}})
+    append_success_to_list_without_emit(state, "Dry runs collected successfully")
+    return Command(goto="json_node", update={"dry_runs": dry_runs, "agent_status_list": state["agent_status_list"]})

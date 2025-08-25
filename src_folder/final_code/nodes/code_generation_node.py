@@ -224,6 +224,7 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
     await update_last_status(modifiedConfig, state, "Python code generated successfully", True)
     # Return the generated Python code and an AI message
     return {
+        "current_tab": "code",
         "python_code": response,
         "agent_status_list": state["agent_status_list"],
     } 
@@ -249,9 +250,11 @@ You are a langgraph expert, user will provide you with a python code and a list 
     python_file = get_filtered_file(state["python_code"])
     error_report = run_detailed_validation(python_file)
     if len(error_report["errors"])>0 or len(error_report["warnings"]) >0:
+        await append_in_progress_to_list(modifiedConfig, state, "Analyzing code for correctness...")
         llm = get_model()
         response = await llm.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
                                              HumanMessage(content=PYTHON_PROMPT.format(python_code=python_file)),
                                              HumanMessage(content=ERROR_REPORT.format(fixes=error_report))], config=modifiedConfig)
-        return {"python_code": response.content}
+        await update_last_status(modifiedConfig, state, "Code analysis complete", True)
+        return {"python_code": response.content, "agent_status_list": state["agent_status_list"] }
     return {"python_code": state["python_code"]}

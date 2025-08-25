@@ -37,24 +37,23 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
             else:
                 await copilotkit_emit_state(state=state, config=modified_config)
     
+    state["current_tab"] =  "console"
+    state["console_logs_incoming"]= True
+    await append_in_progress_to_list(modified_config, state, f"Running pytests... (attempt# {str(state["attempt_num"])})")
+
     sandbox = await AsyncSandbox.create(envs= {
         "OPENAI_API_KEY" : os.environ["OPENAI_API_KEY"],
         "LANGSMITH_API_KEY": os.environ["LANGSMITH_API_KEY_INCEPTION"], 
         "LANGCHAIN_TRACING_V2": os.environ["LANGCHAIN_TRACING_V2_INCEPTION"],
         "LANGCHAIN_PROJECT": "inception_prompt"})
+    await sandbox.commands.run("pip install pytest agentevals pytest-xdist pytest-json-report")
 
     await sandbox.files.write("./app.py", get_filtered_file(state["python_code"]))
     await sandbox.files.write("./tools_code.py", get_filtered_file(state["mock_tools_code"]))
     await sandbox.files.write("./test_app.py", get_filtered_file(state["pytest_code"]))
     await sandbox.commands.run(create_e2b_execution_command())
-    await sandbox.commands.run("pip install pytest agentevals pytest-xdist pytest-json-report")
 
-    try:  
-        state["current_tab"] =  "console"
-        state["console_logs_incoming"]= True
-        await append_in_progress_to_list(modified_config, state, f"Running pytests... (attempt# {str(state["attempt_num"])})")
-
-
+    try:
         utGeneration: UtGeneration = state["utGeneration"]        
         pytest_results_str = print_ut(utGeneration)
 
@@ -83,6 +82,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
         
     final_report: dict = json.loads(json_report)
     
+    await sandbox.kill()
     return Command(
         update={
             "pytest_report": final_report,

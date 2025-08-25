@@ -25,13 +25,16 @@ async def append_failure_to_list(config: RunnableConfig, state: AgentBuilderStat
     if emit_state and not check_is_test(config):
         await copilotkit_emit_state(config=config, state=state)
 
-async def append_success_to_list(config: RunnableConfig, state: AgentBuilderState, current_status: str, emit_state: bool = True):
+def append_success_to_list_without_emit(state: AgentBuilderState, current_status: str):
     if "agent_status_list" not in state:
         state["agent_status_list"] = AgentStatusList(agent_status_steps=[])
     current_agent_status_list: AgentStatusList = state["agent_status_list"]
     new_agent_status_step : AgentStatusStep = AgentStatusStep(status=current_status, inProgress=False, success=True)
     current_agent_status_list.agent_status_steps.append(new_agent_status_step)
     state["agent_status_list"] = current_agent_status_list
+
+async def append_success_to_list(config: RunnableConfig, state: AgentBuilderState, current_status: str, emit_state: bool = True):
+    append_success_to_list_without_emit(state, current_status)
     if emit_state and not check_is_test(config):
         await copilotkit_emit_state(config=config, state=state)
 

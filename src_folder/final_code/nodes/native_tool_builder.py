@@ -1,23 +1,17 @@
 from final_code.states.AgentBuilderState import AgentBuilderState
 from langgraph.graph import StateGraph, START, END  # Core LangGraph components for building stateful graphs
-from langgraph.types import Command, interrupt
-from typing import Literal
-from final_code.pydantic_models.EndOrContinue import EndOrContinue
-from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.types import interrupt
 from final_code.llms.model_factory import get_model
-from final_code.states.NodesAndEdgesSchemas import JSONSchema
 from langchain_tavily import TavilySearch, TavilyExtract
 from langchain_openai import ChatOpenAI
-from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from final_code.states.ReactCopilotKitState import ReactCopilotState
 from langchain_core.runnables import RunnableConfig
-from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_state
+from copilotkit.langgraph import copilotkit_customize_config
 from final_code.utils.create_react_agent_temp import create_react_agent
 from typing import List
 from final_code.states.NodesAndEdgesSchemas import Tool
 from final_code.states.ToolOptions import ToolOptions
 from pydantic import Field, BaseModel
-# from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 
 
@@ -28,17 +22,9 @@ tavily_extract_tool = TavilyExtract(
 tavily_search_tool = TavilySearch(
     max_results=5,
     topic="general",
-    # include_answer=False,
-    # include_raw_content=False,
-    # include_images=False,
-    # include_image_descriptions=False,
     search_depth="advanced",
-    # time_range="day",
-    # include_domains=None,
-    # exclude_domains=None
 )
 
-llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 
 
 TOOL_PROMPT_2 = """
@@ -50,6 +36,7 @@ Instructions:
 3. Try to return more than 1 tooling for tool_name, if you dont find any, just write a custom implementation.
 """
 
+llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 native_react_agent_2 = create_react_agent(
     model=llm,
     prompt = TOOL_PROMPT_2,

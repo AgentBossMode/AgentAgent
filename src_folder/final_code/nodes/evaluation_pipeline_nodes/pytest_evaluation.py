@@ -209,7 +209,8 @@ async def evaluation_supervisor(state: AgentBuilderState, config: RunnableConfig
     if is_test:
         return Command(goto="__end__", update={ "python_code": python_code, "mock_tools_code": mock_tools_code, "pytest_code": pytest_code })
     await update_last_status(config, state, f"Analysis completed (attempt# {str(attempt_num)})", True)
-    return Command(goto="pytest_runner", update={ 
+    return Command(goto="pytest_runner", update={
+        "attempt_num": state["attempt_num"]+1,
         "agent_status_list": state["agent_status_list"],
         "pytest_code": pytest_code,
         "python_code": python_code,
