@@ -1,6 +1,6 @@
 import ast
 from typing import List, Dict, Set, Optional, Any
-import re
+from collections import deque
 
 class LangGraphFormatValidator(ast.NodeVisitor):
     """
@@ -22,6 +22,8 @@ class LangGraphFormatValidator(ast.NodeVisitor):
         self.llm_definition: Optional[ast.Assign] = None
         self.has_checkpointer: bool = False
         self.has_app_compile: bool = False
+        self.graph: Dict[str, List[str]] = {}
+        self.conditional_edges: Set[str] = set()
         
         # Required patterns
         self.required_imports = {
@@ -45,8 +47,8 @@ class LangGraphFormatValidator(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef):
         self.classes[node.name] = node
         
-        # Check for GraphState class
-        if node.name.endswith('State') or node.name == 'GraphState':
+        # Check for GraphState class - look for MessagesState inheritance
+        if self._inherits_from_messages_state(node):
             self._validate_state_class(node)
             
         # Check for Pydantic models
@@ -77,7 +79,8 @@ class LangGraphFormatValidator(ast.NodeVisitor):
     
     def visit_Call(self, node: ast.Call):
         if (isinstance(node.func, ast.Attribute)) and node.func.attr in ["add_node"]:
-            self.node_functions.add(node.args[1].id)
+            if len(node.args) > 1 and isinstance(node.args[1], ast.Name):
+                self.node_functions.add(node.args[1].id)
         
         # Track graph edge calls
         if (isinstance(node.func, ast.Attribute) and 
@@ -92,16 +95,17 @@ class LangGraphFormatValidator(ast.NodeVisitor):
             
         self.generic_visit(node)
     
+    def _inherits_from_messages_state(self, node: ast.ClassDef) -> bool:
+        """Check if class inherits from MessagesState"""
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id == 'MessagesState':
+                return True
+        return False
+    
     def _validate_state_class(self, node: ast.ClassDef):
         """Validate GraphState class definition"""
         # Check inheritance from MessagesState
-        inherits_messages_state = False
-        for base in node.bases:
-            if isinstance(base, ast.Name) and base.id == 'MessagesState':
-                inherits_messages_state = True
-                break
-        
-        if not inherits_messages_state:
+        if not self._inherits_from_messages_state(node):
             self.errors.append(f"State class '{node.name}' must inherit from MessagesState")
             return
         
@@ -223,7 +227,192 @@ class LangGraphFormatValidator(ast.NodeVisitor):
             if isinstance(base, ast.Name) and base.id == 'BaseModel':
                 return True
         return False
-    
+
+    def _extract_string_arg(self, arg_node: ast.expr) -> Optional[str]:
+        if isinstance(arg_node, ast.Constant) and isinstance(arg_node.value, str):
+            return arg_node.value
+        if isinstance(arg_node, ast.Name) and arg_node.id in ["START", "END"]:
+            return arg_node.id
+        if isinstance(arg_node, ast.Name):
+            return arg_node.id
+        return None
+
+    def _build_graph(self):
+        """Build graph representation from edge calls"""
+        self.graph = {}
+        self.conditional_edges = set()
+
+        # Initialize with all nodes
+        for node in self.node_functions:
+            self.graph[node] = []
+        self.graph["START"] = []
+
+        # Process edge calls
+        for call in self.edge_calls:
+            if call.func.attr == 'add_edge' and len(call.args) >= 2:
+                source = self._extract_string_arg(call.args[0])
+                target = self._extract_string_arg(call.args[1])
+                
+                if source and target:
+                    if source not in self.graph:
+                        self.graph[source] = []
+                    self.graph[source].append(target)
+
+            elif call.func.attr == 'add_conditional_edges' and len(call.args) >= 2:
+                source = self._extract_string_arg(call.args[0])
+                if source:
+                    self.conditional_edges.add(source)
+                    if source not in self.graph:
+                        self.graph[source] = []
+                    
+                    # Check if there's a mapping dict
+                    has_mapping = len(call.args) > 2 and isinstance(call.args[2], ast.Dict)
+                    if has_mapping:
+                        mapping_dict = call.args[2]
+                        for value_node in mapping_dict.values:
+                            target = self._extract_string_arg(value_node)
+                            if target:
+                                self.graph[source].append(target)
+                    else:
+                        # No mapping dict - we can't analyze this statically
+                        self.warnings.append(
+                            f"Cannot statically analyze conditional edges from '{source}'. "
+                            f"State validation may be incomplete."
+                        )
+
+    def _analyze_node_state_io(self, func_def: ast.FunctionDef) -> Dict[str, Set[str]]:
+        """Analyze what state variables a node accesses and assigns"""
+        accessed = set()
+        assigned = set()
+        
+        class StateAnalyzer(ast.NodeVisitor):
+            def visit_Subscript(self, node):
+                # Looking for state["key"] access
+                if (isinstance(node.value, ast.Name) and 
+                    node.value.id == 'state' and
+                    isinstance(node.slice, ast.Constant) and 
+                    isinstance(node.slice.value, str)):
+                    accessed.add(node.slice.value)
+                self.generic_visit(node)
+            
+            def visit_Return(self, node):
+                # Looking for return {"key": value} assignments  
+                if isinstance(node.value, ast.Dict):
+                    for key in node.value.keys:
+                        if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                            assigned.add(key.value)
+                self.generic_visit(node)
+        
+        analyzer = StateAnalyzer()
+        analyzer.visit(func_def)
+        
+        return {"accessed": accessed, "assigned": assigned}
+
+    def _get_initial_state_vars(self) -> Set[str]:
+        """Get state variables that have default values"""
+        initial_vars = set()
+        if self.graph_state_class:
+            for item in self.graph_state_class.body:
+                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                    # Only consider variables with default values as initially available
+                    if item.value is not None:
+                        initial_vars.add(item.target.id)
+        return initial_vars
+
+    def _validate_state_flow(self):
+        """Validate that state variables are properly assigned before access"""
+        self._build_graph()
+        
+        # Get initial state variables
+        initial_vars = self._get_initial_state_vars()
+        
+        # Analyze each node's state usage
+        node_io = {}
+        for node_name in self.node_functions:
+            if node_name in self.functions:
+                node_io[node_name] = self._analyze_node_state_io(self.functions[node_name])
+        
+        # Check each node for improper state access
+        for node_name, io in node_io.items():
+            for accessed_var in io['accessed']:
+                # Skip built-in state vars and initially available vars
+                if accessed_var in initial_vars or accessed_var == 'messages':
+                    continue
+                
+                # Check if this variable is guaranteed to be assigned before this node
+                if not self._is_var_guaranteed_before_node(node_name, accessed_var, node_io):
+                    # Find a path where the variable is not assigned
+                    problematic_path = self._find_unassigned_path(node_name, accessed_var, node_io)
+                    if problematic_path:
+                        path_str = " -> ".join(problematic_path)
+                        self.errors.append(
+                            f"In node '{node_name}', state variable '{accessed_var}' is accessed but might not be assigned. "
+                            f"There is a path from START to '{node_name}' that does not guarantee '{accessed_var}' is assigned: {path_str}"
+                        )
+
+    def _is_var_guaranteed_before_node(self, target_node: str, var: str, node_io: Dict) -> bool:
+        """Check if variable is guaranteed to be assigned on ALL paths to target_node"""
+        # BFS to explore all paths from START to target_node
+        queue = deque([("START", set())])  # (current_node, assigned_vars_so_far)
+        visited = set()
+        
+        while queue:
+            current_node, assigned_vars = queue.popleft()
+            
+            # Avoid infinite loops
+            state_key = (current_node, frozenset(assigned_vars))
+            if state_key in visited:
+                continue
+            visited.add(state_key)
+            
+            # If we reached target node, check if var is assigned
+            if current_node == target_node:
+                if var not in assigned_vars:
+                    return False  # Found path where var is not guaranteed
+                continue
+            
+            # Add variables assigned by current node
+            new_assigned_vars = assigned_vars.copy()
+            if current_node in node_io:
+                new_assigned_vars.update(node_io[current_node]['assigned'])
+            
+            # Continue to successors
+            for successor in self.graph.get(current_node, []):
+                queue.append((successor, new_assigned_vars))
+        
+        return True
+
+    def _find_unassigned_path(self, target_node: str, var: str, node_io: Dict) -> Optional[List[str]]:
+        """Find a path from START to target_node where var is not assigned"""
+        queue = deque([("START", ["START"], set())])  # (node, path, assigned_vars)
+        visited = set()
+        
+        while queue:
+            current_node, path, assigned_vars = queue.popleft()
+            
+            state_key = (current_node, frozenset(assigned_vars))
+            if state_key in visited:
+                continue
+            visited.add(state_key)
+            
+            # If we reached target and var is not assigned, return this path
+            if current_node == target_node:
+                if var not in assigned_vars:
+                    return path
+                continue
+            
+            # Add variables assigned by current node
+            new_assigned_vars = assigned_vars.copy()
+            if current_node in node_io:
+                new_assigned_vars.update(node_io[current_node]['assigned'])
+            
+            # Continue to successors
+            for successor in self.graph.get(current_node, []):
+                new_path = path + [successor]
+                queue.append((successor, new_path, new_assigned_vars))
+        
+        return None
+
     def validate_overall_structure(self):
         """Validate overall code structure"""
         # Check for required imports
@@ -253,11 +442,16 @@ class LangGraphFormatValidator(ast.NodeVisitor):
         
         # Check if it's a node function (returns dict or Command, takes state param)
         for node_name in self.node_functions:
-            self._validate_node_function(self.functions[node_name])
+            if node_name in self.functions:
+                self._validate_node_function(self.functions[node_name])
+            else:
+                self.warnings.append(f"Node '{node_name}' is added to the graph but the function implementation is not found.")
 
         # Check for edges
         if not self.edge_calls:
             self.errors.append("No edge definitions detected")
+        
+        self._validate_state_flow()
         
         # Check for compilation
         if not self.has_app_compile:
@@ -313,35 +507,3 @@ def validate_langgraph_code(code: str) -> Dict[str, Any]:
             "warnings": [],
             "summary": {"total_errors": 1, "total_warnings": 0}
         }
-
-
-# Example usage and test
-if __name__ == "__main__":
-    # Test code with common issues
-    test_code = '''
-from langgraph.graph import MessagesState
-from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
-
-class GraphState(MessagesState):
-    messages: str  # ERROR: Should not define messages explicitly
-    data: any      # ERROR: Vague type
-
-class BadModel(BaseModel):
-    info: dict     # ERROR: Should not use dict in Pydantic models
-
-def bad_node(state):
-    result = state.field  # ERROR: Should use state['field']
-    return {"result": result}  # ERROR: Missing messages key
-
-llm = "not_a_function_call"  # ERROR: Should be function call
-'''
-    
-    report = validate_langgraph_code(test_code)
-    print("Validation Report:")
-    print(f"Errors: {len(report['errors'])}")
-    for error in report['errors']:
-        print(f"  - {error}")
-    print(f"Warnings: {len(report['warnings'])}")
-    for warning in report['warnings']:
-        print(f"  - {warning}")

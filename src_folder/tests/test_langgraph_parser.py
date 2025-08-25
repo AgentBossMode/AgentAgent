@@ -115,12 +115,11 @@ class BadModel(BaseModel):
     info: dict
     items: List[dict]  # ERROR: List[dict] usage
             ''',
-            "expected_errors": 9,
+            "expected_errors": 8,
             "expected_warnings": 0,
             "expected_warnings_list": [],
             "expected_errors_list": [
                 "State class 'BadGraphState' should not explicitly define 'messages' field when inheriting from MessagesState. Fix: Remove the explicit messages field definition.",
-                "State class 'AnotherBadState' must inherit from MessagesState",
                 "Pydantic model 'BadModel' field 'info' uses a 'dict' type in annotation 'dict'. Fix: Use a specific Pydantic model for structured data, make changes in the code referencing this field to accomodate the change in type",
                 "Pydantic model 'BadModel' field 'items' uses a 'dict' type in annotation 'List[dict]'. Fix: Use a specific Pydantic model for structured data, make changes in the code referencing this field to accomodate the change in type" ,                
                 "Missing required imports: ['AIMessage', 'ChatOpenAI', 'Field', 'HumanMessage', 'StateGraph', 'SystemMessage']. Fix: Add appropriate import statements for these components.",
@@ -290,6 +289,224 @@ workflow.add_conditional_edges("node1")
                 "Missing required imports: ['AIMessage', 'BaseModel', 'Field', 'HumanMessage', 'SystemMessage']. Fix: Add appropriate import statements for these components.",
                 "No graph compilation found. Fix: Add 'app = workflow.compile(checkpointer=checkpointer)'",
                 'No checkpointer definition found. Consider adding: checkpointer = InMemorySaver()'],
+            "expected_warnings_list": []
+        },
+        "state_flow_sequential_valid": {
+            "description": "Valid sequential flow of state",
+            "code": '''
+from langgraph.graph import MessagesState, START, END, StateGraph
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+
+llm = ChatOpenAI()
+checkpointer = InMemorySaver()
+
+class MyState(MessagesState):
+    a: str
+    b: str
+
+def node_a(state):
+    """docstring"""
+    return {"a": "a", "messages": [AIMessage(content="")]}
+
+def node_b(state):
+    """docstring"""
+    x = state["a"]
+    return {"b": "b", "messages": [AIMessage(content="")]}
+
+def node_c(state):
+    """docstring"""
+    y = state["b"]
+    return {"messages": [AIMessage(content="")]}
+
+workflow = StateGraph(MyState)
+workflow.add_node("node_a", node_a)
+workflow.add_node("node_b", node_b)
+workflow.add_node("node_c", node_c)
+workflow.add_edge(START, "node_a")
+workflow.add_edge("node_a", "node_b")
+workflow.add_edge("node_b", "node_c")
+app = workflow.compile(checkpointer=checkpointer)
+''',
+            "expected_errors": 0,
+            "expected_warnings": 0,
+            "expected_errors_list": [],
+            "expected_warnings_list": []
+        },
+        "state_flow_sequential_invalid": {
+            "description": "Invalid sequential flow of state",
+            "code": '''
+from langgraph.graph import MessagesState, START, END, StateGraph
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+
+llm = ChatOpenAI()
+checkpointer = InMemorySaver()
+
+class MyState(MessagesState):
+    a: str
+    b: str
+
+def node_a(state):
+    """docstring"""
+    return {"messages": [AIMessage(content="")]}
+
+def node_b(state):
+    """docstring"""
+    x = state["a"]
+    return {"b": "b", "messages": [AIMessage(content="")]}
+
+workflow = StateGraph(MyState)
+workflow.add_node("node_a", node_a)
+workflow.add_node("node_b", node_b)
+workflow.add_edge(START, "node_a")
+workflow.add_edge("node_a", "node_b")
+app = workflow.compile(checkpointer=checkpointer)
+''',
+            "expected_errors": 1,
+            "expected_warnings": 0,
+            "expected_errors_list": ["In node 'node_b', state variable 'a' is accessed but might not be assigned. There is a path from START to 'node_b' that does not guarantee 'a' is assigned: START -> node_a -> node_b"],
+            "expected_warnings_list": []
+        },
+        "state_flow_conditional_invalid": {
+            "description": "Invalid conditional flow of state",
+            "code": '''
+from langgraph.graph import MessagesState, START, END, StateGraph
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+
+llm = ChatOpenAI()
+checkpointer = InMemorySaver()
+
+class MyState(MessagesState):
+    a: str
+    b: str
+    c: str
+
+def node_a(state):
+    """docstring"""
+    return {"a": "a", "messages": [AIMessage(content="")]}
+
+def router(state):
+    """docstring"""
+    return "node_b"
+
+def node_b(state):
+    """docstring"""
+    return {"b": "b", "messages": [AIMessage(content="")]}
+
+def node_c(state):
+    """docstring"""
+    return {"messages": [AIMessage(content="")]}
+
+def node_d(state):
+    """docstring"""
+    x = state["a"]
+    y = state["b"]
+    return {"c": "d", "messages": [AIMessage(content="")]}
+
+workflow = StateGraph(MyState)
+workflow.add_node("node_a", node_a)
+workflow.add_node("node_b", node_b)
+workflow.add_node("node_c", node_c)
+workflow.add_node("node_d", node_d)
+workflow.add_edge(START, "node_a")
+workflow.add_conditional_edges(
+    "node_a",
+    router,
+    {"node_b": "node_b", "node_c": "node_c"}
+)
+workflow.add_edge("node_b", "node_d")
+workflow.add_edge("node_c", "node_d")
+app = workflow.compile(checkpointer=checkpointer)
+''',
+            "expected_errors": 1,
+            "expected_warnings": 0,
+            "expected_errors_list": ["In node 'node_d', state variable 'b' is accessed but might not be assigned. There is a path from START to 'node_d' that does not guarantee 'b' is assigned: START -> node_a -> node_c -> node_d"],
+            "expected_warnings_list": []
+        },
+        "state_flow_loop_valid": {
+            "description": "Valid state flow in a loop",
+            "code": '''
+from langgraph.graph import MessagesState, START, END, StateGraph
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+
+llm = ChatOpenAI()
+checkpointer = InMemorySaver()
+
+class MyState(MessagesState):
+    counter: int = 0
+
+def node_a(state):
+    """docstring"""
+    count = state["counter"]
+    return {"counter": count + 1, "messages": [AIMessage(content="")]}
+
+def should_continue(state):
+    """docstring"""
+    if state["counter"] > 2:
+        return "end"
+    return "continue"
+
+workflow = StateGraph(MyState)
+workflow.add_node("node_a", node_a)
+workflow.add_edge(START, "node_a")
+workflow.add_conditional_edges(
+    "node_a",
+    should_continue,
+    {"continue": "node_a", "end": END}
+)
+app = workflow.compile(checkpointer=checkpointer)
+''',
+            "expected_errors": 0,
+            "expected_warnings": 0,
+            "expected_errors_list": [],
+            "expected_warnings_list": []
+        },
+        "state_flow_parallel_invalid": {
+            "description": "Invalid parallel flow with cross-dependency",
+            "code": '''
+from langgraph.graph import MessagesState, START, END, StateGraph
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+
+llm = ChatOpenAI()
+checkpointer = InMemorySaver()
+
+class MyState(MessagesState):
+    a: str
+    b: str
+
+def node_a(state):
+    """docstring"""
+    x = state["b"]
+    return {"a": "a", "messages": [AIMessage(content="")]}
+
+def node_b(state):
+    """docstring"""
+    return {"b": "b", "messages": [AIMessage(content="")]}
+
+workflow = StateGraph(MyState)
+workflow.add_node("node_a", node_a)
+workflow.add_node("node_b", node_b)
+workflow.add_edge(START, "node_a")
+workflow.add_edge(START, "node_b")
+app = workflow.compile(checkpointer=checkpointer)
+''',
+            "expected_errors": 1,
+            "expected_warnings": 0,
+            "expected_errors_list": ["In node 'node_a', state variable 'b' is accessed but might not be assigned. There is a path from START to 'node_a' that does not guarantee 'b' is assigned: START -> node_a"],
             "expected_warnings_list": []
         }
     }
