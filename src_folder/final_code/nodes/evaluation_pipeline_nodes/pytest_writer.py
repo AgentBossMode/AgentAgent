@@ -8,6 +8,8 @@ from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_state
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.states.ReqAnalysis import DryRuns
+from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
+
 PYTEST_WRITER_PROMPT = """
 You are a python code writing expert, your job is to write test case inputs given the langgraph code and use cases.
 <python_code.py>
@@ -33,8 +35,7 @@ You are given the use cases for a workflow graph along with dry runs.
 
 async def pytest_writer(state: AgentBuilderState, config: RunnableConfig):
     modified_config = copilotkit_customize_config(config, emit_messages=False)
-    state["current_status"] = {"inProcess":True ,"status": "Generating pytest code.."}
-    await copilotkit_emit_state(state=state, config=modified_config)
+    await append_in_progress_to_list(config, state, "Generating pytest code...")
     python_code = state["python_code"]
     mock_tools_code = state["mock_tools_code"]
     utgenerated: UtGeneration = await generate_ut_llm_call(state["dry_runs"], python_code, mock_tools_code)
@@ -63,9 +64,9 @@ from agentevals.graph_trajectory.utils import (
 
 {final_trajectory_code}
 """
-    state["current_status"] = {"inProcess":False ,"status": "Pytest code generated"}
-    await copilotkit_emit_state(state=state, config=modified_config)
+    await update_last_status(modified_config, state, "Pytest code generated", True)
     return {
+        "agent_status_list": state["agent_status_list"],
         "utGeneration": utgenerated,
         "current_tab":"console",
             "pytest_code": PYTEST.format(final_trajectory_code=final_trajectory_code),

@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, START # Core LangGraph components for building stateful graphs
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.nodes.req_analysis_node import requirement_analysis_node,analyze_reqs, generate_dry_run, dry_run_interrupt 
-from final_code.nodes.tool_generation_nodev2 import tool_graph
+from final_code.nodes.tool_generation_nodev2 import get_composio_tools_node, process_non_composio_tools, generate_tools_code
 from final_code.nodes.json_generation_node import json_node
 from final_code.nodes.code_generation_node import code_node, code_analyzer_node
 from final_code.nodes.tool_interrupt import tool_interrupt
@@ -20,7 +20,9 @@ main_workflow.add_node("requirement_analysis_node", requirement_analysis_node)
 main_workflow.add_node("generate_dry_run", generate_dry_run)
 main_workflow.add_node("dry_run_interrupt", dry_run_interrupt)
 main_workflow.add_node("json_node", json_node)
-main_workflow.add_node("tool_graph", tool_graph)
+main_workflow.add_node("get_composio_tools", get_composio_tools_node)
+main_workflow.add_node("process_non_composio_tools", process_non_composio_tools)
+main_workflow.add_node("generate_tools_code", generate_tools_code)
 main_workflow.add_node("tool_interrupt", tool_interrupt)
 main_workflow.add_node("code_node", code_node)
 main_workflow.add_node("code_analyzer_node", code_analyzer_node)
@@ -37,8 +39,10 @@ main_workflow.add_node("evaluation_supervisor", evaluation_supervisor)
 
 # PROD workflow
 main_workflow.add_edge(START, "analyze_reqs")
-main_workflow.add_edge("json_node",  "tool_graph")  # Connect json_node to dry_run_node
-main_workflow.add_edge("tool_graph", "tool_interrupt")
+main_workflow.add_edge("json_node",  "get_composio_tools")  # Connect json_node to dry_run_node
+main_workflow.add_edge("get_composio_tools", "process_non_composio_tools")
+main_workflow.add_edge("process_non_composio_tools", "generate_tools_code")
+main_workflow.add_edge("generate_tools_code", "tool_interrupt")
 main_workflow.add_edge("tool_interrupt", "code_node")
 main_workflow.add_edge("code_node", "code_analyzer_node")
 main_workflow.add_edge("code_analyzer_node", "mock_tools_writer")
