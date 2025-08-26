@@ -1,7 +1,7 @@
 from langchain_core.runnables import RunnableConfig
-from src_folder.final_code.states.AgentBuilderState import AgentBuilderState
-from src_folder.final_code.pydantic_models.AgentStatusList import AgentStatusList, AgentStatusStep
-from src_folder.final_code.utils.check_is_test import check_is_test
+from final_code.states.AgentBuilderState import AgentBuilderState
+from final_code.pydantic_models.AgentStatusList import AgentStatusList, AgentStatusStep
+from final_code.utils.check_is_test import check_is_test
 from copilotkit.langgraph import copilotkit_emit_state
 
 async def append_in_progress_to_list(config: RunnableConfig, state: AgentBuilderState, current_status: str, emit_state: bool = True):
