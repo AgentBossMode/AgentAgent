@@ -6,12 +6,9 @@ This script runs comprehensive tests for the LangGraph validator functions.
 """
 
 import pytest
-from typing import Dict, Any, List
-import time
-
+from typing import Dict, Any
 # Import our validator modules
-from src_folder.final_code.ast_visitors_lib.langgraph_parser import validate_langgraph_code
-from src_folder.final_code.ast_visitors_lib.validation_script import run_detailed_validation, check_environment_variables, suggest_improvements
+from src_folder.final_code.ast_visitors_lib.validation_script import run_detailed_validation
 
 def create_test_cases() -> Dict[str, Dict[str, Any]]:
     """Create comprehensive test cases covering various scenarios"""

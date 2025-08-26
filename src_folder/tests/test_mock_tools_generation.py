@@ -6,8 +6,8 @@ from src_folder.tests.test_utils.stock_agent.stock_tools import stock_tools
 from src_folder.tests.test_utils.stock_agent.stock_json import stock_json
 from src_folder.final_code.ast_visitors_lib.PydanticDictVisitor import PydanticDictVisitor
 from src_folder.final_code.states.NodesAndEdgesSchemas import JSONSchema
-from src_folder.tests.validators_lib.validate_struct_output import validate_struct_output
-from src_folder.tests.validators_lib.validate_ast_parse import validate_ast_parse
+from src_folder.final_code.validators_lib.validate_struct_output import validate_struct_output
+from src_folder.final_code.validators_lib.validate_ast_parse import validate_ast_parse
 
 @pytest.mark.asyncio
 async def test_mock_tools_writer():
