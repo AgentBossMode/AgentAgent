@@ -19,11 +19,13 @@ class LangGraphFormatValidator(ast.NodeVisitor):
         self.graph_state_class: Optional[ast.ClassDef] = None
         self.edge_calls: List[ast.Call] = []
         self.node_functions: Set[str] = set()
+        self.node_functions_map: Dict[str, ast.FunctionDef] = {}
         self.llm_definition: Optional[ast.Assign] = None
         self.has_checkpointer: bool = False
         self.has_app_compile: bool = False
         self.graph: Dict[str, List[str]] = {}
         self.conditional_edges: Set[str] = set()
+        self.key_accesses: List[str] = []
         
         # Required patterns
         self.required_imports = {
@@ -81,6 +83,7 @@ class LangGraphFormatValidator(ast.NodeVisitor):
         if (isinstance(node.func, ast.Attribute)) and node.func.attr in ["add_node"]:
             if len(node.args) > 1 and isinstance(node.args[1], ast.Name):
                 self.node_functions.add(node.args[1].id)
+                self.node_functions_map[node.args[0].value] = node.args[1].id
         
         # Track graph edge calls
         if (isinstance(node.func, ast.Attribute) and 
@@ -230,7 +233,7 @@ class LangGraphFormatValidator(ast.NodeVisitor):
 
     def _extract_string_arg(self, arg_node: ast.expr) -> Optional[str]:
         if isinstance(arg_node, ast.Constant) and isinstance(arg_node.value, str):
-            return arg_node.value
+            return self.node_functions_map[arg_node.value]
         if isinstance(arg_node, ast.Name) and arg_node.id in ["START", "END"]:
             return arg_node.id
         if isinstance(arg_node, ast.Name):
@@ -336,7 +339,7 @@ class LangGraphFormatValidator(ast.NodeVisitor):
         for node_name, io in node_io.items():
             for accessed_var in io['accessed']:
                 # Skip built-in state vars and initially available vars
-                if accessed_var in initial_vars or accessed_var == 'messages':
+                if accessed_var == 'messages':
                     continue
                 
                 # Check if this variable is guaranteed to be assigned before this node
@@ -345,7 +348,7 @@ class LangGraphFormatValidator(ast.NodeVisitor):
                     problematic_path = self._find_unassigned_path(node_name, accessed_var, node_io)
                     if problematic_path:
                         path_str = " -> ".join(problematic_path)
-                        self.errors.append(
+                        self.key_accesses.append(
                             f"In node '{node_name}', state variable '{accessed_var}' is accessed but might not be assigned. "
                             f"There is a path from START to '{node_name}' that does not guarantee '{accessed_var}' is assigned: {path_str}"
                         )
@@ -471,7 +474,9 @@ class LangGraphFormatValidator(ast.NodeVisitor):
         return {
             "errors": self.errors,
             "warnings": self.warnings,
+            "key_accesses": self.key_accesses,
             "summary": {
+                "total_key_accesses": len(self.key_accesses),
                 "total_errors": len(self.errors),
                 "total_warnings": len(self.warnings),
                 "classes_found": len(self.classes),

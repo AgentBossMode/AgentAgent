@@ -26,3 +26,13 @@ async def test_code_generation_llm(json_schema : str, tools_code: str):
     total_errors = validation_report["summary"]["total_errors"]
     total_warnings = validation_report["summary"]["total_warnings"]
     assert total_errors == 0 and total_warnings == 0
+
+
+# from src_folder.tests.test_langgraph_parser import github_code
+
+# @pytest.mark.asyncio
+# async def test_langgraph_parser():
+#     result: Command = await check_for_key_errors_node({"python_code": github_code},{})
+#     assert result.goto == "key_access_interrupt", "did not match required node"
+#     print(result.update["messages"][0].content)
+#     assert False

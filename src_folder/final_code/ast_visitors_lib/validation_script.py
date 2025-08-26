@@ -410,9 +410,9 @@ def run_detailed_validation(code: str) -> Dict[str, Any]:
         return {
             "errors": [f"Syntax Error: {e.msg} at line {e.lineno}"],
             "warnings": [],
-            "summary": {"total_errors": 1, "total_warnings": 0}
+            "key_accesses": [],
+            "summary": {"total_errors": 1, "total_warnings": 0, "total_key_accesses": 0}
         }
-
 
 # Additional utility functions
 def check_environment_variables(code: str) -> List[str]:
