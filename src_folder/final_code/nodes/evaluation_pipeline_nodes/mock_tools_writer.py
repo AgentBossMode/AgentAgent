@@ -7,9 +7,9 @@ from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config
 from final_code.states.ReactCopilotKitState import ReactCopilotState
 from final_code.states.NodesAndEdgesSchemas import get_tools_info, get_nodes_and_edges_info
-from src_folder.tests.validators_lib.validate_struct_output import validate_struct_output
-from src_folder.tests.validators_lib.validate_ast_parse import validate_ast_parse
-from src_folder.final_code.ast_visitors_lib.PydanticDictVisitor import PydanticDictVisitor
+from final_code.validators_lib.validate_struct_output import validate_struct_output
+from final_code.validators_lib.validate_ast_parse import validate_ast_parse
+from final_code.ast_visitors_lib.PydanticDictVisitor import PydanticDictVisitor
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
 from typing import Any
 
