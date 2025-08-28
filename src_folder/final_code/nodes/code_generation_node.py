@@ -147,7 +147,7 @@ Before finalizing your code, verify:
 - [ ] No unterminated string literals or syntax errors
 - [ ] The code needs to be production ready, which means there is no place for any placeholder code, no assumptions, and no incomplete sections.
 - [ ] Ensure that the code does not access graphstate like an object attribute, it needs be accessed like a dict
-- [ ] Assume any API keys(e.g., OPENAI_API_KEY, GOOGLE_API_KEY) are part of the environment variables and all environment variables are to be defined using the os.environs notation
+- [ ] Donot use os.environs for anything, you can instead put it as attribute in GraphState and access it from there, assume the user will pass it when the workflow starts.
 - [ ] **Every node's return dictionary includes a "messages" key.**
 - [ ] **The first LLM call/node appropriately utilizes `state["messages"]` as part of its input.**
 - [ ] The user provided code should not be copied to final_output, only the imports as mentioned in the CODE_GENERATION_INSTRUCTIONS section.
@@ -155,19 +155,6 @@ Before finalizing your code, verify:
                                                
 </QUALITY_CHECKLIST>
 
-<KEY_EXTRACTION_INSTRUCTIONS>
-After generating the complete Python script, add a section titled:
-
-## Required Keys and Credentials
-
-List all environment variables, API keys, and external dependencies needed as comment :
-- Environment variables (e.g., OPENAI_API_KEY)
-- Tool-specific credentials 
-- External service configurations
-- Database connection strings (if applicable)
-
-If no external keys are needed, state: "No external API keys required for this implementation."
-</KEY_EXTRACTION_INSTRUCTIONS>
 </CODE_GENERATION_INSTRUCTIONS>
 
                                                                                        
@@ -249,12 +236,12 @@ You are a langgraph expert, user will provide you with a python code and a list 
     )
     python_file = get_filtered_file(state["python_code"])
     error_report = run_detailed_validation(python_file)
-    if len(error_report["errors"])>0 or len(error_report["warnings"]) >0:
+    if len(error_report["errors"])>0:
         await append_in_progress_to_list(modifiedConfig, state, "Analyzing code for correctness...")
         llm = get_model()
         response = await llm.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
                                              HumanMessage(content=PYTHON_PROMPT.format(python_code=python_file)),
-                                             HumanMessage(content=ERROR_REPORT.format(fixes=error_report))], config=modifiedConfig)
+                                             HumanMessage(content=ERROR_REPORT.format(fixes=str(error_report["errors"])))], config=modifiedConfig)
         await update_last_status(modifiedConfig, state, "Code analysis complete", True)
         return {"python_code": response.content, "agent_status_list": state["agent_status_list"] }
     return {"python_code": state["python_code"]}
