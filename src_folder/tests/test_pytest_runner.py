@@ -1,22 +1,14 @@
 # import pytest
 # from dotenv import load_dotenv
 # load_dotenv()
-# from src_folder.final_code.nodes.evaluation_pipeline_nodes.pytest_evaluation import pytest_runner, evaluation_start, evaluation_supervisor
-# from src_folder.tests.test_utils.nutrition_agent_files.pytest_runner_code_files.nutrition_main import nutrition_main
-# from src_folder.tests.test_utils.nutrition_agent_files.pytest_runner_code_files.nutrition_mock_tools import nutrition_mock_tools
-# from src_folder.tests.test_utils.nutrition_agent_files.pytest_runner_code_files.nutrition_tests import nutrition_tests
-
+# from src_folder.final_code.nodes.evaluation_pipeline_nodes.pytest_evaluation import evaluation_start, evaluation_supervisor
+# from src_folder.final_code.nodes.evaluation_pipeline_nodes.pytest_runner import pytest_runner
 # from src_folder.tests.test_utils.github_issues_agent.github_code import github_code
 # from src_folder.tests.test_utils.github_issues_agent.github_mock_tools import github_mock_tools
 # from src_folder.tests.test_utils.github_issues_agent.github_tests import github_tests
-
-
 # from langgraph.graph import StateGraph, START
 # from src_folder.final_code.states.AgentBuilderState import AgentBuilderState
-
-
-# from agentevals.graph_trajectory.llm import create_graph_trajectory_llm_as_judge
-# from agentevals.graph_trajectory.utils import (extract_langgraph_trajectory_from_thread)
+# from src_folder.final_code.pydantic_models.UtGen import UtGeneration
 
 # @pytest.mark.asyncio
 # async def test_pipeline():
@@ -35,7 +27,7 @@
 #         "messages": [],
 #         "dry_runs": [],
 #         "req_analysis": {},
-#         "utGeneration":[]
+#         "utGeneration":UtGeneration.model_validate({"trajectory_uts":[]})
 #     }
 
 #     config = {"type":"test"}

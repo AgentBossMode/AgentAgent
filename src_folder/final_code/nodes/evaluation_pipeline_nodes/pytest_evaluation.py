@@ -7,6 +7,7 @@ from final_code.states.AgentBuilderState import AgentBuilderState
 from typing import List, Literal
 from final_code.pydantic_models.PytestReport import TestResult
 from final_code.utils.copilotkit_emit_status import append_success_to_list, append_failure_to_list, append_in_progress_to_list, update_last_status
+from final_code.utils import get_file_info_prompt
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from langgraph.graph import END
@@ -14,26 +15,6 @@ from copilotkit.langgraph import copilotkit_customize_config
 from final_code.utils.check_is_test import check_is_test
 import json
 
-def get_file_info_prompt(state: AgentBuilderState):
-    FILE_INFO = """
-<python_code.py code>
-{python_code}
-</python_code.py code>
-
-<mock_tools_code.py code>
-{mock_tools_code}
-</mock_tools_code.py code>
-
-<test_app.py code>
-{pytest_code}
-</test_app.py code>
-
-<RELATION_OF_FILES>
-test_app.py imports app from python_code.py 
-python_code.py imports mock_tools_code.py
-</RELATION_OF_FILES>
-"""
-    return FILE_INFO.format(python_code= state["python_code"], mock_tools_code=state["mock_tools_code"], pytest_code=state["pytest_code"])
 
 def get_context_info_prompt(state: AgentBuilderState):
     CONTEXT_WINDOW = """

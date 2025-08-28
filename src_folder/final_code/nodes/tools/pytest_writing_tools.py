@@ -66,12 +66,7 @@ def serialize_value(value: Any) -> Any:
 )
 def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: list[str]):   
     thread_config = {{"configurable": {{"thread_id": uuid4()}}}}
-    result = app.invoke({{"messages": [
-            {{
-                "role": "user",
-                "content": input_query
-            }}]
-            }}, config=thread_config)
+    result = app.invoke(json.loads(input_query), config=thread_config)
     
     print(result)
     # Extract the trajectory from the first two thread runs
@@ -110,8 +105,8 @@ def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) 
     result = ""
     for i, (q, t) in enumerate(zip(query, trajectory)):
         if i == len(query) - 1:
-            result += f'("{q}", {t})'
+            result += f"(json.dumps({q}), {t})"
         else:
-            result += f'("{q}", {t}),\n'
+            result += f'(json.dumps({q}), {t}),\n'
 
     return TRAJECTORY_STR.format(result=result)

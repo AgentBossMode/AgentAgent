@@ -1,33 +1,3 @@
-key_error_accessing= """
-<TSG: KEY_ERROR_ACCESSING_STATE_VARIABLE>
-1. SUMMARY: When a node attempts to access a state variable that does not exist in the current `GraphState`, a `KeyError` occurs.
-
-
-2. WHAT TO LOOK FOR IN LOGS (EXAMPLE):
-```
-KeyError: 'user_query'
-During task with name 'generate_kql_query' and id '8c6913bd-3333-75d6-93a0-d9705fad72cf'
-/home/user/app.py:118 in generate_kql_query
-
-    user_query = state["user_query"]
-KeyError: 'user_query'
-```
-
-3. DEBUGGING STEPS:
-    a. **Review `python_code.py`**: Examine the `GraphState` definition and the `add_edge` definitions to understand the flow of data between nodes.
-    b. **Inspect the Node and Input and see why the 'KeyError' happens**: 
-        1. If it's because the node expects a variable that is supposed to be part of the user's initial input (`state["messages"][-1].content`), use that instead.
-        2. If it is because one of the paths does populate the variable but another path does not, then you can add an if check (ex: "if "x" in state ...)
-        3. If this is additional information that is necessarily required during the start of the workflow, append it to the bottom
-            <EXAMPLE>
-<STATE_VARS>
-PLEASE POPULATE THE FOLLOWING INPUTS:
-<STATE_VAR_1>state_var_1</STATE_VAR_1>
-<STATE_VAR_2>state_var_2</STATE_VAR_2>
-</STATE_VARS>
-            </EXAMPLE>
-</TSG: KEY_ERROR_ACCESSING_STATE_VARIABLE>
-"""
 
 runtime_failures_debugging_guide = """
 
@@ -52,29 +22,9 @@ KeyError: 'user_query'
     ```python
     state["user_query"] = state["messages"][-1].content
     ```
-    d. **If the variable is additional input not from `state["messages"]`**: Modify `pytest_code.py` to include the missing variable in the `app.invoke` call.
-    **FROM THIS:**
-    ```python
-    result = app.invoke({{"messages": [
-            {{
-                "role": "user",
-                "content": input_query,
-            }}]
-            }}, config=thread_config)
-    ```
-    **TO THIS:**
-    ```python
-    result = app.invoke({{"messages": [
-            {{
-                "role": "user",
-                "content": input_query,
-            }}],
-            {{"custom_variable": custom_value_as_per_requirement}}
-            }}, config=thread_config)
-    ```
+    d. **If the variable is additional input not from `state["messages"]`**: Modify `pytest_code.py` to include the missing variable in the parameterized input_dict passed into `app.invoke` call.
     e. Additionally, see if you think this field needs to be customized for each parameterized test, in that case modify the params
 </TSG1: KEY_ERROR_ACCESSING_STATE_VARIABLE>
-
 
 <TSG2: OPENAI_400_BADERROR_ADDITIONAL_PROPERTIES_FALSE>
 1. SUMMARY: When ChatOpenAI model is called using structured_output, and the PydanticModel internally contains a 'dict' or 'Dict', then we see this error.
