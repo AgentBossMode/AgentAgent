@@ -28,7 +28,6 @@ main_workflow.add_node("code_node", code_node)
 main_workflow.add_node("code_analyzer_node", code_analyzer_node)
 main_workflow.add_node("mock_tools_writer", mock_tools_writer)
 main_workflow.add_node("pytest_writer", pytest_writer)
-main_workflow.add_node("reflection", reflection_node)
 main_workflow.add_node("pytest_runner", pytest_runner)
 main_workflow.add_node("evaluation_start", evaluation_start)
 main_workflow.add_node("evaluation_supervisor", evaluation_supervisor)
@@ -47,8 +46,7 @@ main_workflow.add_edge("tool_interrupt", "code_node")
 main_workflow.add_edge("code_node", "code_analyzer_node")
 main_workflow.add_edge("code_analyzer_node", "mock_tools_writer")
 main_workflow.add_edge("mock_tools_writer", "pytest_writer")
-main_workflow.add_edge("pytest_writer", "reflection")
-main_workflow.add_edge("reflection", "pytest_runner")
+main_workflow.add_edge("pytest_writer", "pytest_runner")
 
 # from src_folder.tests.test_utils.github_issues_agent.github_code import github_code
 # from src_folder.tests.test_utils.github_issues_agent.github_tests import github_tests
