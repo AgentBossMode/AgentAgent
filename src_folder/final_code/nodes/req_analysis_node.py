@@ -9,6 +9,7 @@ from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
 from final_code.states.ReqAnalysis import ReqAnalysis, Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun, DryRuns
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status, append_success_to_list_without_emit
+from final_code.prompt_lib.high_level_info.get_json_info import get_json_info
 
 
 llm = get_model()
@@ -124,6 +125,9 @@ Generate dry runs for the agent based on the requirements analysis provided.
     Use the following requirements analysis as context:
     {req_analysis}
 
+    This is the information regarding JSON schema which would be formed, you need to generate dry runs based on this:
+    {json_info}
+
     Also check the user provided messages for any additional context.
     """
     modifiedConfig = copilotkit_customize_config(
@@ -136,7 +140,11 @@ Generate dry runs for the agent based on the requirements analysis provided.
     llm_dry_run = llm.with_structured_output(DryRuns)
     await append_in_progress_to_list(modifiedConfig, state, "Generating dry runs...")
 
-    dry_runs: DryRuns = await llm_dry_run.ainvoke([SystemMessage(content=GENERATE_DRY_RUN_PROMPT.format(req_analysis=req_analysis.model_dump_json(indent=2)))]+ messages)
+    dry_runs: DryRuns = await llm_dry_run.ainvoke([
+        SystemMessage(content=GENERATE_DRY_RUN_PROMPT
+                      .format(
+                          json_info = get_json_info(),
+                          req_analysis=req_analysis.model_dump_json(indent=2)))]+ messages)
 
     await update_last_status(modifiedConfig, state, "Dry runs generated.", True)
 

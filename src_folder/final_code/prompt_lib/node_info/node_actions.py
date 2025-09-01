@@ -7,4 +7,6 @@ node_action_types = """
    - `validate`: "Assess data quality, verify accuracy, check completeness, ensure compliance with rules, and identify errors, inconsistencies, or missing information."
    - `route`: "Make intelligent routing decisions by evaluating conditions, analyzing context, and determining the appropriate next step or workflow path."
    - `aggregate`: "Combine, merge, synthesize, or consolidate data from multiple sources into a unified, coherent representation while maintaining important information."
+   - `extract`: "Given a piece of data, extract relevant information and structure it." # This action is for extracting information from unstructured or semi-structured data.
+   - `summarize`: "Condense large volumes of text or data into a concise summary, highlighting key information and insights." # This action is for summarizing information.
 """

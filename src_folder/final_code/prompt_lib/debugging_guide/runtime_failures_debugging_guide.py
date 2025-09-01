@@ -1,3 +1,4 @@
+
 runtime_failures_debugging_guide = """
 
 <TSG1: KEY_ERROR_ACCESSING_STATE_VARIABLE>
@@ -21,29 +22,9 @@ KeyError: 'user_query'
     ```python
     state["user_query"] = state["messages"][-1].content
     ```
-    d. **If the variable is additional input not from `state["messages"]`**: Modify `pytest_code.py` to include the missing variable in the `app.invoke` call.
-    **FROM THIS:**
-    ```python
-    result = app.invoke({{"messages": [
-            {{
-                "role": "user",
-                "content": input_query,
-            }}]
-            }}, config=thread_config)
-    ```
-    **TO THIS:**
-    ```python
-    result = app.invoke({{"messages": [
-            {{
-                "role": "user",
-                "content": input_query,
-            }}],
-            {{"custom_variable": custom_value_as_per_requirement}}
-            }}, config=thread_config)
-    ```
+    d. **If the variable is additional input not from `state["messages"]`**: Modify `pytest_code.py` to include the missing variable in the parameterized input_dict passed into `app.invoke` call.
     e. Additionally, see if you think this field needs to be customized for each parameterized test, in that case modify the params
 </TSG1: KEY_ERROR_ACCESSING_STATE_VARIABLE>
-
 
 <TSG2: OPENAI_400_BADERROR_ADDITIONAL_PROPERTIES_FALSE>
 1. SUMMARY: When ChatOpenAI model is called using structured_output, and the PydanticModel internally contains a 'dict' or 'Dict', then we see this error.

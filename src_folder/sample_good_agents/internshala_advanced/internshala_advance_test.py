@@ -1,4 +1,19 @@
-TRAJECTORY_STR ='''
+
+import json
+import pytest
+from uuid import uuid4
+from app import app
+from typing import Any
+import collections
+from pydantic import BaseModel, Field
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_openai import ChatOpenAI
+from agentevals.graph_trajectory.llm import create_graph_trajectory_llm_as_judge
+from agentevals.graph_trajectory.utils import (
+    extract_langgraph_trajectory_from_thread,
+)
+
+
 DEFAULT_REF_COMPARE_PROMPT = """You are an expert data labeler.
 Your task is to grade the accuracy of an AI agent's internal steps in resolving a user queries.
 
@@ -18,10 +33,10 @@ Your task is to grade the accuracy of an AI agent's internal steps in resolving 
 </Instructions>
 
 <thread>
-{{thread}}
+{thread}
 </thread>
 
-{{reference_outputs}}
+{reference_outputs}
 """
 
 
@@ -40,7 +55,7 @@ def serialize_value(value: Any) -> Any:
     
     # Handle dictionaries (including nested ones)
     if isinstance(value, dict):
-        return {{k: serialize_value(v) for k, v in value.items()}}
+        return {k: serialize_value(v) for k, v in value.items()}
     
     # Handle all iterable collections (list, tuple, set, frozenset, etc.)
     # but exclude strings and bytes which are also iterable
@@ -61,11 +76,11 @@ def serialize_value(value: Any) -> Any:
 @pytest.mark.parametrize(
     "input_query, expected_tool_call_names",
     [
-     {result}
+     (json.dumps({"messages": [{"role": "user", "content": "Please process internship listings from the following website: https://example-internships.com/listings"}], "initial_url": "https://example-internships.com/listings"}), ['start', 'parse_initial_url', 'Web_Scraper_Parse', 'extract_internship_listing_urls', 'read_existing_data', 'Google_Sheets_Read', 'filter_new_listings', 'extract_job_details', 'Web_Scraper_Extract', 'parse_company_url', 'URL_Parser_Extract_Base_URL', 'scrape_company_website', 'Web_Scraper_Parse', 'extract_email_address', 'Email_Extractor_Extract', 'update_google_sheet', 'Google_Sheets_Write', 'end'])
     ]
 )
 def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: list[str]):   
-    thread_config = {{"configurable": {{"thread_id": uuid4()}}}}
+    thread_config = {"configurable": {"thread_id": uuid4()}}
     result = app.invoke(json.loads(input_query), config=thread_config)
     
     print(result)
@@ -73,7 +88,7 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
     extracted_trajectory = extract_langgraph_trajectory_from_thread(app, thread_config)
     
      
-    messages_as_dicts = [msg.model_dump(include={{"content", "type"}}) for msg in result["messages"]]
+    messages_as_dicts = [msg.model_dump(include={"content", "type"}) for msg in result["messages"]]
     result["messages"] = messages_as_dicts
     new_result = result
 
@@ -87,26 +102,4 @@ def test_full_workflow_trajectory(input_query: str, expected_tool_call_names: li
     print(extracted_trajectory)
     res = graph_trajectory_evaluator(inputs=extracted_trajectory["inputs"], outputs=extracted_trajectory["outputs"])
     assert res["score"] == True, res["comment"]
-'''
 
-def write_trajectory_pytest_code(query: list[str], trajectory: list[list[str]]) -> str:
-    """
-    Generate pytest code for testing the trajectory of tool calls in a workflow.
-
-    Args:
-        query (list[str]): List of input queries to test against the workflow
-            Example: ["What is the capital of France?", "How are you?"]
-        trajectory (list[list[str]]): List of expected tool call trajectories for each query
-            Example: [["start", "agent", "search", "agent", "end"], ["start", "agent", "end"]]
-
-    Returns:
-        str: Formatted pytest code that tests if the actual tool call trajectory matches the expected trajectory
-    """
-    result = ""
-    for i, (q, t) in enumerate(zip(query, trajectory)):
-        if i == len(query) - 1:
-            result += f"(json.dumps({q}), {t})"
-        else:
-            result += f'(json.dumps({q}), {t}),\n'
-
-    return TRAJECTORY_STR.format(result=result)
