@@ -116,6 +116,7 @@ def search_customer_database(customer_id: str) -> str:
 5. Generate a final file without markdowns.
 6. Make sure that if you are generating in methods, then make it with proper docstrings, which means detailed description, the inputs, and what it returns.
 7. Add imports properly at the top.
+8. For py_code, never create API_KEY a parameter, you can assume that it can be fetched from os.environs
 </TOOL_BINDING_INSTRUCTIONS>
 """
     json_schema: JSONSchema = state["json_schema"]

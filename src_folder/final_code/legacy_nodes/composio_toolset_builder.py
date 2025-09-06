@@ -11,7 +11,7 @@ from final_code.nodes.tools.composio_info_tools import get_all_raw_tool_schemas_
 from final_code.utils.copilotkit_interrupt_temp import copilotkit_interrupt
 from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config
-from final_code.utils.create_react_agent_temp import create_react_agent
+from langgraph.prebuilt import create_react_agent
 # from langgraph.prebuilt import create_react_agent --> not working due to bug in langgraph, using custom create_react_agent function
 
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
