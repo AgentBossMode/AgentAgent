@@ -1,4 +1,4 @@
-from langgraph.graph import StateGraph, START # Core LangGraph components for building stateful graphs
+from langgraph.graph import StateGraph, START, END # Core LangGraph components for building stateful graphs
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.nodes.req_analysis_node import requirement_analysis_node,analyze_reqs, generate_dry_run, dry_run_interrupt 
 from final_code.nodes.tool_generation_nodev2 import get_composio_tools_node, process_non_composio_tools, generate_tools_code
@@ -10,6 +10,7 @@ from final_code.nodes.evaluation_pipeline_nodes.pytest_writer import pytest_writ
 from final_code.nodes.evaluation_pipeline_nodes.syntactic_code_reflection import reflection_node
 from final_code.nodes.evaluation_pipeline_nodes.pytest_runner import pytest_runner
 from final_code.nodes.evaluation_pipeline_nodes.pytest_evaluation import evaluation_start, evaluation_supervisor
+from final_code.nodes.deployment_readiness import deployment_readiness
 
 
 main_workflow = StateGraph(AgentBuilderState) # Define state type
@@ -31,7 +32,7 @@ main_workflow.add_node("pytest_writer", pytest_writer)
 main_workflow.add_node("pytest_runner", pytest_runner)
 main_workflow.add_node("evaluation_start", evaluation_start)
 main_workflow.add_node("evaluation_supervisor", evaluation_supervisor)
-
+main_workflow.add_node("deployment_readiness", deployment_readiness)
 
 
 # EDGE SECTION
@@ -47,6 +48,7 @@ main_workflow.add_edge("code_node", "code_analyzer_node")
 main_workflow.add_edge("code_analyzer_node", "mock_tools_writer")
 main_workflow.add_edge("mock_tools_writer", "pytest_writer")
 main_workflow.add_edge("pytest_writer", "pytest_runner")
+main_workflow.add_edge("deployment_readiness", END)
 
 # from src_folder.tests.test_utils.github_issues_agent.github_code import github_code
 # from src_folder.tests.test_utils.github_issues_agent.github_tests import github_tests
