@@ -66,6 +66,74 @@ class StateInheritanceTransformer(ast.NodeTransformer):
         return node
 
 
+class ToolVarCollector(ast.NodeVisitor):
+    """
+    A NodeVisitor to collect variable names used in the 'tools'
+    parameter of `create_react_agent` calls. This is the first pass.
+    """
+    def __init__(self):
+        self.react_agent_tool_vars = set()
+
+    def visit_Call(self, node: ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id == 'create_react_agent':
+            for kw in node.keywords:
+                if kw.arg == 'tools' and isinstance(kw.value, ast.Name):
+                    self.react_agent_tool_vars.add(kw.value.id)
+        self.generic_visit(node)
+
+
+
+class ToolsListTransformer(ast.NodeTransformer):
+    """
+    An AST transformer that converts tool list definitions from using list
+    literals to using addition for concatenation. This is the second pass.
+    e.g., `my_tools = [tool1, tool2]` becomes `my_tools = tool1 + tool2`.
+    """
+    def __init__(self, tool_vars_to_transform: set[str]):
+        self.tool_vars_to_transform = tool_vars_to_transform
+        self.transformation_made = False
+
+    def _build_addition_chain(self, elements: list[ast.expr]) -> ast.expr:
+        """Recursively builds a chain of ast.BinOp(op=ast.Add) nodes."""
+        if not elements:
+            # This case should ideally not be hit if we check len > 1
+            return ast.List(elts=[], ctx=ast.Load())
+        if len(elements) == 1:
+            return elements[0]
+        
+        left_node = self._build_addition_chain(elements[:-1])
+        return ast.BinOp(left=left_node, op=ast.Add(), right=elements[-1])
+
+    def visit_Assign(self, node: ast.Assign) -> ast.AST:
+        # Check for single target assignment, e.g., `my_tools = ...`
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            target_name = node.targets[0].id
+            # If this variable is one of our tool variables and is assigned a list
+            if target_name in self.tool_vars_to_transform and isinstance(node.value, ast.List) and len(node.value.elts) > 0:
+                if len(node.value.elts) == 1:
+                    # If only one element, just assign that element directly
+                    node.value = node.value.elts[0]
+                else:
+                    node.value = self._build_addition_chain(node.value.elts)
+                self.transformation_made = True
+                ast.fix_missing_locations(node)
+        return self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> ast.AST:
+        # Handle inline list definitions, e.g., `tools=[t1, t2]`
+        if isinstance(node.func, ast.Name) and node.func.id == 'create_react_agent':
+            for kw in node.keywords:
+                if kw.arg == 'tools' and isinstance(kw.value, ast.List) and len(kw.value.elts) > 0:
+                    if len(kw.value.elts) == 1:
+                        # If only one element, just assign that element directly
+                        kw.value = kw.value.elts[0]
+                    kw.value = self._build_addition_chain(kw.value.elts)
+                    self.transformation_made = True
+                    ast.fix_missing_locations(node)
+        return self.generic_visit(node)
+
+
+
 def refactor_code(source_code: str) -> str:
     """
     Parses Python code to find classes inheriting from MessagesState,
@@ -75,6 +143,10 @@ def refactor_code(source_code: str) -> str:
         tree = ast.parse(source_code)
         transformer = StateInheritanceTransformer()
         new_tree = transformer.visit(tree)
+        transformer = ToolVarCollector()
+        transformer.visit(new_tree)
+        transformer = ToolsListTransformer(transformer.react_agent_tool_vars)
+        new_tree = transformer.visit(new_tree)
         return ast.unparse(new_tree)
     except SyntaxError as e:
         return f"Error parsing code: {e}"
