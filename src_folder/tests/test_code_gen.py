@@ -18,7 +18,7 @@ from src_folder.final_code.utils.get_filtered_file import get_filtered_file
     ],
 )
 async def test_code_generation_llm(json_schema : str, tools_code: str):
-    generated_code = await generate_python_code({"type": "test"}, JSONSchema.model_validate_json(json_schema), tools_code)
+    generated_code = await generate_python_code({"type": "test"}, JSONSchema.model_validate_json(json_schema), tools_code, None)
     state = await code_analyzer_node({"python_code": generated_code}, {"type": "test"})
     validation_report = run_detailed_validation(get_filtered_file(state["python_code"]))
     for error in validation_report["errors"]:
