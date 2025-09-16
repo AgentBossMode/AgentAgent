@@ -7,7 +7,7 @@ from final_code.nodes.code_generation_node import code_node, code_analyzer_node
 from final_code.nodes.tool_interrupt import tool_interrupt
 from final_code.nodes.evaluation_pipeline_nodes.mock_tools_writer import mock_tools_writer
 from final_code.nodes.evaluation_pipeline_nodes.pytest_writer import pytest_writer
-from final_code.nodes.evaluation_pipeline_nodes.syntactic_code_reflection import reflection_node
+from final_code.nodes.get_additional_info import generate_additional_info_questions, additional_info_interrupt
 from final_code.nodes.evaluation_pipeline_nodes.pytest_runner import pytest_runner
 from final_code.nodes.evaluation_pipeline_nodes.pytest_evaluation import evaluation_start, evaluation_supervisor
 from final_code.nodes.deployment_readiness import deployment_readiness
@@ -25,6 +25,8 @@ main_workflow.add_node("get_composio_tools", get_composio_tools_node)
 main_workflow.add_node("process_non_composio_tools", process_non_composio_tools)
 main_workflow.add_node("generate_tools_code", generate_tools_code)
 main_workflow.add_node("tool_interrupt", tool_interrupt)
+main_workflow.add_node("generate_additional_info_questions", generate_additional_info_questions)
+main_workflow.add_node("additional_info_interrupt", additional_info_interrupt)
 main_workflow.add_node("code_node", code_node)
 main_workflow.add_node("code_analyzer_node", code_analyzer_node)
 main_workflow.add_node("mock_tools_writer", mock_tools_writer)
@@ -43,7 +45,9 @@ main_workflow.add_edge("json_node",  "get_composio_tools")  # Connect json_node 
 main_workflow.add_edge("get_composio_tools", "process_non_composio_tools")
 main_workflow.add_edge("process_non_composio_tools", "generate_tools_code")
 main_workflow.add_edge("generate_tools_code", "tool_interrupt")
-main_workflow.add_edge("tool_interrupt", "code_node")
+main_workflow.add_edge("tool_interrupt", "generate_additional_info_questions")
+main_workflow.add_edge("generate_additional_info_questions", "additional_info_interrupt")
+main_workflow.add_edge("additional_info_interrupt", "code_node")
 main_workflow.add_edge("code_node", "code_analyzer_node")
 main_workflow.add_edge("code_analyzer_node", "mock_tools_writer")
 main_workflow.add_edge("mock_tools_writer", "pytest_writer")

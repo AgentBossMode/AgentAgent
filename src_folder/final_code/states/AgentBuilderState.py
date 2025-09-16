@@ -7,6 +7,7 @@ from final_code.states.BaseCopilotRenderingState import BaseCopilotRenderingStat
 from final_code.states.ToolOptions import ToolOptions
 from final_code.pydantic_models.UtGen import UtGeneration
 from final_code.pydantic_models.PytestReport import PytestReport, TestResult
+from final_code.pydantic_models.Questions import Questions
 
 
 class AgentBuilderState(BaseCopilotRenderingState):
@@ -22,6 +23,8 @@ class AgentBuilderState(BaseCopilotRenderingState):
     env_variables: List[str] = Field(description="List if all environment variables required to run the python code")
     tool_set: set = Field(description="The composio tool slugs")
     tool_options: ToolOptions = Field(description="The list of tools provided by the user")
+    questions: Questions = Field(description="List of questions to ask the user, explain why you are asking this question")
+    answers: dict = Field(description="answers to the questions")
     # eval pipeline
     packages: list[str]
     pytest_results: str = Field(description="The pytest results")

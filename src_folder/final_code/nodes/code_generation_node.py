@@ -186,13 +186,15 @@ def get_schema_info(json_schema: JSONSchema, tools_code: str):
             tools_info=get_tools_info(json_schema.tools),
             tools_code=tools_code)
 
-async def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSONSchema, tools_code) -> str:
+async def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSONSchema, tools_code, answers: dict) -> str:
     llm = get_model()
-    response = await llm.ainvoke([
-        SystemMessage(content=generate_code_gen_prompt()),
-        HumanMessage(content=get_schema_info(json_schema, tools_code))],
-        config=modifiedConfig)
-    return response.content
+    messages_list = [ SystemMessage(content=generate_code_gen_prompt()),
+        HumanMessage(content=get_schema_info(json_schema, tools_code))]
+    if answers is not None:
+        messages_list.append(HumanMessage(content=f"<additional_information>{answers}</additional_information>"))
+    response = await llm.ainvoke(messages_list, config=modifiedConfig)
+    py_code = get_filtered_file(response.content)
+    return py_code
 
 async def code_node(state: AgentBuilderState, config: RunnableConfig):
     """
@@ -207,7 +209,7 @@ async def code_node(state: AgentBuilderState, config: RunnableConfig):
     #json_schema_final = json_schema_nutrition
     state["current_tab"] = "code"
     await append_in_progress_to_list(modifiedConfig, state, "Generating Python code...")
-    response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"])
+    response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"], state["answers"])
     await update_last_status(modifiedConfig, state, "Python code generated successfully", True)
     # Return the generated Python code and an AI message
     return {
