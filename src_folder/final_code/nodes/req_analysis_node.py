@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from copilotkit.langgraph import copilotkit_customize_config
 from final_code.prompt_lib.high_level_info.tooling import tooling_instructions
 from final_code.prompt_lib.high_level_info.knowledge import knowledge_instructiona
-from final_code.states.ReqAnalysis import ReqAnalysis, Purpose, Capabiity, KnowledgeAndDataRequirements, TargettedUser, Tool, DryRun, DryRuns
+from final_code.states.ReqAnalysis import ReqAnalysis, Purpose, Capabiity, Tool, DryRun, DryRuns
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status, append_success_to_list_without_emit
 from final_code.prompt_lib.high_level_info.get_json_info import get_json_info
 
@@ -92,12 +92,12 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
         req_analysis.capabilities = [Capabiity.model_validate(c) for c in value.capabilities if c.selected]
 
     # Filter knowledge_sources
-    if value.knowledge_sources:
-        req_analysis.knowledge_sources = [KnowledgeAndDataRequirements.model_validate(k) for k in value.knowledge_sources if k.selected]
+    # if value.knowledge_sources:
+    #     req_analysis.knowledge_sources = [KnowledgeAndDataRequirements.model_validate(k) for k in value.knowledge_sources if k.selected]
 
     # Filter targetted_users
-    if value.targetted_users:
-        req_analysis.targetted_users = [TargettedUser.model_validate(t) for t in value.targetted_users if t.selected]
+    # if value.targetted_users:
+    #     req_analysis.targetted_users = [TargettedUser.model_validate(t) for t in value.targetted_users if t.selected]
 
     # Filter toolings
     if value.toolings:
@@ -117,7 +117,6 @@ async def generate_dry_run(state: AgentBuilderState, config: RunnableConfig) -> 
     GENERATE_DRY_RUN_PROMPT = """
 Generate dry runs for the agent based on the requirements analysis provided.
     The dry run should include:
-    - Input type (trigger or on-demand)
     - Input information
     - A list of actions performed by the agent in the dry run
     - Output information
