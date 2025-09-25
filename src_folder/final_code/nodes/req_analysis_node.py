@@ -1,3 +1,4 @@
+from final_code.pydantic_models.AgentStatusList import AgentStatusList
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.llms.model_factory import get_model
 from langchain_core.messages import SystemMessage,AIMessage
@@ -51,6 +52,9 @@ You should get the following information from them:
 """
 
 async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["requirement_analysis_node"]]:
+    if "agent_status_list" in state:
+        state["agent_status_list"] = AgentStatusList(agent_status_steps=[])
+        
     modifiedConfig = copilotkit_customize_config(
         config,
         emit_messages=False,
@@ -71,7 +75,7 @@ async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Comm
 
 
 
-async def requirement_analysis_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["generate_dry_run"]]:
+async def requirement_analysis_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["generate_dry_run", "__end__"]]:
     """
     LangGraph node for performing requirement analysis.
     It interacts with the LLM to gather agent specifications from the user.
@@ -81,7 +85,15 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     
     #llm_with_tool = llm.bind_tools([AgentInstructions]) # Bind the AgentInstructions Pydantic model as a tool
     value_1: dict = interrupt({"type":"req_analysis", "payload": state["req_analysis"] })
-    value: ReqAnalysis = ReqAnalysis.model_validate(value_1)
+    try:
+        value: ReqAnalysis = ReqAnalysis.model_validate(value_1)
+    except Exception as e:
+        if value_1["approved"] == False:
+            msg = "requirements analysis suggestions rejected. Please restart the process by providing a detailed input"
+        else:
+            msg = "Unknown error occurred. Please restart the process by providing a detailed input"
+        return Command(goto="__end__", update={"messages":[AIMessage(content=msg)]})
+
     req_analysis: ReqAnalysis = state["req_analysis"]
     # Filter purposes
     if value.purposes:
@@ -154,14 +166,18 @@ Generate dry runs for the agent based on the requirements analysis provided.
               "dry_runs": dry_runs}
     )
 
-def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["json_node"]]:
+def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["json_node", "__end__"]]:
     """
     Interrupt handler for dry run generation.
     It collects the dry run information from the user and updates the state.
     """
     dry_runs: DryRuns = state["dry_runs"]
     value_1: dict = interrupt({"type":"dry_runs", "payload": state["dry_runs"] })
-    dry_runs_1: DryRuns = DryRuns.model_validate(value_1)    
+    try:
+         dry_runs_1: DryRuns = DryRuns.model_validate(value_1)    
+    except Exception as e:
+        return Command(goto="__end__", update={"messages":[AIMessage(content="Dry_runs rejected. Please restart by providing detailed inputs")]})
+
     dry_runs.dry_runs = [DryRun.model_validate(d) for d in dry_runs_1.dry_runs if d.selected]
     dry_runs.user_selections = dry_runs_1.user_selections if dry_runs_1.user_selections else {}
     append_success_to_list_without_emit(state, "Dry runs collected successfully")

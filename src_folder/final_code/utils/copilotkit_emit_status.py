@@ -8,7 +8,7 @@ async def append_in_progress_to_list(config: RunnableConfig, state: AgentBuilder
     if "agent_status_list" not in state:
         state["agent_status_list"] = AgentStatusList(agent_status_steps=[])
 
-    current_agent_status_list: AgentStatusList = state["agent_status_list"]
+    current_agent_status_list: AgentStatusList = AgentStatusList.model_validate(state["agent_status_list"])
     new_agent_status_step : AgentStatusStep = AgentStatusStep(status=current_status, inProgress=True, success=False)
     current_agent_status_list.agent_status_steps.append(new_agent_status_step)
     state["agent_status_list"] = current_agent_status_list
