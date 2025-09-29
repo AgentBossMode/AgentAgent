@@ -85,13 +85,16 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     
     #llm_with_tool = llm.bind_tools([AgentInstructions]) # Bind the AgentInstructions Pydantic model as a tool
     value_1: dict = interrupt({"type":"req_analysis", "payload": state["req_analysis"] })
+    parsing_error = False
     try:
         value: ReqAnalysis = ReqAnalysis.model_validate(value_1)
-    except Exception as e:
         if value_1["approved"] == False:
+            parsing_error = True
             msg = "requirements analysis suggestions rejected. Please restart the process by providing a detailed input"
-        else:
-            msg = "Unknown error occurred. Please restart the process by providing a detailed input"
+    except Exception as e:
+        parsing_error = True
+        msg = "Unknown error occurred. Please restart the process by providing a detailed input"
+    if parsing_error:   
         return Command(goto="__end__", update={"messages":[AIMessage(content=msg)]})
 
     req_analysis: ReqAnalysis = state["req_analysis"]

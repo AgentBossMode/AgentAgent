@@ -174,7 +174,12 @@ You are supposed to generate a compilable python file with the mock code.
     new_state["messages"] = [HumanMessage(content=MOCK_TOOLS_WRITER.format(tools_code=state["tools_code"], tools_info=get_tools_info(state["json_schema"].tools), json_schema=get_nodes_and_edges_info(state["json_schema"])))]
     final_response = await app.ainvoke(input=new_state)
     final_code = final_response["messages"][-1].content
-    module = validate_ast_parse(final_code)
+    try:
+        module = validate_ast_parse(final_code)
+    except Exception as e:
+        final_code = await fix_code_gen(final_code, customized_config, [str(e)])
+        module = validate_ast_parse(final_code)
+        
     errors = validate_struct_output(module)
     visitor = PydanticDictVisitor()
     visitor.visit(module)
