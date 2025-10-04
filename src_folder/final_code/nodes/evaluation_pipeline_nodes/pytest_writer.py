@@ -9,6 +9,10 @@ from final_code.states.ReqAnalysis import DryRuns
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
 from final_code.ast_visitors_lib.validation_script import run_detailed_validation
 from final_code.utils.get_filtered_file import get_filtered_file
+import traceback
+from langchain_core.messages import AIMessage
+from langgraph.types import Command
+from typing import Literal
 
 
 PYTEST_WRITER_PROMPT = """
@@ -42,25 +46,26 @@ The input_query dict should contain atleast the 'messages' key. Make sure
 </TRAJECTORY>
 """
 
-async def pytest_writer(state: AgentBuilderState, config: RunnableConfig):
-    modified_config = copilotkit_customize_config(config, emit_messages=False)
-    await append_in_progress_to_list(config, state, "Generating pytest code...")
-    python_code = state["python_code"]
-    mock_tools_code = state["mock_tools_code"]
+async def pytest_writer(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_runner", "__end__"]]:
+    try:
+        modified_config = copilotkit_customize_config(config, emit_messages=False)
+        await append_in_progress_to_list(config, state, "Generating pytest code...")
+        python_code = state["python_code"]
+        mock_tools_code = state["mock_tools_code"]
 
-    python_file = get_filtered_file(state["python_code"])
-    validation_report = run_detailed_validation(python_file)
-    utgenerated: UtGeneration = await generate_ut_llm_call(state["dry_runs"], python_code, mock_tools_code, validation_report["key_accesses"])
+        python_file = get_filtered_file(state["python_code"])
+        validation_report = run_detailed_validation(python_file)
+        utgenerated: UtGeneration = await generate_ut_llm_call(state["dry_runs"], python_code, mock_tools_code, validation_report["key_accesses"])
 
-    inputs_trajectory = []
-    responses_trajectory = []
-    for ut in utgenerated.trajectory_uts:
-        inputs_trajectory.append(ut.input_dict)
-        responses_trajectory.append(ut.expected_trajectory)
+        inputs_trajectory = []
+        responses_trajectory = []
+        for ut in utgenerated.trajectory_uts:
+            inputs_trajectory.append(ut.input_dict)
+            responses_trajectory.append(ut.expected_trajectory)
 
-    final_trajectory_code = write_trajectory_pytest_code(inputs_trajectory, responses_trajectory)
+        final_trajectory_code = write_trajectory_pytest_code(inputs_trajectory, responses_trajectory)
 
-    PYTEST = """
+        PYTEST = """
 import json
 import pytest
 from uuid import uuid4
@@ -77,26 +82,39 @@ from agentevals.graph_trajectory.utils import (
 
 {final_trajectory_code}
 """
-    await update_last_status(modified_config, state, "Pytest code generated", True)
-    return {
-        "agent_status_list": state["agent_status_list"],
-        "utGeneration": utgenerated,
-        "current_tab":"console",
-        "pytest_code": PYTEST.format(final_trajectory_code=final_trajectory_code)
-        }
+        await update_last_status(modified_config, state, "Pytest code generated", True)
+        return Command(
+            goto="pytest_runner",
+            update={
+                "agent_status_list": state["agent_status_list"],
+                "utGeneration": utgenerated,
+                "current_tab":"console",
+                "pytest_code": PYTEST.format(final_trajectory_code=final_trajectory_code)
+            }
+        )
+    except Exception as e:
+        return Command(
+            goto="__end__",
+            update={
+                "exception_caught": f"{e}\n{traceback.format_exc()}",
+                "messages": [AIMessage(content="An error occurred during writing pytest tests. Please try again.")]
+            }
+        )
 
 async def generate_ut_llm_call(dry_runs: DryRuns, python_code: str, mock_tools_code: str, key_accesses: list[str]):
+    try:
+        pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)
+        msg_list = [HumanMessage(content=PYTEST_WRITER_PROMPT
+                          .format(
+                              python_code=python_code,
+                                use_cases=dry_runs.model_dump_json(indent=2),
+                                  mock_tools_code=mock_tools_code,
+                                    TRAJECTORY_STR=TRAJECTORY_STR))]    
+        if len(key_accesses)>0:
+            msg_list.append(HumanMessage(content=f"<KEY_ACCESSES>{str(key_accesses)}</KEY_ACCESSES>"))
 
-    pytest_llm = get_model(ModelName.GEMINI25FLASH).with_structured_output(UtGeneration)
-    msg_list = [HumanMessage(content=PYTEST_WRITER_PROMPT
-                      .format(
-                          python_code=python_code,
-                            use_cases=dry_runs.model_dump_json(indent=2),
-                              mock_tools_code=mock_tools_code,
-                                TRAJECTORY_STR=TRAJECTORY_STR))]    
-    if len(key_accesses)>0:
-        msg_list.append(HumanMessage(content=f"<KEY_ACCESSES>{str(key_accesses)}</KEY_ACCESSES>"))
-
-    utgenerated: UtGeneration = await pytest_llm.ainvoke(msg_list)
-    return utgenerated
+        utgenerated: UtGeneration = await pytest_llm.ainvoke(msg_list)
+        return utgenerated
+    except Exception as e:
+        raise e
 

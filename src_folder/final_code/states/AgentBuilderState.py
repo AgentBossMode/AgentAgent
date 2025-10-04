@@ -2,11 +2,10 @@ from typing import List, Literal
 from pydantic import Field
 from final_code.states.ReqAnalysis import ReqAnalysis, DryRuns
 from final_code.states.DryRunState import UseCaseAnalysis
-from typing import List
 from final_code.states.BaseCopilotRenderingState import BaseCopilotRenderingState
 from final_code.states.ToolOptions import ToolOptions
 from final_code.pydantic_models.UtGen import UtGeneration
-from final_code.pydantic_models.PytestReport import PytestReport, TestResult
+from final_code.pydantic_models.PytestReport import TestResult
 from final_code.pydantic_models.Questions import Questions
 
 
@@ -37,3 +36,4 @@ class AgentBuilderState(BaseCopilotRenderingState):
     pytest_report: dict = Field(description="The pytest json report")
     syntax_issues: List[TestResult] = Field(default_factory=list, description="List of syntax issues found in the code")
     assertion_failures: List[TestResult] = Field(default_factory=list, description="List of assertion failures found in the code")
+    exception_caught: str = Field(default="", description="Log of any exceptions or failures that occurred during node execution")

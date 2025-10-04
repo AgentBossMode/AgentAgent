@@ -16,6 +16,11 @@ from final_code.prompt_lib.edge_info.edge_info import edge_info
 from final_code.utils.get_filtered_file import get_filtered_file
 from final_code.ast_visitors_lib.validation_script import run_detailed_validation
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
+import traceback
+from langchain_core.messages import AIMessage
+from langgraph.types import Command
+from typing import Literal
+
 
 llm = get_model()
 
@@ -187,63 +192,92 @@ def get_schema_info(json_schema: JSONSchema, tools_code: str):
             tools_code=tools_code)
 
 async def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSONSchema, tools_code, answers: dict) -> str:
-    llm = get_model()
-    messages_list = [ SystemMessage(content=generate_code_gen_prompt()),
-        HumanMessage(content=get_schema_info(json_schema, tools_code))]
-    if answers is not None:
-        messages_list.append(HumanMessage(content=f"<additional_information>{answers}</additional_information>"))
-    response = await llm.ainvoke(messages_list, config=modifiedConfig)
-    py_code = get_filtered_file(response.content)
-    return py_code
+    try:
+        llm_model = get_model()
+        messages_list = [ SystemMessage(content=generate_code_gen_prompt()),
+            HumanMessage(content=get_schema_info(json_schema, tools_code))]
+        if answers is not None:
+            messages_list.append(HumanMessage(content=f"<additional_information>{answers}</additional_information>"))
+        response = await llm_model.ainvoke(messages_list, config=modifiedConfig)
+        py_code = get_filtered_file(response.content)
+        return py_code
+    except Exception as e:
+        raise e
 
-async def code_node(state: AgentBuilderState, config: RunnableConfig):
+async def code_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["code_analyzer_node", "__end__"]]:
     """
     LangGraph node to generate the final Python code for the agent.
     It uses the gathered agent_instructions and the CODE_GEN_PROMPT.
     """
+    try:
+        modifiedConfig = copilotkit_customize_config(
+            config,
+            emit_messages=False
+        )
+        #json_schema_final = json_schema_nutrition
+        state["current_tab"] = "code"
+        await append_in_progress_to_list(modifiedConfig, state, "Generating Python code...")
+        response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"], state["answers"])
+        await update_last_status(modifiedConfig, state, "Python code generated successfully", True)
+        # Return the generated Python code and an AI message
+        return Command(
+            goto="code_analyzer_node",
+            update={
+                "current_tab": "code",
+                "python_code": response,
+                "agent_status_list": state["agent_status_list"],
+            }
+        )
+    except Exception as e:
+        return Command(
+            goto="__end__",
+            update={
+                "exception_caught": f"{e}\n{traceback.format_exc()}",
+                "messages": [AIMessage(content="An error occurred during generating Python code. Please try again.")]
+            }
+        ) 
 
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False
-    )
-    #json_schema_final = json_schema_nutrition
-    state["current_tab"] = "code"
-    await append_in_progress_to_list(modifiedConfig, state, "Generating Python code...")
-    response  = await generate_python_code(modifiedConfig, state["json_schema"], state["tools_code"], state["answers"])
-    await update_last_status(modifiedConfig, state, "Python code generated successfully", True)
-    # Return the generated Python code and an AI message
-    return {
-        "current_tab": "code",
-        "python_code": response,
-        "agent_status_list": state["agent_status_list"],
-    } 
-
-async def code_analyzer_node(state: AgentBuilderState, config: RunnableConfig):
-    FIX_PROMPT = """
+async def code_analyzer_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["mock_tools_writer", "__end__"]]:
+    try:
+        FIX_PROMPT = """
 You are a langgraph expert, user will provide you with a python code and a list of errors/warning with fixes. Your job is to make the fixes.
 """
-    PYTHON_PROMPT = """
+        PYTHON_PROMPT = """
 <python_code>
 {python_code}
 </python_code>
 """
-    ERROR_REPORT = """
+        ERROR_REPORT = """
 <error_report>
 {fixes}
 </error_report>
 """
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False
-    )
-    python_file = get_filtered_file(state["python_code"])
-    error_report = run_detailed_validation(python_file)
-    if len(error_report["errors"])>0:
-        await append_in_progress_to_list(modifiedConfig, state, "Analyzing code for correctness...")
-        llm = get_model()
-        response = await llm.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
-                                             HumanMessage(content=PYTHON_PROMPT.format(python_code=python_file)),
-                                             HumanMessage(content=ERROR_REPORT.format(fixes=str(error_report["errors"])))], config=modifiedConfig)
-        await update_last_status(modifiedConfig, state, "Code analysis complete", True)
-        return {"python_code": response.content, "agent_status_list": state["agent_status_list"] }
-    return {"python_code": state["python_code"]}
+        modifiedConfig = copilotkit_customize_config(
+            config,
+            emit_messages=False
+        )
+        python_file = get_filtered_file(state["python_code"])
+        error_report = run_detailed_validation(python_file)
+        if len(error_report["errors"])>0:
+            await append_in_progress_to_list(modifiedConfig, state, "Analyzing code for correctness...")
+            llm_model = get_model()
+            response = await llm_model.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
+                                                 HumanMessage(content=PYTHON_PROMPT.format(python_code=python_file)),
+                                                 HumanMessage(content=ERROR_REPORT.format(fixes=str(error_report["errors"])))], config=modifiedConfig)
+            await update_last_status(modifiedConfig, state, "Code analysis complete", True)
+            return Command(
+                goto="mock_tools_writer",
+                update={"python_code": response.content, "agent_status_list": state["agent_status_list"]}
+            )
+        return Command(
+            goto="mock_tools_writer",
+            update={"python_code": state["python_code"]}
+        )
+    except Exception as e:
+        return Command(
+            goto="__end__",
+            update={
+                "exception_caught": f"{e}\n{traceback.format_exc()}",
+                "messages": [AIMessage(content="An error occurred during analyzing code. Please try again.")]
+            }
+        )
