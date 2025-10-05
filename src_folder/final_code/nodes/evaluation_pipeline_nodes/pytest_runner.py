@@ -29,18 +29,18 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
         
         if "attempt_num" not in state:
             state["attempt_num"] = 1
-        
+
         if "console_logs" not in state:
             state["console_logs"] = []
         
         async def pytest_results_handler(x: str):
-                pytest_out.append(x)
-                state["current_tab"] =  "console"
-                state["console_logs"] = state["console_logs"] + [x]
-                if is_test:
-                    pass
-                else:
-                    await copilotkit_emit_state(state=state, config=modified_config)
+            pytest_out.append(x)
+            state["current_tab"] =  "console"
+            state["console_logs"] = state["console_logs"] + [x]
+            if is_test:
+                pass
+            else:
+                await copilotkit_emit_state(state=state, config=modified_config)
         
         state["current_tab"] =  "console"
         state["console_logs_incoming"]= True
@@ -66,7 +66,7 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
             if not is_test:
                 await copilotkit_emit_state(state=state, config=modified_config)
 
-            commandResult = await sandbox.commands.run("pytest -n 2 -vv \
+            await sandbox.commands.run("pytest -n 2 -vv \
                                                         --tb=long \
                                                         --capture=tee-sys \
                                                         --json-report \
@@ -95,14 +95,40 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
                 "console_logs": [pytest_results_str] + pytest_out,
                 "attempts": state["attempts"]-1,
                 "agent_status_list": state["agent_status_list"],
-                "attempt_num": state["attempt_num"]
+                "attempt_num": state["attempt_num"],
+                # Save checkpoint for recovery
+                "last_working_pytest_report": final_report,
+                "last_working_python_code": state["python_code"],
+                "last_working_pytest_code": state["pytest_code"],
+                "last_working_mock_tools_code": state["mock_tools_code"]
                 },
                   goto= "evaluation_start")
     except Exception as e:
-        return Command(
-            goto="__end__",
-            update={
-                "exception_caught": f"{e}\n{traceback.format_exc()}",
-                "messages": [AIMessage(content="An error occurred during running pytest tests. Please try again.")]
-            }
-        )
+        # Subsequent attempts - try to rollback to last working checkpoint
+        has_checkpoint = (state.get("last_working_python_code") and 
+                        state.get("last_working_pytest_code") and 
+                        state.get("last_working_mock_tools_code") and
+                        state.get("last_working_pytest_report"))        
+        if has_checkpoint:
+            # Rollback to last working checkpoint
+            return Command(
+                goto="evaluation_start",
+                update={
+                    "attempt_num": state["attempt_num"],
+                    "attempts": state["attempts"]-1,
+                    "exception_caught": f"{e}\n{traceback.format_exc()}",
+                    "pytest_report": state["last_working_pytest_report"],
+                    "python_code": state["last_working_python_code"],
+                    "pytest_code": state["last_working_pytest_code"],
+                    "mock_tools_code": state["last_working_mock_tools_code"],
+                    "messages": [AIMessage(content=f"Some error occured, Rolling back to last working checkpoint and retrying...")]
+                }
+            )
+        else:
+            return Command(
+                goto="__end__",
+                update={
+                    "exception_caught": f"{e}\n{traceback.format_exc()}",
+                    "messages": [AIMessage(content="An error occurred during running pytest tests. Please try again.")]
+                }
+            )

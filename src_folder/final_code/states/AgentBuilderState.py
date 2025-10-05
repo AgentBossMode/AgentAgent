@@ -37,3 +37,8 @@ class AgentBuilderState(BaseCopilotRenderingState):
     syntax_issues: List[TestResult] = Field(default_factory=list, description="List of syntax issues found in the code")
     assertion_failures: List[TestResult] = Field(default_factory=list, description="List of assertion failures found in the code")
     exception_caught: str = Field(default="", description="Log of any exceptions or failures that occurred during node execution")
+    # Checkpoint fields for recovery
+    last_working_pytest_report: dict = Field(default={}, description="Last successfully run pytest report for checkpoint recovery")
+    last_working_python_code: str = Field(default="", description="Last successfully run python code for checkpoint recovery")
+    last_working_pytest_code: str = Field(default="", description="Last successfully run pytest code for checkpoint recovery")
+    last_working_mock_tools_code: str = Field(default="", description="Last successfully run mock tools code for checkpoint recovery")
