@@ -21,9 +21,9 @@ async def test_mock_tools_writer():
     # Call the mock_test_writer function
     result = await mock_tools_writer(state, config)
     # Check if the result is as expected
-    assert isinstance(result, dict)
-    assert "mock_tools_code" in result
-    mock_tools_code = result["mock_tools_code"]
+    assert isinstance(result.update, dict)
+    assert "mock_tools_code" in result.update
+    mock_tools_code = result.update["mock_tools_code"]
 
     # AST-based check to ensure no 'dict' types are in Pydantic models
     try:
