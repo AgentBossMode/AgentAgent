@@ -110,13 +110,13 @@ def tool_name_3():
     # method definition
 
 @tool
-def tool_name_3():
+def tool_name_4():
     # method definition
 ```
                                                
 The import statement you will add to final output is (FOLLOW THIS STRICTLY)
 ```python
-from tools_code import tool_name_1, tool_name_2, tool_name_3, tool_name_3 
+from tools_code import tool_name_1, tool_name_2, tool_name_3, tool_name_4
 ```                                          
 ### 2. Create llm definition
 ```python
@@ -197,7 +197,14 @@ async def generate_python_code(modifiedConfig: RunnableConfig, json_schema: JSON
         messages_list = [ SystemMessage(content=generate_code_gen_prompt()),
             HumanMessage(content=get_schema_info(json_schema, tools_code))]
         if answers is not None:
-            messages_list.append(HumanMessage(content=f"<additional_information>{answers}</additional_information>"))
+            #[{'question': 'Could you please provide the Notion database ID(s) where the food intake and exercise activity logs should be stored and retrieved from? This is needed to configure the User Data Storage tools properly for logging and querying data.', 'answer': '[Marked as irrelevant]', 'isIrrelevant': True}]
+            try:
+                relevant_answers = [answer for answer in answers if not answer.get("isIrrelevant")]
+                if relevant_answers:
+                    messages_list.append(HumanMessage(content=f"<additional_information>{relevant_answers}</additional_information>"))
+            except Exception as e:
+                pass
+            
         response = await llm_model.ainvoke(messages_list, config=modifiedConfig)
         py_code = get_filtered_file(response.content)
         return py_code
