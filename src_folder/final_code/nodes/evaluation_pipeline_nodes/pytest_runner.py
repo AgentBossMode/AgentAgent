@@ -105,10 +105,10 @@ async def pytest_runner(state: AgentBuilderState, config: RunnableConfig) -> Com
                   goto= "evaluation_start")
     except Exception as e:
         # Subsequent attempts - try to rollback to last working checkpoint
-        has_checkpoint = (state.get("last_working_python_code") and 
-                        state.get("last_working_pytest_code") and 
-                        state.get("last_working_mock_tools_code") and
-                        state.get("last_working_pytest_report"))        
+        has_checkpoint = ("last_working_python_code" in state and 
+                        "last_working_pytest_code"in state and 
+                        "last_working_mock_tools_code"in state and
+                        "last_working_pytest_report" in state)        
         if has_checkpoint:
             # Rollback to last working checkpoint
             return Command(
