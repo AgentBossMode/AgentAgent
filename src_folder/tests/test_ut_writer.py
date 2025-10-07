@@ -10,18 +10,18 @@ from src_folder.final_code.pydantic_models.UtGen import UtGeneration, Trajectory
 from src_folder.final_code.nodes.evaluation_pipeline_nodes.pytest_writer import pytest_writer
 from src_folder.final_code.states.ReqAnalysis import DryRuns
 from typing import List
-
+from langgraph.types import Command
 @pytest.mark.asyncio
 async def test_pytest_writer():
     # Mock state with necessary fields
-    updated_state = await pytest_writer({
+    updated_state: Command = await pytest_writer({
         "dry_runs":DryRuns.model_validate_json(stock_dry_runs),
         "python_code": stock_main,
         "mock_tools_code": stock_mock_tools
         },
         {"type": "test"})
-    utgenerated: UtGeneration = updated_state["utGeneration"]
+    utgenerated: UtGeneration = updated_state.update["utGeneration"]
 
     ut_trajectory : List[TrajectoryUt] = utgenerated.trajectory_uts
     assert len(ut_trajectory) > 1, "No trajectory UTs generated"
-    assert ast.parse(updated_state["pytest_code"])
+    assert ast.parse(updated_state.update["pytest_code"])

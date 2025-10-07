@@ -10,6 +10,10 @@ from langchain_core.runnables import RunnableConfig
 from final_code.prompt_lib.high_level_info.get_json_info import get_json_info
 from final_code.prompt_lib.examples.json_examples import json_example_ecommerce, json_example_marketing, json_example_report_finance
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
+import traceback
+from langgraph.types import Command
+from typing import Literal
+
 
 llm = get_model()
 
@@ -38,36 +42,48 @@ Few-shot examples that can be helpful as reference. THESE EXAMPLES ARE TO ONLY B
 """)
 
 
-async def json_node(state: AgentBuilderState, config: RunnableConfig):
-    req_analysis: ReqAnalysis = state["req_analysis"]
-    
-    # Invoke LLM to generate code based on the detailed prompt and instructions
-    modifiedConfig = copilotkit_customize_config(
-        config,
-        emit_messages=False)
-    
-    state["current_tab"] = "graph"
-    await append_in_progress_to_list(modifiedConfig, state, "Generating JSON schema...")
-    
-    json_extraction_llm = llm.with_structured_output(JSONSchema)
-    json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
-        req_analysis=req_analysis.model_dump_json(indent=2),
-        dry_runs=state["dry_runs"].model_dump_json(indent=2),
-        json_info = get_json_info(),
-        json_example_ecommerce=json_example_ecommerce,
-        json_example_marketing=json_example_marketing,
-        json_example_report_finance=json_example_report_finance
-    ))], config=modifiedConfig)
+async def json_node(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["get_composio_tools", "__end__"]]:
+    try:
+        req_analysis: ReqAnalysis = state["req_analysis"]
+        
+        # Invoke LLM to generate code based on the detailed prompt and instructions
+        modifiedConfig = copilotkit_customize_config(
+            config,
+            emit_messages=False)
+        
+        state["current_tab"] = "graph"
+        await append_in_progress_to_list(modifiedConfig, state, "Generating JSON schema...")
+        
+        json_extraction_llm = llm.with_structured_output(JSONSchema)
+        json_extracted_output: JSONSchema = json_extraction_llm.invoke([HumanMessage(content=JSON_GEN_PROMPT.format(
+            req_analysis=req_analysis.model_dump_json(indent=2),
+            dry_runs=state["dry_runs"].model_dump_json(indent=2),
+            json_info = get_json_info(),
+            json_example_ecommerce=json_example_ecommerce,
+            json_example_marketing=json_example_marketing,
+            json_example_report_finance=json_example_report_finance
+        ))], config=modifiedConfig)
 
-    await update_last_status(modifiedConfig, state, "JSON schema generated successfully", True)
-    
-    reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
-    # Return the generated Python code and an AI message
-    return {
-        "json_schema": json_extracted_output,
-        "json_dict": reactflow_json,
-        "justification": json_extracted_output.justification,
-        "reactflow_json": reactflow_json,
-        "current_tab": "graph",
-        "agent_status_list": state["agent_status_list"]
-    }
+        await update_last_status(modifiedConfig, state, "JSON schema generated successfully", True)
+        
+        reactflow_json = dict_to_tree_positions(json_extracted_output.nodes, json_extracted_output.edges)
+        # Return the generated Python code and an AI message
+        return Command(
+            goto="get_composio_tools",
+            update={
+                "json_schema": json_extracted_output,
+                "json_dict": reactflow_json,
+                "justification": json_extracted_output.justification,
+                "reactflow_json": reactflow_json,
+                "current_tab": "graph",
+                "agent_status_list": state["agent_status_list"]
+            }
+        )
+    except Exception as e:
+        return Command(
+            goto="__end__",
+            update={
+                "exception_caught": f"{e}\n{traceback.format_exc()}",
+                "messages": [AIMessage(content="An error occurred during generating JSON schema. Please try again.")]
+            }
+        )

@@ -12,33 +12,40 @@ from final_code.validators_lib.validate_ast_parse import validate_ast_parse
 from final_code.ast_visitors_lib.PydanticDictVisitor import PydanticDictVisitor
 from final_code.utils.copilotkit_emit_status import append_in_progress_to_list, update_last_status
 from typing import Any
+import traceback
+from langchain_core.messages import AIMessage
+from langgraph.types import Command
+from typing import Literal
 
 async def fix_code_gen(final_code: str, config: RunnableConfig, errors: Any):
-
-    FIX_PROMPT = """
+    try:
+        FIX_PROMPT = """
 You are a langgraph expert, user will provide you with a python code and a list of errors/warning with fixes. Your job is to make the fixes.
 """
-    PYTHON_PROMPT = """
+        PYTHON_PROMPT = """
 <python_code>
 {python_code}
 </python_code>
 """
-    ERROR_REPORT = """
+        ERROR_REPORT = """
 <error_report>
 {fixes}
 </error_report>
 """
-    if len(errors) >0:
-        llm = get_model()
-        response = await llm.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
-                                             HumanMessage(content=PYTHON_PROMPT.format(python_code=final_code)),
-                                             HumanMessage(content=ERROR_REPORT.format(fixes=errors))], config=config)
-        final_code = response.content
-    return final_code
+        if len(errors) >0:
+            llm = get_model()
+            response = await llm.ainvoke(input=[SystemMessage(content=FIX_PROMPT),
+                                                 HumanMessage(content=PYTHON_PROMPT.format(python_code=final_code)),
+                                                 HumanMessage(content=ERROR_REPORT.format(fixes=errors))], config=config)
+            final_code = response.content
+        return final_code
+    except Exception as e:
+        return final_code  # Return original code if fixing fails
 
 
-async def mock_tools_writer(state: AgentBuilderState, config: RunnableConfig):
-    MOCK_TOOLS_WRITER = """
+async def mock_tools_writer(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["pytest_writer", "__end__"]]:
+    try:
+        MOCK_TOOLS_WRITER = """
 You are provided the tools_code.py file
 <tools_code.py>
 {tools_code}
@@ -161,32 +168,43 @@ You are supposed to generate a compilable python file with the mock code.
 4. In any class which inherits from BaseModel, do not use 'dict' as a type hint for any field.
 </NOTE>
 """ 
-    customized_config= copilotkit_customize_config(config, emit_messages=False)
-    app = create_react_agent(model= get_model(ModelName.GEMINI25FLASH),
-    tools=[get_raw_tool_schema],
-    name="mock_tools_writer",
-    config_schema=customized_config,
-    state_schema=ReactCopilotState)
+        customized_config= copilotkit_customize_config(config, emit_messages=False)
+        app = create_react_agent(model= get_model(ModelName.GEMINI25FLASH),
+        tools=[get_raw_tool_schema],
+        name="mock_tools_writer",
+        config_schema=customized_config,
+        state_schema=ReactCopilotState)
 
-    await append_in_progress_to_list(customized_config, state, "Writing a mock tools file...")
- 
-    new_state = state
-    new_state["messages"] = [HumanMessage(content=MOCK_TOOLS_WRITER.format(tools_code=state["tools_code"], tools_info=get_tools_info(state["json_schema"].tools), json_schema=get_nodes_and_edges_info(state["json_schema"])))]
-    final_response = await app.ainvoke(input=new_state)
-    final_code = final_response["messages"][-1].content
-    try:
-        module = validate_ast_parse(final_code)
+        await append_in_progress_to_list(customized_config, state, "Writing a mock tools file...")
+     
+        new_state = state
+        new_state["messages"] = [HumanMessage(content=MOCK_TOOLS_WRITER.format(tools_code=state["tools_code"], tools_info=get_tools_info(state["json_schema"].tools), json_schema=get_nodes_and_edges_info(state["json_schema"])))]
+        final_response = await app.ainvoke(input=new_state)
+        final_code = final_response["messages"][-1].content
+        try:
+            module = validate_ast_parse(final_code)
+        except Exception as e:
+            final_code = await fix_code_gen(final_code, customized_config, [str(e)])
+            module = validate_ast_parse(final_code)
+            
+        errors = validate_struct_output(module)
+        visitor = PydanticDictVisitor()
+        visitor.visit(module)
+        errors += visitor.errors
+
+        final_code = await fix_code_gen(final_code, customized_config, errors)
+
+        await update_last_status(customized_config, state, "Mock tools generated.", True)
+        return Command(
+            goto="pytest_writer",
+            update={"mock_tools_code": final_code, "agent_status_list": state["agent_status_list"]}
+        )
     except Exception as e:
-        final_code = await fix_code_gen(final_code, customized_config, [str(e)])
-        module = validate_ast_parse(final_code)
-        
-    errors = validate_struct_output(module)
-    visitor = PydanticDictVisitor()
-    visitor.visit(module)
-    errors += visitor.errors
-
-    final_code = await fix_code_gen(final_code, customized_config, errors)
-
-    await update_last_status(customized_config, state, "Mock tools generated.", True)
-    return {"mock_tools_code": final_code, "agent_status_list": state["agent_status_list"]}
+        return Command(
+            goto="__end__",
+            update={
+                "exception_caught": f"{e}\n{traceback.format_exc()}",
+                "messages": [AIMessage(content="An error occurred during generating mock tools. Please check logs for details.")]
+            }
+        )
 

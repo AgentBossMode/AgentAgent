@@ -2,6 +2,10 @@ from langchain_core.runnables import RunnableConfig
 from final_code.states.AgentBuilderState import AgentBuilderState
 from final_code.utils.get_filtered_file import get_filtered_file
 import ast
+import traceback
+from langchain_core.messages import AIMessage
+from langgraph.types import Command
+from typing import Literal
 
 class StateInheritanceTransformer(ast.NodeTransformer):
     """
@@ -150,8 +154,22 @@ def refactor_code(source_code: str) -> str:
         return ast.unparse(new_tree)
     except SyntaxError as e:
         return f"Error parsing code: {e}"
+    except Exception as e:
+        return f"Error refactoring code: {e}"
 
 
-def deployment_readiness(state: AgentBuilderState, config: RunnableConfig):
-    python_code = refactor_code(get_filtered_file(state["python_code"]))
-    return { "python_code": python_code }
+def deployment_readiness(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["__end__"]]:
+    try:
+        python_code = refactor_code(get_filtered_file(state["python_code"]))
+        return Command(
+            goto="__end__",
+            update={"python_code": python_code}
+        )
+    except Exception as e:
+        return Command(
+            goto="__end__",
+            update={
+                "exception_caught": f"{e}\n{traceback.format_exc()}",
+                "messages": [AIMessage(content="An error occurred during deployment readiness preparation. Please try again.")]
+            }
+        )

@@ -1,7 +1,10 @@
-from pydantic import BaseModel, Field
 from typing import List, Optional
+from pydantic import BaseModel, Field
 
 class Tool(BaseModel):
+    """
+    Represents a tool that can be used in the graph.
+    """
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of the tool's functionality, the input to the node, and the output of the node")
     is_composio_tool: bool = Field(default=False, description="Indicates if the tool is present in the composio toolset, default is False")
@@ -11,15 +14,24 @@ class Tool(BaseModel):
     node_ids: List[str] = Field(description="The node ids of the nodes for which the tool is relevant. This is the id variable in NodeSchema")
 
 class VariableSchema(BaseModel):
+    """
+    Represents a variable or class attribute that can be used in the graph.
+    """
     name: str = Field(description="Name of variable or class attribute")
     type: str = Field(description="Data type of variable or class attribute")
     description: str = Field(description="Description of variable or class attributes or when the variable or class attributes is used or variable or class attributes is changed")
 
 class GraphStateSchema(BaseModel):
+    """
+    Represents the schema of the graph state.
+    """
     type: str = Field(description="Data type of graph state") 
     fields: List[VariableSchema] = Field(description="List of Schema of all Attributes representing a class")
 
 class NodeSchema(BaseModel):
+    """
+    Represents a node in the graph.
+    """
     id: str = Field(description="The node's identifier")
     llm_actions: List[str] = Field(description="A list of abstract actions a node is expected to do")
     input_schema: List[VariableSchema] = Field(description="The expected input schema for the node (typically \"GraphState\").")
@@ -28,12 +40,18 @@ class NodeSchema(BaseModel):
     function_name: str = Field(description="The suggested Python function name for this node.")
 
 class EdgeSchema(BaseModel):
+    """
+    Represents an edge in the graph.
+    """
     source: str = Field(description="ID of the source node (or '__START__' for the graph's entry point)")
     target: str = Field(description="ID of the target node (or '__END__' for a graph termination point)")
     routing_conditions: str = Field(description="A natural language description of the condition under which this edge is taken, especially for conditional edges.")
     conditional: bool = Field(description="A boolean flag, `true` if the edge is part of a conditional branch, `false` otherwise")
 
 class JSONSchema(BaseModel):
+    """
+    Represents the JSON schema of the graph.
+    """
     graphstate: GraphStateSchema = Field(description="Identified graphstate schema for a particular set of requirements")
     justification: str = Field(description="Identified architecture and justification of deciding the architecture")
     nodes: List[NodeSchema] = Field(description="List of nodes in the graph, each with its unique identifier and schema information")
@@ -57,6 +75,9 @@ def get_tools_info(tools: Optional[List[Tool]]) -> str:
     return tools_info
 
 def get_nodes_and_edges_info(json_schema: JSONSchema) -> str:
+    """
+    Get the nodes and edges information from the JSON schema.
+    """
     json_schema_without_tools: JSONSchema = json_schema.model_copy(deep=True) # Create a deep copy to avoid modifying original state
     json_schema_without_tools.tools = [] # Clear the tools field in the copy
     return json_schema_without_tools.model_dump_json(indent=2)
