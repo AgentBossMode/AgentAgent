@@ -157,7 +157,7 @@ async def evaluation_start(state: AgentBuilderState, config: RunnableConfig) -> 
     if pytest_report.get("summary", {}).get("passed", 0) > 0 and pytest_report.get("summary", {}).get("failed", 0) == 0:
         await append_success_to_list(config, state, "All tests passed, your agent is ready!", False)
         return Command(goto="deployment_readiness", update={ "agent_status_list": state["agent_status_list"] })
-    elif state["attempts"] == 0:
+    elif state["attempts"] <= 0:
         await append_failure_to_list(config, state, "Max attempts reached, please try again.", False)
         return Command(goto=END, update={ "agent_status_list": state["agent_status_list"] })
 
