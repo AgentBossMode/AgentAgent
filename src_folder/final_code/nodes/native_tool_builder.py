@@ -12,7 +12,7 @@ from typing import List
 from final_code.states.NodesAndEdgesSchemas import Tool
 from final_code.states.ToolOptions import ToolOptions
 from pydantic import Field, BaseModel
-
+from final_code.llms.model_factory import get_model, ModelName
 
 
 tavily_extract_tool = TavilyExtract(
@@ -36,7 +36,7 @@ Instructions:
 3. Try to return more than 1 tooling for tool_name, if you dont find any, just write a custom implementation.
 """
 
-llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+llm = get_model(ModelName.GPT41MINI)
 native_react_agent_2 = create_react_agent(
     model=llm,
     prompt = TOOL_PROMPT_2,
