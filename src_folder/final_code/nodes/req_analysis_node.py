@@ -55,7 +55,7 @@ You should get the following information from them:
 async def analyze_reqs(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["requirement_analysis_node", "__end__"]]:
     try:
         if "agent_status_list" in state:
-            state["agent_status_list"] = AgentStatusList(agent_status_steps=[])
+            return Command(goto="__end__", update={"messages": [AIMessage(content="Promptius currently only supports building one agent at a time. Please start a new session to build another agent by clicking on the New Chat button")]}) 
         modifiedConfig = copilotkit_customize_config(
             config,
             emit_messages=False,
