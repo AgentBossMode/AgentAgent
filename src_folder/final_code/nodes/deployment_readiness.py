@@ -25,6 +25,16 @@ class StateInheritanceTransformer(ast.NodeTransformer):
                 self.copilotkit_import_exists = True
         return node
 
+    def visit_Call(self, node: ast.Call) -> ast.AST:
+        # Recursively visit children first
+        self.generic_visit(node)
+
+        # Check for `*.compile()` calls and remove `checkpointer` keyword argument
+        if isinstance(node.func, ast.Attribute) and node.func.attr == 'compile':
+            original_keyword_count = len(node.keywords)
+            node.keywords = [kw for kw in node.keywords if kw.arg != 'checkpointer']
+        return node
+
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST:
         # Recursively visit children first to handle nested classes
         self.generic_visit(node)
@@ -147,10 +157,10 @@ def refactor_code(source_code: str) -> str:
         tree = ast.parse(source_code)
         transformer = StateInheritanceTransformer()
         new_tree = transformer.visit(tree)
-        transformer = ToolVarCollector()
-        transformer.visit(new_tree)
-        transformer = ToolsListTransformer(transformer.react_agent_tool_vars)
-        new_tree = transformer.visit(new_tree)
+        # transformer = ToolVarCollector()
+        # transformer.visit(new_tree)
+        # transformer = ToolsListTransformer(transformer.react_agent_tool_vars)
+        # new_tree = transformer.visit(new_tree)
         return ast.unparse(new_tree)
     except SyntaxError as e:
         return f"Error parsing code: {e}"
