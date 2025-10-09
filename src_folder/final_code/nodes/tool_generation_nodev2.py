@@ -159,6 +159,11 @@ def search_customer_database(customer_id: str) -> str:
 """
         json_schema: JSONSchema = state["json_schema"]
         tools: List[Tool] = json_schema.tools
+        if len(tools) == 0:
+            return Command(
+                goto="tool_interrupt",
+                update={"tools_code": ""}
+            )
         tools_info_list = "\n".join(tool.model_dump_json() for tool in tools)
         llm = get_model()
         await append_in_progress_to_list(config, state, "Generating tools code")
