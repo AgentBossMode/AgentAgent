@@ -56,7 +56,9 @@ async def call_native_agents_to_get_tools(state: AgentBuilderState, config: Runn
     return {"tool_options": answer["structured_response"]}
 
 async def get_user_input(state: AgentBuilderState, config: RunnableConfig):
-    answer:dict = interrupt({"type": "select_non_composio_tools", "payload": state["tool_options"]})
+    import json
+
+    answer:dict = json.loads(interrupt({"type": "select_non_composio_tools", "payload": state["tool_options"]}))
     # {'Automated_FollowUp_Sender': 'Custom Python script using Gmail API, OpenAI API, AWS Lambda', 'Email_Engagement_Monitor': 'pytracking'}
     for tool in state["json_schema"].tools:
         if tool.name in answer.keys():
