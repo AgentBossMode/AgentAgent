@@ -26,11 +26,10 @@ def get_composio_tools_node(state: AgentBuilderState) -> Command[Literal["proces
                 "tool_name": tool.name,
                 "tool_description": tool.description,
             }) 
-        import json
-        tools_selection_data = json.loads(interrupt({
+        tools_selection_data = interrupt({
             "type": "select_composio_tools",
             "payload": tool_list
-        }))
+        }) 
         tool_set = set()
         for tool_selected in tools_selection_data["completed"]:
             tool_set.add(tool_selected["toolkit_slug"])

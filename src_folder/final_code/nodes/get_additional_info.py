@@ -60,8 +60,7 @@ You are a software developer working with a client who has provided you with the
         )
 
 def additional_info_interrupt(state: AgentBuilderState) -> Command[Literal["code_node", "__end__"]]:
-    import json
-    value = json.loads(interrupt(value={"type":"additional_info", "payload": state["questions"]}))
+    value = interrupt(value={"type":"additional_info", "payload": state["questions"]})
     try:
         return Command(
             goto="code_node",

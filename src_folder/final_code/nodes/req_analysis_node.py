@@ -91,8 +91,7 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
     If information is insufficient, it interrupts the graph for user input.
     Otherwise, it proceeds to the code generation node.
     """
-    import json
-    value_1: dict = json.loads(interrupt({"type":"req_analysis", "payload": state["req_analysis"] }))  
+    value_1: dict = interrupt({"type":"req_analysis", "payload": state["req_analysis"] })
     try:
         #llm_with_tool = llm.bind_tools([AgentInstructions]) # Bind the AgentInstructions Pydantic model as a tool
         parsing_error = False
@@ -102,7 +101,7 @@ async def requirement_analysis_node(state: AgentBuilderState, config: RunnableCo
             if value_1["approved"] == False:
                 parsing_error = True
                 msg = "requirements analysis suggestions rejected. Please restart the process by providing a detailed input"
-        except Exception as e:
+        except Exception:
             parsing_error = True
             msg = "Unknown error occurred. Please restart the process by providing a detailed input"
         if parsing_error:   
@@ -203,8 +202,7 @@ def dry_run_interrupt(state: AgentBuilderState, config: RunnableConfig) -> Comma
     It collects the dry run information from the user and updates the state.
     """
     dry_runs: DryRuns = state["dry_runs"]
-    import json
-    value_1: dict = json.loads(interrupt({"type":"dry_runs", "payload": state["dry_runs"] }))
+    value_1: dict = interrupt({"type":"dry_runs", "payload": state["dry_runs"] })
     try:
         try:
             dry_runs_1: DryRuns = DryRuns.model_validate(value_1)    
