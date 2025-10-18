@@ -97,7 +97,7 @@ async def process_non_composio_tools(state: AgentBuilderState) -> Command[Litera
             }
         )
 
-async def generate_tools_code(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["tool_interrupt", "__end__"]]:
+async def generate_tools_code(state: AgentBuilderState, config: RunnableConfig) -> Command[Literal["generate_additional_info_questions", "__end__"]]:
     try:
         customized_config = copilotkit_customize_config(config, emit_messages=False)
         TOOL_FILE_GENERATION_PROMPT = """
@@ -162,7 +162,7 @@ def search_customer_database(customer_id: str) -> str:
         tools: List[Tool] = json_schema.tools
         if len(tools) == 0:
             return Command(
-                goto="tool_interrupt",
+                goto="generate_additional_info_questions",
                 update={"tools_code": ""}
             )
         tools_info_list = "\n".join(tool.model_dump_json() for tool in tools)
@@ -171,7 +171,7 @@ def search_customer_database(customer_id: str) -> str:
         tools_code = await llm.ainvoke([SystemMessage(TOOL_FILE_GENERATION_PROMPT), HumanMessage(content=tools_info_list)], config = customized_config)
         await update_last_status(config, state, "Tools code generated successfully", True)
         return Command(
-            goto="tool_interrupt",
+            goto="generate_additional_info_questions",
             update={"agent_status_list": state["agent_status_list"], "tools_code": tools_code.content}
         )
     except Exception as e:
