@@ -1,8 +1,8 @@
 {
     "graphs": {
       "graph1" : "./src_folder/app_one_prompt.py:app",
-      "ahitl_agent": "./src_folder/ahitl_agent.py:app"
-
+      "ahitl_agent": "./src_folder/ahitl_agent.py:app",
+      "gui_agent": "./src_folder/gui_agent.py:app"
     },
     "python_version": "3.13",
     "dependencies": [

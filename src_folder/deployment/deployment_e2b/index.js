@@ -3,7 +3,6 @@ import {
   CopilotRuntime,
   ExperimentalEmptyAdapter,
   copilotRuntimeNodeHttpEndpoint,
-  langGraphPlatformEndpoint,
   LangGraphAgent,
 } from '@copilotkit/runtime';
 import cors from "cors";
@@ -20,16 +19,12 @@ app.use(
 const serviceAdapter = new ExperimentalEmptyAdapter();
 
 const runtime = new CopilotRuntime({
-   remoteEndpoints: [
-    langGraphPlatformEndpoint({
-      deploymentUrl:  'http://127.0.0.1:2024',
+  agents: {
+    'app': new LangGraphAgent({
+      deploymentUrl: 'http://127.0.0.1:2024',
       graphId: 'app',
-      agents: [{
-          name: 'app',
-          description: 'A helpful LLM agent.'
-      }]
     }),
-  ],
+  }
 });
 
 const handler = copilotRuntimeNodeHttpEndpoint({
