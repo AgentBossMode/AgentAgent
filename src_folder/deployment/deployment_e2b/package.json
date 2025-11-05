@@ -11,8 +11,10 @@
     "license": "ISC",
     "description": "",
     "dependencies": {
-      "@copilotkit/runtime": "^1.9.1",
-      "@copilotkit/sdk-js": "^1.9.1",
+      "@copilotkit/runtime": "^1.10.6",
+      "@copilotkit/runtime-client-gql": "^1.10.6",
+      "@copilotkit/sdk-js": "^1.10.6",
+      "@copilotkit/shared": "^1.10.6",
       "dotenv": "^16.5.0",
       "express": "^5.1.0",
       "cors": "2.8.5"
