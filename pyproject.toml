@@ -11,7 +11,7 @@ requires-python = ">=3.13"
 dependencies = [
     "composio-langchain==1.0.0rc5",
     "composio[langchain]==1.0.0rc5",
-    "copilotkit==0.1.63",
+    "copilotkit==0.1.70",
     "dotenv>=0.9.9",
     "e2b-code-interpreter>=1.2.1",
     "fastapi>=0.115.12",
@@ -24,7 +24,7 @@ dependencies = [
     "langchain-google-genai>=2.1.4",
     "langchain-openai>=0.3.14",
     "langchain-tavily>=0.2.3",
-    "langgraph==0.6.10",
+    "langgraph==1.0.2",
     "langsmith>=0.3.38",
     "openevals>=0.0.19",
     "promptius-gui-schema>=2.0.3",
@@ -57,7 +57,6 @@ dev = [
     "langgraph-sdk>=0.1.66",
     "langgraph-supervisor>=0.0.21",
     "langgraph-reflection>=0.0.1",
-    "langgraph-checkpoint-postgres>=2.0.21",
     "requests>=2.32.3",
 ]
 
