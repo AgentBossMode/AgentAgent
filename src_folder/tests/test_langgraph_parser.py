@@ -919,7 +919,6 @@ app = workflow.compile(checkpointer=checkpointer)
 test_cases = create_test_cases()
 
 @pytest.mark.parametrize("test_name, test_data", test_cases.items())
-@pytest.mark.asyncio
 def test_langgraph_validation_cases(test_name, test_data):
     """
     Runs validation for a specific test case and asserts the number of errors.

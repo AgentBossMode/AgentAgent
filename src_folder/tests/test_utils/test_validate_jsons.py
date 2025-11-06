@@ -4,7 +4,6 @@ import pytest
 from src_folder.tests.test_utils.stock_agent.stock_json import stock_json
 from final_code.states.NodesAndEdgesSchemas import JSONSchema
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "json_schema",
     [
