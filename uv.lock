@@ -113,7 +113,7 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=0.3.14" },
     { name = "langchain-pinecone", marker = "extra == 'dev'", specifier = ">=0.2.5" },
     { name = "langchain-tavily", specifier = ">=0.2.3" },
-    { name = "langgraph", specifier = "==0.6.6" },
+    { name = "langgraph", specifier = "==0.6.10" },
     { name = "langgraph-api", marker = "extra == 'dev'", specifier = ">=0.4.11" },
     { name = "langgraph-checkpoint-postgres", marker = "extra == 'dev'", specifier = ">=2.0.21" },
     { name = "langgraph-cli", extras = ["inmem"], marker = "extra == 'dev'", specifier = ">=0.3.6" },
@@ -1644,7 +1644,7 @@ wheels = [
 
 [[package]]
 name = "langgraph"
-version = "0.6.6"
+version = "0.6.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain-core" },
@@ -1654,9 +1654,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/2b/59f0b2985467ec84b006dd41ec31c0aae43a7f16722d5514292500b871c9/langgraph-0.6.6.tar.gz", hash = "sha256:e7d3cefacf356f8c01721b166b67b3bf581659d5361a3530f59ecd9b8448eca7", size = 465452, upload_time = "2025-08-20T04:02:13.915Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e2/9c/bc34cf47e7a8845f9abe5a09cf6ed892162b899708fae5c59252fa44ed24/langgraph-0.6.10.tar.gz", hash = "sha256:37457595ef3becebca94b3c4711a8bcd539b5eae7560f2cec409eae0d8113c59", size = 492079, upload_time = "2025-10-09T16:45:13.714Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/ef/81fce0a80925cd89987aa641ff01573e3556a24f2d205112862a69df7fd3/langgraph-0.6.6-py3-none-any.whl", hash = "sha256:a2283a5236abba6c8307c1a485c04e8a0f0ffa2be770878782a7bf2deb8d7954", size = 153274, upload_time = "2025-08-20T04:02:12.251Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/75/c2972a484581389b5c193f16e8e36531e6574b280f23700735b0d6729365/langgraph-0.6.10-py3-none-any.whl", hash = "sha256:b16baacd38895f6f4aa51e03b8a5b5f8695cff96fd0e8b637b725186ea27237c", size = 155422, upload_time = "2025-10-09T16:45:12.033Z" },
 ]
 
 [[package]]
