@@ -124,7 +124,7 @@ requires-dist = [
     { name = "langgraph-supervisor", marker = "extra == 'dev'", specifier = ">=0.0.21" },
     { name = "langsmith", specifier = ">=0.3.38" },
     { name = "openevals", specifier = ">=0.0.19" },
-    { name = "promptius-gui-schema", specifier = ">=2.0.3" },
+    { name = "promptius-gui-schema", specifier = ">=2.0.8" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
     { name = "pydantic", specifier = ">=2.11.3" },
     { name = "pytest", marker = "extra == 'github'", specifier = ">=8.3.5" },
@@ -2281,14 +2281,14 @@ wheels = [
 
 [[package]]
 name = "promptius-gui-schema"
-version = "2.0.3"
+version = "2.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/ac/b4501a6a686daea8d04dabafc3d5821cc2441bdcc67bf6972dbda436910a/promptius_gui_schema-2.0.3.tar.gz", hash = "sha256:eb663aa3ed48caa9d79daee22ea10871095215cdfba83bc5aa61673fa5dd1c8f", size = 206049, upload_time = "2025-11-05T05:17:15.073Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/de/68cc7e72efdcc2eec1ca07beeb00b3ace1558584ee457fcb98d4a1f04c3b/promptius_gui_schema-2.0.8.tar.gz", hash = "sha256:232dff9ac34fae886fa636fbf0a5b5d76e6d83095d43d04d0f2369046b315e41", size = 207305, upload_time = "2025-12-23T11:24:00.622Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/39/76/f2ef06cf9fad600f2b11b526316d34e2022f8af8b0bd3cb6068aeb51e445/promptius_gui_schema-2.0.3-py3-none-any.whl", hash = "sha256:955a1f3699a72c9a932663dde0a4244fe71bd817bac694671f6f8077f45bd70c", size = 9211, upload_time = "2025-11-05T05:17:13.684Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/5d/ec054223216cad943b15f0c88b3ffe6e9e0f298b2a21c9513dd6fdf422ef/promptius_gui_schema-2.0.8-py3-none-any.whl", hash = "sha256:4b0088850b151dd2e9512f4bb95604bc523178a339862fdbb58baf73178da503", size = 10423, upload_time = "2025-12-23T11:23:59.248Z" },
 ]
 
 [[package]]
