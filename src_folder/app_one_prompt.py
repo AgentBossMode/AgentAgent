@@ -40,24 +40,4 @@ main_workflow.add_node("deployment_readiness", deployment_readiness)
 # EDGE SECTION - All routing now handled by Command returns from nodes
 main_workflow.add_edge(START, "analyze_reqs")
 
-# from src_folder.tests.test_utils.github_issues_agent.github_code import github_code
-# from src_folder.tests.test_utils.github_issues_agent.github_tests import github_tests
-# from src_folder.tests.test_utils.github_issues_agent.github_mock_tools import github_mock_tools
-# from src_folder.tests.test_utils.stock_agent.stock_main import stock_main
-# from src_folder.tests.test_utils.stock_agent.stock_tests import stock_tests
-# from src_folder.tests.test_utils.stock_agent.stock_mock_tools import stock_mock_tools
-# from src_folder.tests.test_utils.stock_agent.stock_uts import stock_uts
-# from src_folder.final_code.pydantic_models.UtGen import UtGeneration
-# import json
-# def setup_code(state: AgentBuilderState) -> AgentBuilderState:
-#     return {"python_code": stock_main, "pytest_code": stock_tests, "mock_tools_code": stock_mock_tools, "console_logs": [],
-#        "current_status": {},
-#          "messages": [],
-#          "dry_runs": [],
-#          "req_analysis": {},
-#          "utGeneration": UtGeneration.model_validate_json(stock_uts)}
-# main_workflow.add_node("setup_code", setup_code)
-# main_workflow.add_edge(START, "setup_code")
-# main_workflow.add_edge("setup_code", "pytest_runner")
-
 app = main_workflow.compile()

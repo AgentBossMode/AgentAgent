@@ -11,25 +11,7 @@ Repository of experiments:
     pip install -r requirements.txt
     ```
 
-2. To get the environment variables file, do the following:
-    - Create a gpg key - https://gnupg.org/download/
-    ```bash
-    brew install gpg
-    gpg --full-generate-key
-    ```
-    Choose:
-    - RSA and RSA, size 4096
-    - Expiration: optional
-    - Name/email: your actual info
-    - Passphrase: something safe
-
-    Share the pubkey with admin (Kanishk/Abhishek).
-    Once they encrypt the file with your gpg key, then using 'sops' - http://getsops.io/:
-    ```bash
-    brew install sops # for mac
-    export GPG_TTY=$(tty)
-    sops --decrypt --input-type binary --output-type binary .env.enc > .env.decrypted
-    ```
+2. To get the environment variables file, copy the .env.example file to a new .env file, and replace placeholders with your keys
 
 3. To run langgraph server, go to the root folder and run the following:
     ```bash

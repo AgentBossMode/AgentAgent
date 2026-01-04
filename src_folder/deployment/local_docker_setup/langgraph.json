@@ -1,9 +1,0 @@
-{
-    "graphs": {
-      "app" : "./app.py:app"
-    },
-    "dependencies": [
-      "./"
-    ],
-    "env": ".env"
-}
